@@ -1,0 +1,9 @@
+[0m[[0m[33mwarn[0m] [0m[0m[33m-- [E029] Pattern Match Exhaustivity Warning: C:\Users\Jonathan\Desktop\objectModel\core\shared\src\main\scala\bon\jo\words\MathExp.scala:197:6 [0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m[33m197 |[0m      (left,right) [33mmatch[0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m    |      [33m^^^^^^^^^^^^[0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m    |[33mmatch[0m may not be exhaustive.[0m
+[0m[[0m[33mwarn[0m] [0m[0m    |[0m
+[0m[[0m[33mwarn[0m] [0m[0m    |It would fail on pattern case: (MathExp.Function(_, _, _), _), (MathExp.Symbol(_, _), MathExp.Function(_, _, _)), (MathExp.Symbol(_, _), _: MathExp.Op), (MathExp.Symbol(_, _), MathExp./(_)), (MathExp.Symbol(_, _), MathExp.-(_))[0m
+[0m[[0m[33mwarn[0m] [0m[0m    |(More unmatched cases are elided)[0m
+[0m[[0m[33mwarn[0m] [0m[0mone warning found[0m
+[0m[[0m[33mwarn[0m] [0m[0mone warning found[0m
