@@ -1,6 +1,0 @@
-[0m[[0m[31merror[0m] [0m[0m[31m-- [E006] Not Found Error: C:\Users\Jonathan\Desktop\objectModel\core\js\src\main\scala\bon\jo\View.scala:37:140 [0m[0m
-[0m[[0m[31merror[0m] [0m[0m[31m37 |[0m    [33mdef[0m [36maddTo[0m([36mn[0m : [35mElement[0m) = n.append(label([31m"min="[0m),inputMinX,label([31m"max="[0m),inputMaxX,label([31m"points="[0m),pointNumber,label([31m"x axis position"[0m),axePostionXr,label([31m"y axis position"[0m),axePostionY)[0m
-[0m[[0m[31merror[0m] [0m[0m   |                                                                                                                                            [31m^^^^^^^^^^^^[0m[0m
-[0m[[0m[31merror[0m] [0m[0m   |                                                 Not found: axePostionXr[0m
-[0m[[0m[31merror[0m] [0m[0mone error found[0m
-[0m[[0m[31merror[0m] [0m[0mone error found[0m

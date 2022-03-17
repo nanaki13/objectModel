@@ -1,6 +1,0 @@
-[0m[[0m[0mdebug[0m] [0m[0m[zinc] IncrementalCompile -----------[0m
-[0m[[0m[0mdebug[0m] [0m[0mIncrementalCompile.incrementalCompile[0m
-[0m[[0m[0mdebug[0m] [0m[0mprevious = Stamps for: 99 products, 9 sources, 2 libraries[0m
-[0m[[0m[0mdebug[0m] [0m[0mcurrent source = Set(${BASE}/core/src/main/scala/bon/jo/objects/All.scala, ${BASE}/core/src/main/scala/bon/jo/utils/Tree.scala, ${BASE}/core/src/main/scala/bon/jo/words/MathExp.scala, ${BASE}/core/src/main/scala/bon/jo/words/Phrase.scala, ${BASE}/core/src/main/scala/bon/jo/utils/InputsToOutput.scala, ${BASE}/core/src/main/scala/bon/jo/utils/ConvertList.scala, ${BASE}/core/src/main/scala/bon/jo/words/PhraseElement.scala, ${BASE}/core/src/main/scala/bon/jo/objects/StringExctractor.scala, ${BASE}/core/src/main/scala/bon/jo/objects/words.scala)[0m
-[0m[[0m[0mdebug[0m] [0m[0m> initialChanges = InitialChanges(Changes(added = Set(), removed = Set(), changed = Set(), unmodified = ...),Set(),Set(),API Changes: Set())[0m
-[0m[[0m[0mdebug[0m] [0m[0mNo changes[0m

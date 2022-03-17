@@ -1,2 +1,0 @@
-[0m[[0m[31merror[0m] [0m[0mMultiple main classes (bon.jo.objects.test, bon.jo.test) were found. You can explicitly specify the one you want with `mainClass := Some(...)` or with `scalaJSMainModuleInitializer := Some(...)`[0m
-[0m[[0m[31merror[0m] [0m[0m(coreJS / Compile / [31mscalaJSModuleInitializers[0m) Multiple main classes (bon.jo.objects.test, bon.jo.test) were found. You can explicitly specify the one you want with `mainClass := Some(...)` or with `scalaJSMainModuleInitializer := Some(...)`[0m

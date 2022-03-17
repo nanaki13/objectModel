@@ -4,8 +4,12 @@ import bon.jo.words.MathExp
 import bon.jo.words.PhraseElement
 
 object Graph:
-  case class GraphParam(s : PhraseElement,min : Double,max : Double,step : Double):
-    def this(s : PhraseElement,min : Double,max : Double,nbPoint : Int) = this(s,min,max,(max-min)/nbPoint.toDouble)
+  enum Dir:
+    case middle,left,right,top,bottom
+  extension (v  :Double)
+    def scaleToMe(min : Double,max:Double,translation : Double)(value : Double):Double = (value+translation)*v/(max -min ) 
+  case class GraphParam(s : PhraseElement,min : Double,max : Double,step : Double,axePostionX : Dir,axePostionY :Dir):
+    def this(s : PhraseElement,min : Double,max : Double,nbPoint : Int,axePostionX : Dir ,axePostionY :Dir ) = this(s,min,max,(max-min)/nbPoint.toDouble,axePostionX,axePostionY)
   def values(f : MathExp.FunctionMathExp,p : GraphParam):List[EvaluedFun1] = 
     val fParam = Map(p.s->new MathExp.Number(0))
     

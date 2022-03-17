@@ -11,29 +11,36 @@ import org.scalajs.dom.HTMLButtonElement
 import org.scalajs.dom.console.log
 import org.scalajs.dom.MouseEvent
 import bon.jo.Graph.GraphParam
+import bon.jo.Graph.scaleToMe
 import org.scalajs.dom.Node
 import org.scalajs.dom.Element
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.HTMLSelectElement
 import org.scalajs.dom.HTMLOptionElement
+import bon.jo.HtmlViewGraph.DrawerParam
+import bon.jo.HtmlViewGraph.Drawer
+import org.scalajs.dom.HTMLDivElement
+import  HtmlViewGraph.{drawGraphValues,drawYTick,drawXTick}
+import bon.jo.Graph.Dir
 object View :
-  def select(v : String * ):HTMLSelectElement = !.select[HTMLSelectElement](childs(v.map(v => !.option[HTMLOptionElement](me{
+
+  def select(v : Any * ):HTMLSelectElement = !.select[HTMLSelectElement](childs(v.map(v => !.option[HTMLOptionElement](me{
       opt => 
-        opt.text = v
-        opt.value = v
+        opt.text = v.toString
+        opt.value = v.toString
     })).toList))
   case class GraphViewParam(s : PhraseElement):
     val inputMinX :HTMLInputElement = !.input(me(_.value = "-10"))
     val inputMaxX :HTMLInputElement = !.input(me(_.value = "10"))
     val pointNumber :HTMLInputElement = !.input(me(_.value = "10000"))
-    val axePostionX :HTMLSelectElement = select("middle","left","right")
+    val axePostionX :HTMLSelectElement = select(Dir.middle,Dir.top,Dir.bottom)
 
 
-    val axePostionY :HTMLSelectElement = select("middle","top","bottom")
+    val axePostionY :HTMLSelectElement = select(Dir.middle,Dir.left,Dir.right) 
     def label(l : String)  : HTMLElement= !.span[HTMLElement](_text(l))
     List(inputMinX,inputMaxX,pointNumber).foreach(_.className = "small-input")
-    def params:GraphParam = new GraphParam(s,inputMinX.value.toDouble,inputMaxX.value.toDouble,pointNumber.value.toInt)
+    def params:GraphParam = new GraphParam(s,inputMinX.value.toDouble,inputMaxX.value.toDouble,pointNumber.value.toInt,Dir.valueOf(axePostionX.value),Dir.valueOf(axePostionY.value))
     def addTo(n : Element) = n.append(label("min="),inputMinX,label("max="),inputMaxX,label("points="),pointNumber,label("x axis position"),axePostionX,label("y axis position"),axePostionY)
   case class ViewFormule(formule : MathExp.FunctionMathExp):
     val viewModelParam:List[ViewFormuleParam] = formule.symbols.map{
@@ -59,16 +66,16 @@ object View :
       
       val info: HTMLElement = !.div[HTMLElement]
       root.append(graphButton)
-      val bag = !.div[HTMLElement]
+      val bag = !.div[HTMLDivElement]
       bag.style.position = "relative"
-      val width = 500d
-      val height = 300d
+      val width = 700d
+      val height = width*9d/16d
       bag.style.width =width+"px"
       bag.style.height=height+"px"
+      bag.style.maxWidth =width+"px"
+      bag.style.maxHeight=height+"px"
       bag.style.margin = "2em"
       val canvas = !.canvas[HTMLCanvasElement]
-     // canvas.style.width =(width*2)+"px"
-      // canvas.style.height=(width*2)+"px"
       
       var ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D];
       canvas.width = width.toInt
@@ -78,76 +85,30 @@ object View :
       graphButton.addEventListener[MouseEvent]("click", f  => 
         bag.innerHTML = ""
         bag.append(canvas)
-        
+        ctx.clearRect(0,0,width,height)
         val params = paramsView.params
         println(params)
         val values = Graph.values(formule,params)
    
         val maxY = values.max((a,b) => a.funVal.compareTo(b .funVal)).funVal
         val minY = values.min((a,b) => a.funVal.compareTo(b .funVal)).funVal
-        println((minY,maxY))
-        val scaleYCtx : Double => Double =  v => (-v +maxY) *  height/(maxY -minY ) 
-        val scaleXCtx : Double => Double =  v => (v - params.min) *  width/(params.max -params.min ) 
-        val scaleY : Double => Double =  v => (v-minY) *  height/(maxY -minY ) 
-        val scaleX : Double => Double =  v => (v - params.min) *  width/(params.max -params.min ) 
+        given Drawer[HTMLDivElement] = HtmlViewGraph.Drawer(DrawerParam(params,minY,maxY,width,height),info)
+        given Drawer[CanvasRenderingContext2D] = HtmlViewGraph.Drawer.canvas(DrawerParam(params,minY,maxY,width,height))
+        
+
+        val fx = width.scaleToMe(params.min,params.max,-params.min)
+        val scaleYCtx : Double => Double =  v => height.scaleToMe(minY,maxY,maxY)(-v)
+        val scaleXCtx : Double => Double =  fx
+        val scaleY : Double => Double =  height.scaleToMe(minY,maxY,-minY)
+        val scaleX : Double => Double = fx
         val xTick = (params.max - params.min)/10.0
         val yTick = (maxY -minY ) /10.0
-        ctx.beginPath();
-        ctx.ellipse(0,0,10,10,0,0,Math.PI * 2,false)
-        ctx.fill()
-        Iterator.iterate(params.min)(_ + xTick).takeWhile(_ <= params.max).foreach{
-            e => 
-              val pt = !.div[HTMLElement]
-              pt.style.position = "absolute"
-              pt.textContent = f"${e}%.2f".toString
-              pt.style.fontSize = "0.5em"
-              pt.style.bottom =  "-1em"
-              pt.style.left= scaleX(e)+"px"
-              ctx.fillText(f"${e}%.2f".toString,scaleXCtx(e), scaleYCtx(0))
-              bag.append(pt)
-          }
-        Iterator.iterate(minY)(_ + yTick).takeWhile(_ <= maxY).foreach{
-          e => 
-           
-            
-            val pt = !.div[HTMLElement]
-            pt.style.position = "absolute"
-            pt.textContent = f"${e}%.2f".toString
-            pt.style.fontSize = "0.5em"
-            pt.style.left =  "-1em"
-            pt.style.bottom= scaleY(e)+"px"
-            ctx.fillText(f"${e}%.2f".toString,scaleXCtx(0), scaleYCtx(e))
-            bag.append(pt)
-        }
-       // ctx.scale()
-        ctx.beginPath()
-      //  ctx.strokeStyle = "black"
-        values.foreach{
-          e => 
-            val pt = !.div[HTMLElement]
-            ctx.lineTo(scaleXCtx(e.paramVal),scaleYCtx( e.funVal))
-            pt.style.position = "absolute"
-            pt.style.height = "2px"
-            pt.style.width = "2px"
-            pt.onmouseenter = f => {
-              info.textContent = s"f(${e.paramVal})=${e.funVal}"     
-              pt.style.height = "4px"
-              pt.style.width = "4px" 
-              pt.style.backgroundColor = "red"
-            }
-            pt.onmouseleave = f => {
-              info.textContent = s"f(${e.paramVal})=${e.funVal}"     
-              pt.style.height = "2px"
-              pt.style.width = "2px" 
-              pt.style.backgroundColor = "black"
-            }
-            pt.style.backgroundColor = "black"
-            pt.style.bottom = scaleY( e.funVal)+"px"
-            pt.style.left= scaleX(e.paramVal)+"px"
-            bag.append(pt)
-        }
-        ctx.stroke()
-        ctx.closePath()
+        bag.drawXTick()
+        bag.drawYTick()
+        bag.drawGraphValues(values)
+        ctx.drawXTick()
+        ctx.drawYTick()
+        ctx.drawGraphValues(values)
       )
       root.append(bag)
       root.append(info)
