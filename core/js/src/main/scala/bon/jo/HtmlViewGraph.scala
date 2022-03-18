@@ -63,7 +63,7 @@ object HtmlViewGraph :
           pt.style.fontSize = "0.5em"
           pt.style.bottom =  yPos+"px"
           pt.style.left= scaleX(e)+"px"
-          t.append(pt) 
+        //  t.append(pt) 
       }
 
     def drawYTick(t : HTMLDivElement):Unit = 
@@ -76,7 +76,7 @@ object HtmlViewGraph :
           pt.style.fontSize = "0.5em"
           pt.style.left =  xPos+"px"
           pt.style.bottom= scaleY(e)+"px"
-          t.append(pt)
+       //   t.append(pt)
       }  
     def drawGraphValues(values : List[EvaluedFun1])(t : HTMLDivElement) :Unit = 
       values.foreach{
@@ -92,20 +92,45 @@ object HtmlViewGraph :
             t.append(pt)
       }  
   trait CanvasDrawer extends Drawer[CanvasRenderingContext2D]:
-    def scaleY : Double => Double =  v => params.height.scaleToMe(params.minY,params.maxY,params.maxY)(-v)
+    def scaleY : Double => Double =  v => 
+      val ret = params.height.scaleToMe(params.minY,params.maxY,params.maxY)(-v)
+      if ret > 0 then ret else 1
 
     def drawXTick( t : CanvasRenderingContext2D):Unit = 
       val yPos = params.height - xTickY()
+      t.beginPath()
+      t.moveTo(0,yPos)
+      t.lineTo(params.width,yPos)
+      t.stroke()
+      t.closePath()
       overXTick{
         e =>   
-          t.fillText(f"${e}%.2f".toString,scaleX(e),yPos)
+          t.beginPath()
+          val x = scaleX(e)
+          t.moveTo(x,yPos-10)
+          t.lineTo(x,yPos+10)
+          t.stroke()
+          t.closePath()
+          t.fillText(f"${e}%.2f".toString,x,yPos)
+
       }
 
     def drawYTick(t : CanvasRenderingContext2D):Unit = 
       val xPos = yTickX()
+      t.beginPath()
+      t.moveTo(xPos,0)
+      t.lineTo(xPos,params.height)
+      t.stroke()
+      t.closePath()
       overYTick{
-        e =>       
-          t.fillText(f"${e}%.2f".toString,xPos, scaleY(e))
+        e =>  
+          val y = scaleY(e)
+          t.moveTo(xPos-10,y)
+          t.lineTo(xPos+10,y)
+          t.stroke()
+          t.closePath()     
+          t.fillText(f"${e}%.2f".toString,xPos, y)
+          println((e,scaleY(e)))
       }  
 
   

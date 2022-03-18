@@ -68,7 +68,7 @@ object View :
       root.append(graphButton)
       val bag = !.div[HTMLDivElement]
       bag.style.position = "relative"
-      val width = 700d
+      val width = 1000d
       val height = width*9d/16d
       bag.style.width =width+"px"
       bag.style.height=height+"px"
@@ -78,8 +78,8 @@ object View :
       val canvas = !.canvas[HTMLCanvasElement]
       
       var ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D];
-      canvas.width = width.toInt
-      canvas.height = height.toInt
+      canvas.width = (width).toInt
+      canvas.height = (height).toInt
       val paramsView = GraphViewParam(formule.symbols.head)
       paramsView.addTo(root)
       graphButton.addEventListener[MouseEvent]("click", f  => 

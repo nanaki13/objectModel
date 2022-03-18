@@ -23,12 +23,23 @@ import !.*
  
 object WordMain :
 
-  
+  case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
  
-
+  def graphView() = !.div[HTMLDivElement]{childs(main,resMain,err)}
   @main
   def test() : Unit = 
-    document.body.appendChild(!.div[HTMLDivElement]{childs(main,resMain,err)})
+    val menuOut = !.div[HTMLDivElement]
+    
+
+    val graphMenu : MyMenuItem = new MyMenuItem("fonction",graphView)
+    val home : MyMenuItem = new MyMenuItem("Home",() => !.div[HTMLDivElement](_class("welcome"),_text("Site perso contenat des réalisation en Scala")))
+    val menu  = new Menu(List(graphMenu,home),_.view(),menuOut) 
+     
+    
+    val root = !.div[HTMLDivElement](_class("root"),childs(menu.root,menuOut))
+    
+    
+    document.body.appendChild(root)
 
   val formuleEval: HTMLDivElement  = !.div[HTMLDivElement]
   val res : HTMLDivElement = !.div[HTMLDivElement]{_text("--");!._class("debug")}
@@ -66,8 +77,17 @@ object WordMain :
                 val v = View(f)
                 formuleEval.textContent = ""
                 formuleEval.append(v.root)
-            case o  =>  value.textContent ="cant display"
-        case _ =>  value.textContent ="cant display" 
+            case a@MathExp.Symbol(s,_) =>
+              value.textContent = s"f($s)"
+              val v = View(a.asFunction())
+              formuleEval.textContent = ""
+              formuleEval.append(v.root)  
+            case o  =>  
+              value.textContent ="cant display"
+              println(o)
+        case _ =>  
+          value.textContent ="cant display" 
+          println("compiled : "+compiled)
       res.textContent =compiled.toString() 
       
       

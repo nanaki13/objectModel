@@ -6,6 +6,7 @@ import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.Text
 import scala.language.dynamics
 object MiniDsl extends scala.Dynamic:
+    
     def apply(p : String):Element = document.createElement(p)
     def childs[T <: Element](e : List[Element]): T  ?=> T  = 
       e.foreach(summon[T].appendChild)
@@ -25,7 +26,7 @@ object MiniDsl extends scala.Dynamic:
       t(summon)
       summon
 
-    def applyDynamic[T <: HTMLElement](p : String)(f : T ?=> T ):T=
+    def applyDynamic[T <: HTMLElement](p : String)(f : T ?=> T * ):T=
       given T = selectDynamic(p)
-      f
+      f.map(ff => ff).last
     def selectDynamic[T <: Element](p : String):T = apply(p).asInstanceOf[T]

@@ -139,24 +139,28 @@ object MathExp:
     v match 
       case List(M.Number(n,_)) => v
       case _  => 
-        val idxM = v.indexWhere( _ == M.* )
-        val idxD = v.indexWhere(_ == M./ )
+        val idxP = v.indexWhere( _.source.value == PhraseElement.^ )
+        val idxM = v.indexWhere( _.source.value == PhraseElement.* )
+        val idxD = v.indexWhere( _.source.value == PhraseElement./ )
+        println(v)
+        println(idxD)
         val otherFirst = v.indexWhere(e => e.isOperator)
         
-        val pIdx = if idxM != -1 then idxM else if idxD != -1 then idxD else otherFirst 
+        val pIdx = if idxP != -1 then idxP else if idxD != -1 then idxD else if idxM != -1 then idxM else otherFirst 
         val res = resolve(pIdx,v)
         if res == v then v
         else resolveFirstPrio(resolve(pIdx,v))
 
 
 
-  val stringFunction : Map[String,Double=>Double] = Map("cos" -> Math.cos,"sin"->Math.sin,"tab"->Math.tan,"ln"->Math.log)
+  val stringFunction : Map[String,Double=>Double] = Map("cos" -> Math.cos,"sin"->Math.sin,"tan"->Math.tan,"ln"->Math.log)
   def apply(p : PosPe):M = 
     p match 
       case v@PositionedPhraseElement(pos, PhraseElement.+) => new +(v)
       case v@PositionedPhraseElement(pos, PhraseElement.-) => new -(v)
       case v@PositionedPhraseElement(pos, PhraseElement./) => new /(v)
       case v@PositionedPhraseElement(pos, PhraseElement.*) =>  new *(v)
+      case v@PositionedPhraseElement(pos, PhraseElement.^) =>  new ^(v)
       case a@PositionedPhraseElement(pos,PhraseElement.Number(v)) =>  Number(v.toDouble,a)
       case w@PositionedPhraseElement(pos,PhraseElement.Word(v))  if !stringFunction.contains(v) => Symbol(v,w)
       case  w@PositionedPhraseElement(pos,PhraseElement.Word(v)) => Function(v,Tree.root,w)
@@ -171,6 +175,7 @@ object MathExp:
     def isOperator : Boolean = false
     def isFunction : Boolean = true
   case class Symbol(value : String,source :PosPe) extends MathExp :
+    def asFunction() : FunctionMathExp = FunctionMathExp(Set(source.value),_(source.value),source)
     def isNumber : Boolean = false
     def isOperator : Boolean = false
     def evaluate(p : Map[PhraseElement,Number])= p(this.source.value)
@@ -228,6 +233,9 @@ object MathExp:
   case class *(source : PosPe) extends M with Op:
     val symbol : String = PhraseElement.*.value
     def apply(l : Number): Number => Number = r => Number(l.value * r.value,r.source)
+  case class ^(source : PosPe) extends M with Op:
+    val symbol : String = PhraseElement.^.value
+    def apply(l : Number): Number => Number = r => Number(Math.pow(l.value,r.value),r.source)
   case class Number(value : Double,source :PosPe ) extends M:
     def this(v : Double) = this(v,null)
     def isNumber : Boolean = true

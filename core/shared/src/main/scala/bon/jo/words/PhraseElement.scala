@@ -19,9 +19,9 @@ object PhraseElement:
     given InputsToOutput[PosPe,PosPe] = InputsToOutput(bf = buff  =>  PositionedPhraseElement[PhraseElement.Word](buff.head.pos,
       PhraseElement.Word(buff.map(_.value.value).mkString)),acceptF = (buff,el ) => {
         el.value match
-          case PhraseElement.Symbol("\"") if !buff.map(_.value).contains(quote) => true
+          case quote if !buff.map(_.value).contains(quote) => true
           case p : PhraseElement if !buff.map(_.value).contains(quote) => false   
-          case PhraseElement.Symbol("\"") if buff.map(_.value).lastOption != Some( PhraseElement.Symbol("\\")) => true
+          case quote if buff.map(_.value).lastOption != Some( PhraseElement.Symbol("\\")) => true
           case _ => !( buff.map(_.value).headOption == Some(quote) && buff.map(_.value).lastOption == Some(quote) && buff.size > 1 )   
           
     },refuse = ((e : PosPe) => e) )
@@ -63,6 +63,7 @@ object PhraseElement:
   val + = PhraseElement.Symbol("+") 
   val - = PhraseElement.Symbol("-")
   val * = PhraseElement.Symbol("*")
+  val ^ = PhraseElement.Symbol("^")
   val / = PhraseElement.Symbol("/")
   object Empty  extends PhraseElement:
     val value = ""
