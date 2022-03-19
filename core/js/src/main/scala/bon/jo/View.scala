@@ -44,7 +44,14 @@ object View :
     def label(l : String)  : HTMLElement= span(_text(l))
     List(inputMinX,inputMaxX,pointNumber).foreach(_.className = "small-input")
     def params:GraphParam = new GraphParam(s,inputMinX.value.toDouble,inputMaxX.value.toDouble,pointNumber.value.toInt,Dir.valueOf(axePostionX.value),Dir.valueOf(axePostionY.value))
-    def addTo(n : Element) = n.append(label("min="),inputMinX,label("max="),inputMaxX,label("points="),pointNumber,label("x axis position"),axePostionX,label("y axis position"),axePostionY)
+    def addTo(n : Element) = 
+      n.append(
+      div(childs(div(_class("t-right"),childs(label("min="),inputMinX)),
+      div(_class("t-right"),childs(label("max="),inputMaxX)),
+      div(_class("t-right"),childs(label("points="),pointNumber)))),
+      div(childs(label("x axis position"),axePostionX,
+      label("y axis position"),axePostionY)))
+
   case class ViewFormule(formule : MathExp.FunctionMathExp):
     val viewModelParam:List[ViewFormuleParam] = formule.symbols.map{
       s => 
@@ -95,7 +102,7 @@ object View :
       canvasp.height = (height).toInt
       val paramsView = GraphViewParam(formule.symbols.head)
       val divUserParams = div(_class("graph-params-user-input"))
-      divUserParams.append(graphButton)
+      divUserParams.append(div(_class("flex-center"),childs(graphButton)))
       paramsView.addTo(divUserParams)
       rootUserInput.append(divUserParams)
       graphButton.addEventListener[MouseEvent]("click", f  => 

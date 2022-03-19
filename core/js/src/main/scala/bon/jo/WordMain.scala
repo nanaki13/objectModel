@@ -28,7 +28,7 @@ object WordMain :
   def graphView() = div{childs(main,resMain,err)}
   @main
   def test() : Unit = 
-    val menuOut = div
+    val menuOut = div(_class("menu-out"))
     
 
     val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)

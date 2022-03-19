@@ -12,6 +12,9 @@ import org.scalajs.dom.HTMLPreElement
 import org.scalajs.dom.HTMLSelectElement
 import org.scalajs.dom.HTMLOptionElement
 import org.scalajs.dom.HTMLCanvasElement
+import org.scalajs.dom.Node
+import org.scalajs.dom.Element
+
 object HtmlPredef {
   inline def div(f : HTMLDivElement ?=> HTMLDivElement *): HTMLDivElement = !.div(f  *)
   inline def span(f : HTMLSpanElement ?=> HTMLSpanElement *): HTMLSpanElement = !.span(f  *)
