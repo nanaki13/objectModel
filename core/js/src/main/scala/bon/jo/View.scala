@@ -3,7 +3,8 @@ package bon.jo
 import bon.jo.words.MathExp
 import org.scalajs.dom.HTMLElement
 import MiniDsl as !
-import !.{me,_text,childs}
+import !.*
+import HtmlPredef.*
 import org.scalajs.dom.HTMLInputElement
 import bon.jo.words.PhraseElement
 import View.ViewFormuleParam.*
@@ -25,48 +26,60 @@ import  HtmlViewGraph.{drawGraphValues,drawYTick,drawXTick}
 import bon.jo.Graph.Dir
 object View :
 
-  def select(v : Any * ):HTMLSelectElement = !.select[HTMLSelectElement](childs(v.map(v => !.option[HTMLOptionElement](me{
+  def selectAny(v : Any * ):HTMLSelectElement = 
+
+    select_{childs(v.map(v => HtmlPredef.option(me{
       opt => 
         opt.text = v.toString
         opt.value = v.toString
-    })).toList))
+    })).toList)}
   case class GraphViewParam(s : PhraseElement):
-    val inputMinX :HTMLInputElement = !.input(me(_.value = "-10"))
-    val inputMaxX :HTMLInputElement = !.input(me(_.value = "10"))
-    val pointNumber :HTMLInputElement = !.input(me(_.value = "10000"))
-    val axePostionX :HTMLSelectElement = select(Dir.middle,Dir.top,Dir.bottom)
+    val inputMinX :HTMLInputElement = input(me(_.value = "-10"))
+    val inputMaxX :HTMLInputElement = input(me(_.value = "10"))
+    val pointNumber :HTMLInputElement = input(me(_.value = "10000"))
+    val axePostionX :HTMLSelectElement = selectAny(Dir.middle,Dir.top,Dir.bottom)
 
 
-    val axePostionY :HTMLSelectElement = select(Dir.middle,Dir.left,Dir.right) 
-    def label(l : String)  : HTMLElement= !.span[HTMLElement](_text(l))
+    val axePostionY :HTMLSelectElement = selectAny(Dir.middle,Dir.left,Dir.right) 
+    def label(l : String)  : HTMLElement= span(_text(l))
     List(inputMinX,inputMaxX,pointNumber).foreach(_.className = "small-input")
     def params:GraphParam = new GraphParam(s,inputMinX.value.toDouble,inputMaxX.value.toDouble,pointNumber.value.toInt,Dir.valueOf(axePostionX.value),Dir.valueOf(axePostionY.value))
     def addTo(n : Element) = n.append(label("min="),inputMinX,label("max="),inputMaxX,label("points="),pointNumber,label("x axis position"),axePostionX,label("y axis position"),axePostionY)
   case class ViewFormule(formule : MathExp.FunctionMathExp):
     val viewModelParam:List[ViewFormuleParam] = formule.symbols.map{
       s => 
-          ViewFormuleParam(s , !.span[HTMLElement](_text(s.value+"=")) , !.input[HTMLInputElement])
+          ViewFormuleParam(s , span(_text(s.value+"=")) , input(_class("small-input"),me(_.value = "0")))
     }.toList
-    val paramBag = !.div[HTMLElement](childs(viewModelParam.map(_.createBag).toList))
-    val evaluateButon = !.button[HTMLButtonElement](_text("eval"))
-    val graphButton = !.button[HTMLButtonElement](_text("graph"))
+    val evaluateButon = button(_text("eval"))
+    val resEval = div
+    val paramBag = div(childs( 
+      div(childs(viewModelParam.map(_.createBag)))
+      , div(childs(evaluateButon))
+      ,resEval
+      ),_class("d-flex"))
+    
+    val graphButton = button(_text("graph"))
 
 
     evaluateButon.addEventListener[MouseEvent]("click", f  => 
       val m = readMap()
-      val res = !.div[HTMLElement](childs(
-      !.span[HTMLElement](_text( s"f(${formule.symbols.map(m).mkString(", ")})")),
-      !.span[HTMLElement](_text("=")), 
-      !.span[HTMLElement](_text( evaluate(m).value.toString))))
-      paramBag.append(res)
+      val res = div(childs(
+      span(_text( s"f(${formule.symbols.map(m).mkString(", ")})")),
+      span(_text("=")), 
+      span(_text( evaluate(m).value.toString))))
+      resEval.append(res)
     )
  
-    val root : HTMLElement = !.div[HTMLElement](childs(paramBag,evaluateButon))
+    val rootUserInput = div(_class("graph-user-input"),childs(
+      paramBag
+     
+    ))
+    val root = div(childs(rootUserInput))
     if(formule.symbols.size == 1) then
       
-      val info: HTMLElement = !.div[HTMLElement]
-      root.append(graphButton)
-      val bag = !.div[HTMLDivElement]
+      val info: HTMLElement = div
+     
+      val bag = div
       bag.style.position = "relative"
       val width = 1000d
       val height = width*9d/16d
@@ -75,16 +88,19 @@ object View :
       bag.style.maxWidth =width+"px"
       bag.style.maxHeight=height+"px"
       bag.style.margin = "2em"
-      val canvas = !.canvas[HTMLCanvasElement]
+      val canvasp = canvas
       
-      var ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D];
-      canvas.width = (width).toInt
-      canvas.height = (height).toInt
+      var ctx = canvasp.getContext("2d").asInstanceOf[CanvasRenderingContext2D];
+      canvasp.width = (width).toInt
+      canvasp.height = (height).toInt
       val paramsView = GraphViewParam(formule.symbols.head)
-      paramsView.addTo(root)
+      val divUserParams = div(_class("graph-params-user-input"))
+      divUserParams.append(graphButton)
+      paramsView.addTo(divUserParams)
+      rootUserInput.append(divUserParams)
       graphButton.addEventListener[MouseEvent]("click", f  => 
         bag.innerHTML = ""
-        bag.append(canvas)
+        bag.append(canvasp)
         ctx.clearRect(0,0,width,height)
         val params = paramsView.params
         println(params)
@@ -113,7 +129,7 @@ object View :
       root.append(bag)
       root.append(info)
       
-    def readMap() : Map[PhraseElement,Double] = viewModelParam.map((p:ViewFormuleParam) => p.param -> p.input.value.toDouble).toMap
+    def readMap() : Map[PhraseElement,Double] = viewModelParam.map((p:ViewFormuleParam) => p.param -> p.inputp.value.toDouble).toMap
     def evaluate( m : Map[PhraseElement,Double]) = 
       formule.evaluate(m.mapValues(v => new MathExp.Number(v)).toMap)
   opaque type ViewFormuleParam = (PhraseElement, HTMLElement, HTMLInputElement) 
@@ -122,6 +138,6 @@ object View :
     extension (p : ViewFormuleParam)
       inline def param = p._1
       inline def label : HTMLElement = p._2
-      inline def input : HTMLInputElement = p._3
-      inline def createBag : HTMLElement = !.div[HTMLElement](childs(p.label,p.input))
+      inline def inputp : HTMLInputElement = p._3
+      inline def createBag : HTMLElement = div(childs(p.label,div(childs(p.inputp),_class("t-right"))),_class("d-flex j-c-end"))
   def apply(formule : MathExp.FunctionMathExp):ViewFormule=  ViewFormule(formule)

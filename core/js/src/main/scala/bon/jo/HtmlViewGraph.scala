@@ -1,5 +1,7 @@
 package bon.jo
 import MiniDsl as !
+import HtmlPredef.*
+import !.*
 import org.scalajs.dom.HTMLElement
 import bon.jo.Graph.scaleToMe
 import bon.jo.Graph.GraphParam
@@ -57,7 +59,7 @@ object HtmlViewGraph :
       val yPos = xTickY()
       overXTick{
          e =>   
-          val pt = !.div[HTMLElement]
+          val pt = div
           pt.style.position = "absolute"
           pt.textContent = f"${e}%.2f".toString
           pt.style.fontSize = "0.5em"
@@ -70,7 +72,7 @@ object HtmlViewGraph :
       val xPos = yTickX()
       overYTick{
         e =>       
-          val pt = !.div[HTMLElement]
+          val pt = div
           pt.style.position = "absolute"
           pt.textContent = f"${e}%.2f".toString
           pt.style.fontSize = "0.5em"
@@ -81,7 +83,7 @@ object HtmlViewGraph :
     def drawGraphValues(values : List[EvaluedFun1])(t : HTMLDivElement) :Unit = 
       values.foreach{
           e => 
-            val pt = !.div[HTMLElement](!._class("point"))       
+            val pt = div(_class("point"))       
             pt.onmouseenter = f => {
               info.textContent = s"f(${e.paramVal})=${e.funVal}"     
             

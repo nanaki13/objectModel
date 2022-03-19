@@ -20,41 +20,49 @@ import org.scalajs.dom.console.log
 import scala.collection.mutable
 import MiniDsl as !
 import !.*
- 
+import HtmlPredef.*
 object WordMain :
 
   case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
  
-  def graphView() = !.div[HTMLDivElement]{childs(main,resMain,err)}
+  def graphView() = div{childs(main,resMain,err)}
   @main
   def test() : Unit = 
-    val menuOut = !.div[HTMLDivElement]
+    val menuOut = div
     
 
-    val graphMenu : MyMenuItem = new MyMenuItem("fonction",graphView)
-    val home : MyMenuItem = new MyMenuItem("Home",() => !.div[HTMLDivElement](_class("welcome"),_text("Site perso contenat des réalisation en Scala")))
-    val menu  = new Menu(List(graphMenu,home),_.view(),menuOut) 
+    val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
+    val home : MyMenuItem = new MyMenuItem("Home",() => 
+      div(_class("welcome container"),childs(
+        !.h1[HTMLElement](_class(""),_text("Site perso avec des réalisations en Scala")),
+        div(_class(""),childs(t("Mon github : "),a(me(_.href="https://github.com/nanaki13"),_text("https://github.com/nanaki13"))))
+      ))
+      
+      
+      
+      )
+    val menu  = new Menu(List(home,graphMenu),_.view(),menuOut) 
      
     
-    val root = !.div[HTMLDivElement](_class("root"),childs(menu.root,menuOut))
+    val root = div(_class("root"),childs(menu.root,menuOut))
     
     
     document.body.appendChild(root)
 
-  val formuleEval: HTMLDivElement  = !.div[HTMLDivElement]
-  val res : HTMLDivElement = !.div[HTMLDivElement]{_text("--");!._class("debug")}
-  val value : HTMLDivElement = !.div[HTMLDivElement]{_text("--");!._class("formule")}
-  val error : HTMLDivElement = !.div[HTMLDivElement](_text("Tapper une fonction ex: cos(x)"))
+  val formuleEval: HTMLDivElement  = div
+  val res : HTMLDivElement = div(_text("--"),_class("debug"))
+  val value : HTMLDivElement = div(_text("--"),_class("formule"))
+  val error : HTMLDivElement = div(_text("Tapper une fonction ex: cos(x)"))
   val input : LiveText = LiveText("span","formule")(change)
-  val main: HTMLDivElement  = !.div[HTMLDivElement]{
-  !._class("container top")
+  val main: HTMLDivElement  = div{
+  _class("container top")
   childs(
-    input.out,!.span[HTMLSpanElement](_text("=")),value,formuleEval)
+    input.out,span(_text("=")),value,formuleEval)
   }
-  val err: HTMLDivElement  = !.div[HTMLDivElement]{ !._class("container")
+  val err: HTMLDivElement  = div{ _class("container")
   childs(
     error)}
-    val resMain: HTMLDivElement  = !.div[HTMLDivElement]{ !._class("container")
+    val resMain: HTMLDivElement  = div{ _class("container")
   childs(
     res)}
   
@@ -111,10 +119,10 @@ object WordMain :
               case Some(v) => 
                 if buffer.length != 0
                 then 
-                  lt.add(!.span[HTMLSpanElement](_text(buffer.toString)),carPos)
+                  lt.add(span(_text(buffer.toString)),carPos)
                   buffer.length = 0
 
-                lt.add(!.span[HTMLSpanElement]{
+                lt.add(span{
                   _text(char.toString)
                   _class("erreur")
                 },carPos)
@@ -127,7 +135,7 @@ object WordMain :
         }
         if buffer.length != 0
                 then 
-                  lt.add(!.span[HTMLSpanElement](_text(buffer.toString)),carPos)
+                  lt.add(span(_text(buffer.toString)),carPos)
         error.textContent =  "ParsingException  : "+ message + char.map(v=> s" at token : '${v.value.value}' position : ${v.pos}").mkString
         
       case (e : Exception) => 
