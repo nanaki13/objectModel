@@ -46,6 +46,7 @@ object All:
       given  Buff[K] = Buff[K](All.Object(Nil))
       build
       buildValue
+    def emptyObj[K]():Object[K] = Object(Nil)
 
 
 
@@ -55,15 +56,47 @@ enum All[Key]:
   case Value[K,T](v :T) extends All[K]
   case List[K,T](value : L[T]) extends All[K]
 
-  inline def /(s : String) = apply(s)
+  inline def /(s : Key) = apply(s)
 
-  def set(p  : Path[Key], elmt : All[Key]) :Object[Key] = null
+  def replace(newK : Key, old : Key):All[Key] = 
+    this match 
+      case o : Object[Key] => 
+        o.copy(o.props.map{
+          case e if e.key == old => e.copy(key = newK)
+          case o => o
+        })
+      case _ => this
+  def setEmpty(p  : Key):All[Key] = set(p,Empty())
+  def setEmpty(p  : Path[Key]):All[Key] = 
+    set(p,Empty())
+  def set(p  : Path[Key], elmt : All[Key]) :All[Key] = 
+      if p.values.size == 1 then set(p.values.head,elmt)
+      else
+        this match {
+        case o : Object[Key] => 
+          o.props.find(_.key == p.values.head).map{
+            prop => 
+              val updated = prop.value.set(Path(p.values.tail),elmt)
+              o.copy(o.props.filter(_.key != p.values.head):+ All.ObjectProp(p.values.head, updated))
+          }.getOrElse(o)
+        case _ => this
+    }
+  def set(p  : Key, elmt : All[Key]) :All[Key] = 
+     this match {
+      case o : Object[Key] => o.copy(o.props.filter(_.key != p) :+ ObjectProp(p,elmt))
+      case _ => this
+    }
 
-  def apply(s : String) : All[Key] =
+  def apply(s : Key) : All[Key] =
     this match {
       case Object(props) => props.find(_.key == s).get.value
       case _ => Empty[Key]()
     }
+
+  def apply(s : Path[Key]) : All[Key] =
+    if s.values.size == 1 then /(s.values.head)
+    else if s.values.isEmpty then All.Empty()
+    else apply(s.values.head).apply(Path(s.values.tail))
 
 
 

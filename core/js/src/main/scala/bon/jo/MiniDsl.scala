@@ -23,6 +23,9 @@ object MiniDsl extends scala.Dynamic:
   def _text[T<: Element](s : String): T ?=> T = 
     summon.textContent = s
     summon
+  def click[T<: HTMLElement](f : => Unit): T ?=> T = 
+    summon.onclick = _ => f
+    summon
   def t(s : String):Text = document.createTextNode(s)
   
   def me[T <: Element](t : T=>Unit): T  ?=> T = 

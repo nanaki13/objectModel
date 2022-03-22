@@ -21,6 +21,7 @@ import scala.collection.mutable
 import MiniDsl as !
 import !.*
 import HtmlPredef.*
+import bon.jo.home.MindMapView
 object WordMain :
 
   case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
@@ -32,6 +33,7 @@ object WordMain :
     
 
     val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
+    val mindMapMenu : MyMenuItem = new MyMenuItem("Mind map",MindMapView.view)
     val home : MyMenuItem = new MyMenuItem("Home",() => 
       div(_class("welcome container"),childs(
         !.h1[HTMLElement](_class(""),_text("Site perso avec des réalisations en Scala")),
@@ -41,7 +43,7 @@ object WordMain :
       
       
       )
-    val menu  = new Menu(List(home,graphMenu),_.view(),menuOut) 
+    val menu  = new Menu(List(home,graphMenu,mindMapMenu),_.view(),menuOut) 
      
     
     val root = div(_class("root"),childs(menu.root,menuOut))

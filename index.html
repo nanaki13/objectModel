@@ -7,6 +7,8 @@
   <style>
     .root{
       display: flex;
+      margin: 0;
+      min-height: 100%;
     }
     .t-right{
       text-align: right;
@@ -15,16 +17,22 @@
       display: flex;
     }
     .menu{
-      flex-basis: 5px;
-      flex-grow: 1;
+      width: fit-content;
+      padding-right: 0.5em;
+      background-color: #6668ec;
     }
     .flex-center{
       display: flex;
       align-items: center;
     }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
     .menu-out{
-      flex-basis: 22px;
-      flex-grow: 10;
+      flex-grow: 8;
+      padding-left: 0.5em;
+      background-color: #eaf5ff;
     }
     .j-c-end{
       justify-content: end;
@@ -32,8 +40,14 @@
     .graph-params-user-input{
       display: flex;
     }
+    .border{
+      border: #1488ef;
+      border-style: solid;
+      border-radius: 12px;
+      padding: 0.5em;
+    }
     .graph-user-input{
-     
+      width: fit-content;
     }
     .small-input{
       max-width: 4em;

@@ -77,7 +77,7 @@ object View :
       resEval.append(res)
     )
  
-    val rootUserInput = div(_class("graph-user-input"),childs(
+    val rootUserInput = div(_class("graph-user-input border"),childs(
       paramBag
      
     ))
