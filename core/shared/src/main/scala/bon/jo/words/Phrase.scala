@@ -20,7 +20,7 @@ object Phrase:
   case class NodeLevel(node : Node[PosPe],level : Int = 0)
   extension (e : List[PosPe])
     def numberFormat(): List[PosPe] = NumberReduce(e)
-    def removeWhite(): List[PosPe] = StringEscape(e)
+    def stringEscape(): List[PosPe] = StringEscape(e)
     def toTree(open : PhraseElement.Symbol,close : PhraseElement.Symbol):Node[PosPe] = 
       val ret = e.removeSpace().foldLeft(NodeLevel(Tree.Node[PosPe](Nil)))((nodeLevel,phel) => {
         val node = nodeLevel.node

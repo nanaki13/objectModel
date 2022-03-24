@@ -3,6 +3,7 @@ import bon.jo.objects.StringExctractor.{Builder, CharPos}
  import bon.jo.objects.StringExctractor.Compat
  import bon.jo.utils.InputsToOutput
  import bon.jo.utils.ConvertList
+ import scala.annotation.tailrec
  
 sealed trait PhraseElement:
   val value : String
@@ -16,17 +17,37 @@ object PhraseElement:
     val quote =  PhraseElement.Symbol("\"")
     
 
-    given InputsToOutput[PosPe,PosPe] = InputsToOutput(bf = buff  =>  PositionedPhraseElement[PhraseElement.Word](buff.head.pos,
-      PhraseElement.Word(buff.map(_.value.value).mkString)),acceptF = (buff,el ) => {
-        el.value match
-          case quote if !buff.map(_.value).contains(quote) => true
-          case p : PhraseElement if !buff.map(_.value).contains(quote) => false   
-          case quote if buff.map(_.value).lastOption != Some( PhraseElement.Symbol("\\")) => true
-          case _ => !( buff.map(_.value).headOption == Some(quote) && buff.map(_.value).lastOption == Some(quote) && buff.size > 1 )   
-          
-    },refuse = ((e : PosPe) => e) )
+    def toNextNoneEscaped(l : List[PosPe]):(PhraseElement.Word,List[PosPe])=
+      if l.isEmpty || l.head.value == quote then (PhraseElement.Word(""),Nil)
+      else if l.size == 2 && l.last.value == quote then (PhraseElement.Word(l.head.value.value),Nil)
+      else
+        val lwithNext =  l.zip(l.zipWithIndex.drop(1))
+        var wordTop = lwithNext.takeWhile{
+          (prev,current) =>  
+            if prev.value == quote then false
+            else 
+              current._1.value != quote || current._1.value == quote && (prev.value == PhraseElement.Symbol("\\") ) 
+            
+        }
+        if wordTop.isEmpty then 
+          wordTop = lwithNext.head :: Nil
+        else
+          wordTop = wordTop :+ lwithNext(wordTop.last._2._2)
+        val indice = wordTop.last._2._2
+        (PhraseElement.Word(wordTop.map(_._1.value.value).mkString),l.slice(indice+1,l.length)) 
 
-    def apply(l : List[PosPe]):List[PosPe] = ConvertList(l)
+    def apply(l : List[PosPe]):List[PosPe] =
+      apply(Nil)(l)
+    @tailrec
+    def apply(done : List[PosPe])(l : List[PosPe]):List[PosPe] =
+      if l.isEmpty then done
+      else if l.size == 1 then done ++ l
+      else 
+        if l.head.value == quote then 
+            val (word, yet) = toNextNoneEscaped(l.tail)
+            apply(done :+ PositionedPhraseElement(l.head.pos,word))(yet)
+        else
+          apply(done :+ l.head)(l.tail)
   object NumberReduce:
     def haveNumber(b : List[PosPe]): Boolean = b.map(_.value).exists{
       case e :  PhraseElement.Number => true
@@ -65,6 +86,9 @@ object PhraseElement:
   val * = PhraseElement.Symbol("*")
   val ^ = PhraseElement.Symbol("^")
   val / = PhraseElement.Symbol("/")
+  val `{`= PhraseElement.Symbol("{")
+  val `}` = PhraseElement.Symbol("}")
+  val `"` =  PhraseElement.Symbol("\"")
   object Empty  extends PhraseElement:
     val value = ""
     def copy(value : String) : PhraseElement = Empty

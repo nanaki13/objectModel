@@ -49,6 +49,12 @@ object Tree:
           case e : EndTree[T] => e
           case n : Node[T] => n.mapNode[B](m)
         })
+    def mapAllNode[B >: T](m : Node[_] =>Node[B]):Tree[B] = 
+      val nNode = m(this)
+      nNode.copy(nNode.childs.map{
+          case e : EndTree[B] => e
+          case n : Node[B] => n.mapAllNode[B](m)
+        })
     def applyToChilds[B](f : List[T] => List[B]) :Node[B] =  Tree.NodeImpl(childs.map(child => child.applyToChilds(f)))
     def map[B](m : T => B):Node[B] = Tree.NodeImpl(childs.map(child => child.map(m)))
     
