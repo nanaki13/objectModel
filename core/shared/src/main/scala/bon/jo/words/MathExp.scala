@@ -142,8 +142,6 @@ object MathExp:
         val idxP = v.indexWhere( _.source.value == PhraseElement.^ )
         val idxM = v.indexWhere( _.source.value == PhraseElement.* )
         val idxD = v.indexWhere( _.source.value == PhraseElement./ )
-        println(v)
-        println(idxD)
         val otherFirst = v.indexWhere(e => e.isOperator)
         
         val pIdx = if idxP != -1 then idxP else if idxD != -1 then idxD else if idxM != -1 then idxM else otherFirst 
