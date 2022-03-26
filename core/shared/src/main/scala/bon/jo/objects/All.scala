@@ -18,6 +18,8 @@ import scala.annotation.tailrec
 
 object All:
 
+  extension (e : All[String])
+    def toJsonString():String = jsonString(e)
   type AllString = All[String]
   type LList[A] = scala.collection.immutable.List[A]
   val LList = scala.collection.immutable.List
@@ -120,7 +122,7 @@ object All:
     }
     ctx.builder.obj.asInstanceOf[All[String]]
 
-  def toJsonString(p : AllString): String =
+  def jsonString(p : AllString): String =
     given StringBuilder = StringBuilder()
     toJson(p).toString
   def toJson(p : AllString): BuffS = 
@@ -136,8 +138,9 @@ object All:
         buff.append("}")
       case All.Value(v) =>
         v match
-          case s : (String | LocalDate )=> buff.append(s""""${s.toString.replace("\"","\\\"")}"""")         
-          case o  => buff.append(o)
+              
+          case o : (Int | Float | Boolean | Long | Double | Short)  => buff.append(o.toString)
+          case s   => buff.append(s""""${s.toString.replace("\"","\\\"")}"""")     
       case All.List(v) =>
         buff.append("[")
         v.zipWithIndex.foreach{(pr,i) =>
@@ -154,7 +157,7 @@ object All:
   val L: immutable.List.type = scala.collection.immutable.List
   type Prop[Key] = ObjectProp[Key,All[Key]]
 
-  @main
+  //@main
   def toto() =
     type Obj = All[String]
     import Dsl.*
@@ -172,9 +175,12 @@ object All:
       "birthDate" := LocalDate.of(2000,1,1)
     }
 
-    println(toJsonString(objee))
-    val objF = All(toJsonString(objee))
-    println(toJsonString(objF))
+    println(jsonString(objee))
+    val objF = All(jsonString(objee))
+    println(jsonString(objF))
+    assert(jsonString(objee) == jsonString(objF))
+    println(objF / "name test")
+    println(objF / "groupe")
 
 
   case class Path[K](values : L[K]):

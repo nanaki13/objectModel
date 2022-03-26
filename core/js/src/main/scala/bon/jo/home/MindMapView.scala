@@ -7,10 +7,12 @@ import bon.jo.objects.All
 import bon.jo.objects.All.ObjectProp
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.HTMLDivElement
+import concurrent.ExecutionContext.Implicits.global
+import org.scalajs.dom.HTMLButtonElement
 object MindMapView:
 
-  class Context(var data : All[String],var path : All.Path[String],val out : HTMLElement)
-
+  class Context(var data : All[String],var path : All.Path[String],val out : HTMLElement,val global : HTMLElement)
+  val storage = org.scalajs.dom.window.localStorage
   type CtxUnit = Context ?=> Unit
   type Ctx[A] = Context ?=> A
   inline def ctx(using Context):Context = summon
@@ -33,18 +35,30 @@ object MindMapView:
      div(childs(
         ctx.path.values.flatMap(pth => List(span(_text("/")),span(_text(pth))))
       ))
+
+  def saveData(data : All[String]):Unit = 
+    storage.setItem("mindmap",data.toJsonString())
+  def readData():Option[All[String]] = 
+    Option(storage.getItem("mindmap")).map(All.apply)
   def view():HTMLElement = 
-    val data : All[String] = emptyObj()
-    given Context = Context(data,All.Path(Nil),div)
+    val data : All[String] = readData().getOrElse(emptyObj())
+    
+    given Context = Context(data,All.Path(Nil),div,div)
     view(data)
-    ctx.out
+    div(childs(ctx.out,ctx.global))
+
+  def saveData(): CtxUnit = 
+    ctx.global.innerText = ctx.data.toJsonString()
+    saveData(ctx.data)
 
   def updateData(p : All[String]): CtxUnit = 
     ctx.data = ctx.data.set(ctx.path,p)
     println("update : ")
     println(ctx.data)
+    saveData()
+
     
-  def backView(): Ctx[HTMLDivElement] = div(_text("back"),click(back()))
+  def backView(): Ctx[HTMLButtonElement] = button(_text("back"),click(back()))
   def view(p :  All[String]) :CtxUnit = 
     ctx.out.innerHTML= ""
     ctx.out.append(pathView())
@@ -98,11 +112,13 @@ object MindMapView:
       inputp.value = prp.toString
       if !ctx.data(ctx.path).contains( prp.toString) then
          ctx.data = ctx.data.setEmpty(ctx.path / prp.toString)
+         saveData()
  
     
       inputp.onchange = ev => 
         org.scalajs.dom.console.log(ev)
         ctx.data = ctx.data.replace(inputp.value,current.toString)
+        saveData()
         org.scalajs.dom.console.log(ctx.data)
         current = inputp.value
       objView.append(inputp,seeButton)
@@ -128,14 +144,18 @@ object MindMapView:
         objView
       ))
       ctx.out.append(root)
-      var count = 'a'
+
+      StepAsk.SimpleStepAsk(addButton,input,button(_text("ok"))){
+        propName =>
+          addProp(propName,objView)
+        
+      }
       clearButton.onclick = _ =>   
-        count = 'a'
+        
         objView.innerHTML = ""  
         updateData(emptyObj())
-      addButton.onclick = _ =>   
-        addProp(count.toString,objView)
-        count =( count.toShort + 1).toChar
+
+
       e.props.foreach{
         prp => 
           println("call addProp")
