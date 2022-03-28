@@ -2,7 +2,6 @@ package bon.jo.home
 import bon.jo.HtmlPredef.*
 import bon.jo.MiniDsl.*
 import bon.jo.objects.All.Dsl.{obj,emptyObj}
-import bon.jo.objects.All.Object
 import bon.jo.objects.All
 import bon.jo.objects.All.ObjectProp
 import org.scalajs.dom.HTMLElement
@@ -52,7 +51,7 @@ object MindMapView:
     saveData(ctx.data)
 
   def updateData(p : All[String]): CtxUnit = 
-    ctx.data = ctx.data.set(ctx.path,p)
+    ctx.data = ctx.data.update(ctx.path,p)
     println("update : ")
     println(ctx.data)
     saveData()
@@ -90,7 +89,7 @@ object MindMapView:
             
 
         
-      case e : All.Object[String] =>
+      case e : All.ObjectAll[String] =>
         objectView(e)
       case All.Value(v : String) =>
          valueView(All.Value(v))
@@ -98,29 +97,27 @@ object MindMapView:
       case _ => 
 
     def addProp(prp : String,objView : HTMLElement) = 
-      println("addProp = "+prp)
-      println("addProp = "+ctx.data)
       val inputp = input(_class("small-input"))
       val seeButton = a(_text("go to"),me(_.href=""))
       var current = prp.toString
       seeButton.onclick = e => 
         e.preventDefault()
-        println("ctx.data = "+ctx.data)
-        println(ctx.path/current)
-        println("seeee"+ctx.data(ctx.path/current))
         goto(current,ctx.data(ctx.path/current))
       inputp.value = prp.toString
       if !ctx.data(ctx.path).contains( prp.toString) then
-         ctx.data = ctx.data.setEmpty(ctx.path / prp.toString)
+         ctx.data = ctx.data.empty(ctx.path / prp.toString)
          saveData()
  
     
       inputp.onchange = ev => 
         org.scalajs.dom.console.log(ev)
-        ctx.data = ctx.data.replace(inputp.value,current.toString)
-        saveData()
-        org.scalajs.dom.console.log(ctx.data)
+        println(ctx.data)
+        val nData = data.replace(inputp.value,current.toString)
+        updateData(nData)      
         current = inputp.value
+
+
+        
       objView.append(inputp,seeButton)
     def valueView(e : All.Value[String,String]):CtxUnit =
      
@@ -131,7 +128,7 @@ object MindMapView:
       ctx.out.append(in,saveButton)
      
 
-    def objectView(e : All.Object[String]):CtxUnit =
+    def objectView(e : All.ObjectAll[String]):CtxUnit =
       println("ov : "+e)
       val addButton = button(_text("+"))
 
