@@ -121,7 +121,7 @@ object MindMapView:
       objView.append(inputp,seeButton)
     def valueView(e : All.Value[String,String]):CtxUnit =
      
-      val in = div(me(_.contentEditable = "true"),me(_.innerHTML = e.v))
+      val in = div(me(_.contentEditable = "true"),me(_.innerHTML = e.value))
       val saveButton = button(_text("save"),click{
         updateData(All.Value(in.innerHTML))  
        })

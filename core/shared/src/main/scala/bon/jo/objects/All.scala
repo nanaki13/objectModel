@@ -22,10 +22,10 @@ import scala.annotation.tailrec
  * @see [[AllOps]] for methods
 */
 enum All[Key] extends AllOps[Key]:
-  case Empty[K]() extends All[K]
-  case ObjectAll(props : List[Prop[Key]] )
-  case Value[K,T](v :T) extends All[K]
-  case ListAll[K](value : List[All[K]]) extends All[K]
+  case Empty[K]() extends All[K] with NoObjectOps[K]
+  case ObjectAll(props : List[Prop[Key]] )  extends All[Key] with AllObjectOps[Key]
+  case Value[K,+T](_value :T) extends All[K] with NoObjectOps[K]
+  case ListAll[K](value : List[All[K]]) extends All[K]  with NoObjectOps[K]
 /** Factory for [[All]] instances. 
  * Can create [[All]] from json string with  `All.apply(String)`
 */
@@ -184,6 +184,9 @@ object All:
 
   case class Path[K](values : List[K]):
     def /(s : K): Path[K] = Path(values :+ s)
+  object Path:
+    extension [K](pathStart : K)
+      def /(pathNext : K) : Path[K] = Path(List(pathStart,pathNext))
   object Dsl:
 
     extension [K](s : K)
@@ -202,9 +205,9 @@ object All:
     def buildValue[K] : Flow[K,All.ObjectAll[K]] = buff.value
 
     def list[K](objs : All[K] *) = All.ListAll(objs.toList)
-    def obj[K](build : OnBuild[K]):All.ObjectAll[K] =
+    def obj[K](builds : OnBuild[K] * ):All.ObjectAll[K] =
       given  Buff[K] = Buff[K](All.ObjectAll(Nil))
-      build
+      builds.foreach(build => build)
       buildValue
     def emptyObj[K]():ObjectAll[K] = ObjectAll(Nil)
 
