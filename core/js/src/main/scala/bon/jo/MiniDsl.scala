@@ -6,6 +6,7 @@ import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.Text
 import scala.language.dynamics
 import org.scalajs.dom.Node
+import org.scalajs.dom.MouseEvent
 object MiniDsl extends scala.Dynamic:
 
 
@@ -25,6 +26,9 @@ object MiniDsl extends scala.Dynamic:
     summon
   def click[T<: HTMLElement](f : => Unit): T ?=> T = 
     summon.onclick = _ => f
+    summon
+  def click[T<: HTMLElement](f : MouseEvent => Unit): T ?=> T = 
+    summon.onclick = e => f(e)
     summon
   def t(s : String):Text = document.createTextNode(s)
   

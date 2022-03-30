@@ -3,7 +3,7 @@ package bon.jo.objects
 import bon.jo.objects.StringExctractor.add
 import scala.collection.mutable
 import StringExctractor.*
-trait StringExctractor[T](using compat : Compat[T]):
+private trait StringExctractor[T](using compat : Compat[T]):
  
   inline def add(c : CharPos):StringExctractor[T ] = 
     if builder == EmtyBuilder then
@@ -19,6 +19,18 @@ trait StringExctractor[T](using compat : Compat[T]):
   inline def compatible(c : CharPos): Boolean = 
    builder.compatible(c )
 object StringExctractor:
+  
+  trait Compat[T]:
+    def add(t :  Builder[T],c : CharPos): Builder[T]
+    def create(c : CharPos): Builder[T]
+  case class Result[T](builded : List[T] = Nil,builder : Builder[T] = EmtyBuilder )(using compat : Compat[T])  extends StringExctractor[T]
+  def parse[T](s : String)(using  compat : Compat[T]):List[T] = 
+    if s.nonEmpty then
+      val se:StringExctractor[T] = new Result[T](builder = EmtyBuilder)
+      val sAfter = s.zipWithIndex.map(CharPos.apply).foldLeft(se)((seref,char) => seref.add(char))
+      ( sAfter.builded :+ sAfter.builder.build  )
+    else
+      Nil
  
   case class CharPos( current:Char,pos:Int)
 
@@ -34,17 +46,6 @@ object StringExctractor:
     def compatible(c : CharPos): Boolean = false 
   def EmtyBuilder[T] : Builder[T]= empty
 
-  trait Compat[T]:
-    def add(t :  Builder[T],c : CharPos): Builder[T]
-    def create(c : CharPos): Builder[T]
-  case class Result[T](builded : List[T] = Nil,builder : Builder[T] = EmtyBuilder )(using compat : Compat[T])  extends StringExctractor[T]
-  def parse[T](s : String)(using  compat : Compat[T]):List[T] = 
-    if s.nonEmpty then
-      val se:StringExctractor[T] = new Result[T](builder = EmtyBuilder)
-      val sAfter = s.zipWithIndex.map(CharPos.apply).foldLeft(se)((seref,char) => seref.add(char))
-      ( sAfter.builded :+ sAfter.builder.build  )
-    else
-      Nil
 
   extension [T](t : Builder[T])
     inline def add(c : CharPos)(using comp : Compat[T]): Builder[T] = comp.add(t,c)

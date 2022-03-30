@@ -44,9 +44,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
   }
 
   it should " delete a path" in {
-  
     val noGrpName = myObj - ("group"/ "name")
-    println(noGrpName)
     (noGrpName / "group").contains("name") should be (false)
   }
 

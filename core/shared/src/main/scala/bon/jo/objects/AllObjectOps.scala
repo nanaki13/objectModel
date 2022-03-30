@@ -5,11 +5,14 @@ import bon.jo.objects.All.Empty
 import bon.jo.objects.All.Path
 import bon.jo.objects.All.ObjectProp
 /**
- * Operation for [[All]]
+ * Operation for [[All.ObjectAll]]
 */
 trait AllObjectOps[Key]:
   self : All.ObjectAll[Key] =>
 
+  /**
+   * Returns new Object with `this` properties and `o` properties
+  */
   def +(o :  All.ObjectAll[Key]) = copy(props ++ o.props)
 
 
@@ -30,7 +33,7 @@ trait AllObjectOps[Key]:
   
   /**
    * Returns copy with updated  value for path.
-   * Nothing if this is not an [[All.ObjectAll]] 
+   * Nothing if this is not an [[All.ObjectAll]]. 
   */
   def update(path  : Path[Key], value : All[Key]) :All[Key] = 
       if path.values.isEmpty then value
@@ -50,13 +53,19 @@ trait AllObjectOps[Key]:
 
   /**
   * 
-  * returns key's value in this.
-  * Nothing if this is not an [[All.ObjectAll]] 
+  * Returns key's value in this.
+  * Nothing if this is not an [[All.ObjectAll]]. 
   */
   def apply(key : Key) : All[Key] = props.find(_.key == key).get.value
 
+  /**
+   * Returns some key's value or none if the key doesnt exists.
+  */
   def get(key : Key) : Option[All[Key]] = props.find(_.key == key).map(_.value)
 
+  /**
+   * Returns copy without key 'k'.
+  */
   def delete(k: Key): All[Key] = copy(props.filter(_.key != k))
 
 

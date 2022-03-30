@@ -166,6 +166,7 @@ object All:
         v match
               
           case o : (Int | Float | Boolean | Long | Double | Short)  => buff.append(o.toString)
+          case null => buff.append("null")
           case s   => buff.append(s""""${s.toString.replace("\"","\\\"")}"""")     
       case All.ListAll(v) =>
         buff.append("[")
@@ -176,7 +177,6 @@ object All:
         }
         buff.append("]")
       case All.Empty() => buff.append("null")
-      //case All.
     buff
   case class ObjectProp[K,+V <: All[K]](key : K, value: V)
 
@@ -184,6 +184,7 @@ object All:
 
   case class Path[K](values : List[K]):
     def /(s : K): Path[K] = Path(values :+ s)
+    def paths : Seq[Path[K]] = for (i <- 0 until values.length ) yield Path(values.slice(0,i+1))
   object Path:
     extension [K](pathStart : K)
       def /(pathNext : K) : Path[K] = Path(List(pathStart,pathNext))

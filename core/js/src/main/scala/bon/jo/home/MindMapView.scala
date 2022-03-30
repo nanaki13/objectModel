@@ -21,7 +21,7 @@ object MindMapView:
     org.scalajs.dom.console.log(prop)
     ctx.path = ctx.path / p  
     view(prop)
-  def back(): CtxUnit = 
+  def goParent(): CtxUnit = 
 
     ctx.path = All.Path(ctx.path.values.dropRight(1))
 
@@ -32,11 +32,26 @@ object MindMapView:
       view(ctx.data(ctx.path))
   def pathView(): Ctx[HTMLDivElement] = 
      div(childs(
-        ctx.path.values.flatMap(pth => List(span(_text("/")),span(_text(pth))))
+        ctx.path.paths.flatMap(
+        pth => 
+          
+          List(span(_text("/"))
+            ,a(_text(pth.values.last),click{ e => 
+              e.preventDefault()
+              ctx.path = pth
+              view(ctx.data(ctx.path))
+            },me(_.href="") )
+          
+          )
+        
+        ).toList
       ))
 
   def saveData(data : All[String]):Unit = 
     storage.setItem("mindmap",data.toJsonString())
+  def resetCurrent(): CtxUnit =
+    updateData( ctx.data.delete(ctx.path))
+    view(All.Empty())
   def readData():Option[All[String]] = 
     Option(storage.getItem("mindmap")).map(All.apply)
   def view():HTMLElement = 
@@ -57,11 +72,14 @@ object MindMapView:
     saveData()
 
     
-  def backView(): Ctx[HTMLButtonElement] = button(_text("back"),click(back()))
+  def resetView(): Ctx[HTMLButtonElement] = button(_text("change type"),click(resetCurrent()))
+  def backView(): Ctx[HTMLButtonElement] = button(_text("parent"),click(goParent()))
   def view(p :  All[String]) :CtxUnit = 
     ctx.out.innerHTML= ""
     ctx.out.append(pathView())
-    ctx.out.append(backView())
+    if(ctx.path.values.nonEmpty) then
+      ctx.out.append(backView())
+    ctx.out.append(resetView())
     p match
       case e : All.Empty[String] =>
 
@@ -73,7 +91,7 @@ object MindMapView:
             case "T" => 
               val inp = input
               ctx.out.appendChild(inp)
-              val buttonSub = button(click{
+              val buttonSub = button(_text("OK"),  click{
               val newValue : All[String] =  All.Value(inp.value)  
               updateData(newValue)
               view(newValue)

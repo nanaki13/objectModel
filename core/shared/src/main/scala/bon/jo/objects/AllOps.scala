@@ -5,19 +5,24 @@ import bon.jo.objects.All.Empty
 import bon.jo.objects.All.Path
 import bon.jo.objects.All.ObjectProp
 /**
- * Operation for [[All]]
+ * Operations for [[All]]
 */
 trait AllOps[Key]:
 
   self : All[Key] =>
   /**
-   * shorthand of `apply`
+   * `apply` shortand
   * returns value of key in this.
   * Nothing is done if newK doen't exists or this is not an [[All.ObjectAll]] 
   */ 
   inline def /(key : Key):All[Key] = apply(key)
-
+  /**
+   * `delete` shortand 
+  */
   inline def -(key : Key):All[Key] = delete(key)
+  /**
+   * `delete` shortand 
+  */
   inline def -(key : Path[Key]):All[Key] = delete(key)
 
   /**
@@ -66,7 +71,13 @@ trait AllOps[Key]:
   */
   def update[V](path  : Path[Key], value : V) :All[Key] = update(path,All.Value(value))
 
+  /**
+   * Returns copy without key 'k'.
+  */
   def delete(k : Key) : All[Key]
+  /**
+   * Returns copy where object propertie of this with path `p` is replaced  by same without `p.last` propertie.
+  */
   def delete(p : Path[Key]) : All[Key]=
     p match
       case Path(List(end)) => delete(end)
@@ -76,16 +87,20 @@ trait AllOps[Key]:
 
   /**
   * 
-  * returns key's value in this.
+  * Returns key's value in this.
   * Nothing if this is not an [[All.ObjectAll]] 
   */
   def apply(key : Key) : All[Key]
 
+  /**
+   * Returns if the key exists in this.
+   * 
+  */
   def isEmpty(key : Key) : Boolean = contains(key) && this / key == Empty[Key]()
 
   /**
   * 
-  * returns path's value in this.
+  * Returns path's value in this.
   * Nothing if this is not an [[All.ObjectAll]] 
   */
   def apply(s : Path[Key]) : All[Key] =
@@ -94,8 +109,20 @@ trait AllOps[Key]:
       else if s.values.isEmpty then All.Empty()
       else apply(s.values.head).apply(Path(s.values.tail))
 
+  /**
+   * Returns cast this in [[All.Value]].
+  */
   inline def asValue[T] : All.Value[Key,T] = asInstanceOf
+  /**
+   * Return value of this casted in [[All.Value]]. 
+  */
   inline def value[T] : T = asValue._value
+  /**
+   * Returns cast this in [[All.ObjectAll]].
+  */
   inline def asObject : All.ObjectAll[Key] = asInstanceOf
+  /**
+   * Returns cast this in [[All.ListAll]].
+  */
   inline def asList : All.ListAll[Key] = asInstanceOf
 
