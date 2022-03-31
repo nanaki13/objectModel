@@ -16,6 +16,8 @@ import bon.jo.utils.Tree
 import bon.jo.words.Phrase.toTree
 import bon.jo.utils.Tree.EndTree
 import scala.annotation.tailrec
+import bon.jo.words.Phrase.ParsingException
+import bon.jo.objects.StringExctractor.CharPos
 
 /**
  * Object model.
@@ -47,7 +49,7 @@ object All:
   private def buff : BuffFlow = summon
 
 
-  private inline def invalid(r : Any) = throw IllegalStateException(s"invalid : $r")
+  private inline def invalid(message : String,pos : PosPe) = throw new ParsingException(message,pos)
 
   private enum ParseState{case InObject,InArray,Root,InProp}
 
@@ -65,7 +67,8 @@ object All:
   private case class Ctx(
     builder : Builder[All[String] | ObjectProp[String,All[String]]] = NoneBuilder,
     parent : Option[Ctx] = None,
-    state : ParseState = ParseState.Root
+    state : ParseState = ParseState.Root,
+    deep : List[PosPe] = Nil
     ):
       def propBuilder: PropBuilder = 
         builder.asInstanceOf[PropBuilder]
@@ -79,25 +82,30 @@ object All:
         val parentBuilder = parent.get.objectBuilder
         val nObj : ObjectAll[String] = parentBuilder.obj.copy(parentBuilder.obj.props :+ prop)
         parent.get.copy(parentBuilder.copy(nObj))
+      inline def removeLastDeep(ctx : Ctx) = ctx.copy(deep = deep.dropRight(1)) 
       def arrayValue(v : All[String]):Ctx = 
         copy(arrayBuilder.copy( arrayBuilder.obj.copy(arrayBuilder.obj.value :+ v) ))
 
       def closeArray() : Ctx = 
-        (state,builder) match
-          case (ParseState.InArray,ArrayBuilder(array) )=>
-            val parentVal = parent.get
-            parentVal.state match
-              case ParseState.InArray => parentVal.arrayValue(array) 
-              case ParseState.InProp => parentVal.propValue(array) 
+        removeLastDeep{
+          (state,builder) match
+            case (ParseState.InArray,ArrayBuilder(array) )=>
+              val parentVal = parent.get
+              parentVal.state match
+                case ParseState.InArray => parentVal.arrayValue(array)
+                case ParseState.InProp => parentVal.propValue(array)
+        }
+
       def closeObject() : Ctx = 
-        (state,builder) match
-          case (ParseState.InObject,ObjectBuilder(obj) )=>
-            val parentVal = parent.get
-            parentVal.state match
-              case ParseState.InArray => parentVal.arrayValue(obj) 
-              case ParseState.InProp => parentVal.propValue(obj) 
-              case ParseState.Root => this
-     
+        removeLastDeep{
+          (state,builder) match
+            case (ParseState.InObject,ObjectBuilder(obj) )=>
+              val parentVal = parent.get
+              parentVal.state match
+                case ParseState.InArray => parentVal.arrayValue(obj)
+                case ParseState.InProp => parentVal.propValue(obj)
+                case ParseState.Root => this
+        }
 
   /**
   * Returns [All[String]] from json String.
@@ -106,19 +114,25 @@ object All:
     val res2 : List[PosPe] =  StringExctractor.parse(s).stringEscape().removeSpace()
     val ctx = res2.foldLeft(Ctx()){ (ctx,pe) => 
       pe.value match
-        case `{` => Ctx(ObjectBuilder(),Some(ctx),ParseState.InObject)
-        case  PhraseElement.Symbol("[") => Ctx(ArrayBuilder(),Some(ctx),ParseState.InArray)
+        case `{` => Ctx(ObjectBuilder(),Some(ctx),ParseState.InObject,ctx.deep :+ pe)
+        case  PhraseElement.Symbol("[") => Ctx(ArrayBuilder(),Some(ctx),ParseState.InArray,ctx.deep :+ pe)
         case PhraseElement.Symbol("]") => 
           ctx.closeArray()
         case `}` => 
-          ctx.closeObject()                                   
+          ctx.closeObject()   
+        case PhraseElement.Text(w) =>
+          ctx.state match
+            case ParseState.InProp => ctx.propValue(All.Value(w)) 
+            case ParseState.InArray => ctx.arrayValue(All.Value(w)) 
+            case ParseState.InObject => 
+               Ctx(PropBuilder(ObjectProp(w,Dsl.emptyObj())),Some(ctx),ParseState.InProp)
         case PhraseElement.Word(w) =>
           ctx.state match
             case ParseState.InObject => 
                Ctx(PropBuilder(ObjectProp(w,Dsl.emptyObj())),Some(ctx),ParseState.InProp)
-            case ParseState.InProp => ctx.propValue(All.Value(w)) 
-            case ParseState.InArray => 
-              ctx.arrayValue(All.Value(w)) 
+            case ParseState.InProp if w == "null" => ctx.propValue(All.Empty()) 
+            case ParseState.InProp => invalid(s"invalid token : $w",pe)
+            case ParseState.InArray => ctx.arrayValue(All.Value(w))     
         case PhraseElement.Number(w) =>
           val f = w.toDouble
           val o = if f.isFinite then f.toLong else f 
@@ -143,6 +157,7 @@ object All:
 
          
     }
+    if ctx.deep.nonEmpty then throw new ParsingException("open but not close",ctx.deep.last)
     ctx.builder.obj.asInstanceOf[All[String]]
 
   /**

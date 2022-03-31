@@ -17,24 +17,29 @@ object PhraseElement:
     val quote =  PhraseElement.Symbol("\"")
     
 
-    def toNextNoneEscaped(l : List[PosPe]):(PhraseElement.Word,List[PosPe])=
-      if l.isEmpty || l.head.value == quote then (PhraseElement.Word(""),Nil)
-      else if l.size == 2 && l.last.value == quote then (PhraseElement.Word(l.head.value.value),Nil)
+    def toNextNoneEscaped(l : List[PosPe]):(PhraseElement.Text,List[PosPe])=
+      if l.isEmpty || l.head.value == quote then (PhraseElement.Text(""),Nil)
+      else if l.size == 2 && l.last.value == quote then (PhraseElement.Text(l.head.value.value),Nil)
       else
         val lwithNext =  l.zip(l.zipWithIndex.drop(1))
         var wordTop = lwithNext.takeWhile{
           (prev,current) =>  
-            if prev.value == quote then false
-            else 
-              current._1.value != quote || current._1.value == quote && (prev.value == PhraseElement.Symbol("\\") ) 
-            
+            current._1.value != quote || current._1.value == quote && (prev.value == PhraseElement.Symbol("\\") ) 
+                  
+        }
+        wordTop = wordTop.map{
+          case (PositionedPhraseElement(a,PhraseElement.Symbol("\\")), (PositionedPhraseElement(b,PhraseElement.Symbol("\"")), c)) =>
+            (PositionedPhraseElement(a,PhraseElement.Symbol("")), (PositionedPhraseElement(b,quote), c)) 
+          case o => o
         }
         if wordTop.isEmpty then 
+          
+         // println(l)
           wordTop = lwithNext.head :: Nil
         else
           wordTop = wordTop :+ lwithNext(wordTop.last._2._2)
         val indice = wordTop.last._2._2
-        (PhraseElement.Word(wordTop.map(_._1.value.value).mkString),l.slice(indice+1,l.length)) 
+        (PhraseElement.Text(wordTop.map(_._1.value.value).mkString),l.slice(indice+1,l.length)) 
 
     def apply(l : List[PosPe]):List[PosPe] =
       apply(Nil)(l)
@@ -44,6 +49,7 @@ object PhraseElement:
       else if l.size == 1 then done ++ l
       else 
         if l.head.value == quote then 
+          
             val (word, yet) = toNextNoneEscaped(l.tail)
             apply(done :+ PositionedPhraseElement(l.head.pos,word))(yet)
         else
@@ -94,6 +100,7 @@ object PhraseElement:
     def copy(value : String) : PhraseElement = Empty
 
   case class Word(value : String) extends PhraseElement
+  case class Text(value : String) extends PhraseElement
   case class Number(value : String) extends PhraseElement
   case class Space(value : String) extends PhraseElement
   case class Symbol(value : String) extends PhraseElement

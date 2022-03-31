@@ -6,6 +6,7 @@ import matchers._
 import java.time.LocalDate
 import All.Dsl.*
 import All.Path./
+import bon.jo.words.Phrase.ParsingException
 class AllTest extends AnyFlatSpec with should.Matchers {
 
   val myObj = obj{
@@ -46,6 +47,26 @@ class AllTest extends AnyFlatSpec with should.Matchers {
   it should " delete a path" in {
     val noGrpName = myObj - ("group"/ "name")
     (noGrpName / "group").contains("name") should be (false)
+  }
+
+  "a json string" should " convert into object" in {
+    val ob = All("""{ "id" : null , "id2" : "null" }""")
+    println(ob)
+    println(ob.toJsonString())
+  }
+
+  "a malformed json" should "throw ParsingExcpetion if an invalid json" in {
+
+    a [ParsingException] should be thrownBy {
+      All("""{ "id" : toto , "id2" : "null" }""")  
+    } 
+    a [ParsingException] should be thrownBy {
+      println(All("""{ """)  )
+    } 
+    //TODO
+    /*a [ParsingException] should be thrownBy {
+      println(All("""{] """)  )
+    } */
   }
 
 }
