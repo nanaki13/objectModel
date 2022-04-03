@@ -18,6 +18,7 @@ import bon.jo.utils.Tree.EndTree
 import scala.annotation.tailrec
 import bon.jo.words.Phrase.ParsingException
 import bon.jo.objects.StringExctractor.CharPos
+import scala.annotation.targetName
 
 /**
  * Object model.
@@ -86,7 +87,7 @@ object All:
       def arrayValue(v : All[String]):Ctx = 
         copy(arrayBuilder.copy( arrayBuilder.obj.copy(arrayBuilder.obj.value :+ v) ))
 
-      def closeArray() : Ctx = 
+      def closeArray(pe : PosPe) : Ctx = 
         removeLastDeep{
           (state,builder) match
             case (ParseState.InArray,ArrayBuilder(array) )=>
@@ -94,9 +95,11 @@ object All:
               parentVal.state match
                 case ParseState.InArray => parentVal.arrayValue(array)
                 case ParseState.InProp => parentVal.propValue(array)
+                case ParseState.Root => this
+            case _ => invalid(s"close but never open",pe)
         }
 
-      def closeObject() : Ctx = 
+      def closeObject(pe : PosPe) : Ctx = 
         removeLastDeep{
           (state,builder) match
             case (ParseState.InObject,ObjectBuilder(obj) )=>
@@ -105,6 +108,7 @@ object All:
                 case ParseState.InArray => parentVal.arrayValue(obj)
                 case ParseState.InProp => parentVal.propValue(obj)
                 case ParseState.Root => this
+            case _ => invalid(s"close but never open",pe)
         }
 
   /**
@@ -115,11 +119,11 @@ object All:
     val ctx = res2.foldLeft(Ctx()){ (ctx,pe) => 
       pe.value match
         case `{` => Ctx(ObjectBuilder(),Some(ctx),ParseState.InObject,ctx.deep :+ pe)
-        case  PhraseElement.Symbol("[") => Ctx(ArrayBuilder(),Some(ctx),ParseState.InArray,ctx.deep :+ pe)
+        case PhraseElement.Symbol("[") => Ctx(ArrayBuilder(),Some(ctx),ParseState.InArray,ctx.deep :+ pe)
         case PhraseElement.Symbol("]") => 
-          ctx.closeArray()
+          ctx.closeArray(pe)
         case `}` => 
-          ctx.closeObject()   
+          ctx.closeObject(pe)   
         case PhraseElement.Text(w) =>
           ctx.state match
             case ParseState.InProp => ctx.propValue(All.Value(w)) 
@@ -150,7 +154,7 @@ object All:
         case PhraseElement.Symbol(",") => 
           ctx.state match
             case ParseState.InObject |ParseState.InArray   => ctx
-            //  ret  
+        case o => invalid(s"invalid token : ${o.value}",pe)
               
          
            
@@ -220,7 +224,9 @@ object All:
     def buff[K] : OnBuild[K] = summon
     def buildValue[K] : Flow[K,All.ObjectAll[K]] = buff.value
 
-    def list[K](objs : All[K] *) = All.ListAll(objs.toList)
+    def list[K](objs : All[K] *):All.ListAll[K] = All.ListAll(objs.toList)
+    @targetName("listVal")
+    def list[K](objs : AnyVal *):All.ListAll[K] = All.ListAll(objs.toList.map(Value[K,AnyVal].apply))
     def obj[K](builds : OnBuild[K] * ):All.ObjectAll[K] =
       given  Buff[K] = Buff[K](All.ObjectAll(Nil))
       builds.foreach(build => build)

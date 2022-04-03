@@ -13,7 +13,8 @@ class AllTest extends AnyFlatSpec with should.Matchers {
       "id" := 1
       "name" := "toto"
       "created" := LocalDate.of(2001,1,1)
-       "group" := obj("id" := 1,"name" := "groupe_1") 
+      "group" := obj("id" := 1,"name" := "groupe_1") 
+      "list" := list[String](1,2,3)
     } 
 
   "A All instance" should "read it's properties" in {
@@ -21,7 +22,8 @@ class AllTest extends AnyFlatSpec with should.Matchers {
   }
 
   it should "build json stirng" in {
-    myObj.toJsonString() should be ("""{"id":1,"name":"toto","created":"2001-01-01","group":{"id":1,"name":"groupe_1"}}""")
+    println(myObj.toJsonString())
+    myObj.toJsonString() should be ("""{"id":1,"name":"toto","created":"2001-01-01","group":{"id":1,"name":"groupe_1"},"list":[1,2,3]}""")
   }
 
   it should "return updated by path" in {
@@ -51,8 +53,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
 
   "a json string" should " convert into object" in {
     val ob = All("""{ "id" : null , "id2" : "null" }""")
-    println(ob)
-    println(ob.toJsonString())
+    (ob / "id") should be (All.Empty())
   }
 
   "a malformed json" should "throw ParsingExcpetion if an invalid json" in {
@@ -63,10 +64,9 @@ class AllTest extends AnyFlatSpec with should.Matchers {
     a [ParsingException] should be thrownBy {
       println(All("""{ """)  )
     } 
-    //TODO
-    /*a [ParsingException] should be thrownBy {
+    a [ParsingException] should be thrownBy {
       println(All("""{] """)  )
-    } */
+    } 
   }
 
 }

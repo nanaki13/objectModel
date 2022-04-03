@@ -22,6 +22,7 @@ import MiniDsl as !
 import !.*
 import HtmlPredef.*
 import bon.jo.home.MindMapView
+import bon.jo.home.GridView
 object WordMain :
 
   case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
@@ -33,6 +34,7 @@ object WordMain :
     
 
     val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
+    val gridMenu : MyMenuItem = new MyMenuItem("Pixel arts",GridView.view)
     val mindMapMenu : MyMenuItem = new MyMenuItem("Mind map",MindMapView.view)
     val home : MyMenuItem = new MyMenuItem("Home",() => 
       div(_class("welcome container"),childs(
@@ -43,7 +45,7 @@ object WordMain :
       
       
       )
-    val menu  = new Menu(List(home,graphMenu,mindMapMenu),_.view(),menuOut) 
+    val menu  = new Menu(List(home,graphMenu,mindMapMenu,gridMenu),_.view(),menuOut) 
      
     
     val root = div(_class("root"),childs(menu.root,menuOut))

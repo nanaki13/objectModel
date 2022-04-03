@@ -12,7 +12,7 @@ object MiniDsl extends scala.Dynamic:
 
 
   def apply(p : String):Element = document.createElement(p)
-  def childs[T <: Element](e : List[Element]): T  ?=> T  = 
+  def childs[T <: Element](e : Iterable[Element]): T  ?=> T  = 
     e.foreach(summon[T].appendChild)
     summon
   def childs[T <: Element](e : Node *): T  ?=> T  = 

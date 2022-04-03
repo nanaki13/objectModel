@@ -27,7 +27,7 @@ object HtmlPredef {
   inline def pre(f : HTMLPreElement ?=> HTMLPreElement *): HTMLPreElement = !.pre(f  *)
   inline def select_(f : HTMLSelectElement ?=> HTMLSelectElement *): HTMLSelectElement = !.select(f * )
   inline def option(f : HTMLOptionElement ?=> HTMLOptionElement *): HTMLOptionElement = !.option(f  *)
-  inline def canvas(f : HTMLCanvasElement ?=> HTMLCanvasElement *): HTMLCanvasElement = !.option(f  *)
+  inline def canvas(f : HTMLCanvasElement ?=> HTMLCanvasElement *): HTMLCanvasElement = !.canvas(f  *)
 
 
   inline def div: HTMLDivElement = !.div
