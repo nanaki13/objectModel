@@ -3,13 +3,18 @@ package bon.jo.home
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.console
 import bon.jo.Draw.Grid
+import bon.jo.Draw.toAllObj
 import org.scalajs.dom.HTMLCanvasElement
 import bon.jo.MiniDsl.*
 import bon.jo.HtmlPredef.*
 import org.scalajs.dom.PointerEvent
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.CanvasRenderingContext2D
-
+import bon.jo.Draw.GridValue
+import bon.jo.objects.All.toJsonString
+import java.util.Base64
+import org.scalajs.dom.HTMLInputElement
+import org.scalajs.dom.HTMLDivElement
 object GridView:
   enum Color:
     case RGB(r:Int,g:Int,b:Int) 
@@ -58,9 +63,9 @@ object GridView:
               given MouseEvent = e
               given HTMLElement = can
               val nH = x*colrStep
-              posConsumer(nH)
               varval.value = nH
-              
+              posConsumer(nH)
+                  
           }
           val context =  can.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
         
@@ -119,24 +124,42 @@ object GridView:
     val grid = Grid[String](40,40)
     var mousedown = false
 
+
     def draw(ev : MouseEvent) =
         given MouseEvent = ev
         given HTMLElement = c
         context.beginPath()
         context.fillStyle=colot.toString
-        context.rect(x,y,fact,fact)
+        val x_ = (x/fact).toInt
+        val y_ = (y/fact).toInt
+        grid(x_,y_) = GridValue(colot.toString)
+        context.rect( x_ * fact, y_ * fact,fact,fact)
         context.fill()
         context.closePath()
 
-    def x(using ev : MouseEvent,c : HTMLElement ) = (((ev.pageX - c.offsetLeft)/fact)).toInt * fact
-    def y(using ev : MouseEvent,c : HTMLElement ) = (((ev.pageY - c.offsetTop)/fact)).toInt * fact
+    def x(using ev : MouseEvent,c : HTMLElement ) = ev.pageX - c.offsetLeft
+    def y(using ev : MouseEvent,c : HTMLElement ) =ev.pageY - c.offsetTop
     lazy val context =  c.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
     lazy val c : HTMLCanvasElement = canvas(click{draw},me(_.width=40*fact),me(_.height=40*fact))
     c.onmousemove = e => if mousedown then draw(e)
     c.onmousedown = _ => mousedown = true
     c.onmouseup = _ => mousedown = false
     c.style.backgroundColor = "red"
+
     val ret = div(childs(c,colPi))
+
+    def save():OnHTMLElement = 
+      val s = grid.json().toJsonString()  
+      val aLink = a( _text("Download"), me(_.asInstanceOf[scalajs.js.Dynamic].download = "image.json" ), me(_.href=s"""data:application/json;base64,${Base64.getEncoder.encodeToString(s.getBytes)}"""))
+      OnHtml().append(div(childs(aLink)))
+
+
+    val buttonSave = button(_text("save"),click(save()(using ret)))
+
+    val i = input(me(_.`type`="file"),me(_.name="img-json"),me(_.id="img-json"),me(_.style.display="none"))
+    def open():HTMLDivElement = div(childs(label(_text("Open"),me(_.htmlFor="img-json")),i) ) 
+      
+
     lazy val (vRed : VarValueDouble,cRed) = Cursor(f => 
       updateColor(Color.RGB((f*255).round.toInt,(vGreen.value*255).round.toInt,(vBlue.value*255).round.toInt))
       ,ret)
@@ -156,7 +179,7 @@ object GridView:
     lazy val (vH : VarValueDouble,cH) =colorLineCanvas(h => 
        updateColor( Color.HSL(h,vS.value*100,vL.value*100))
     )
-    ret.append(cRed, cGreen, cBlues,cH,cS,cL )
+    ret.append(cRed, cGreen, cBlues,cH,cS,cL,div(childs(buttonSave)),open() )
     ret
     
     
