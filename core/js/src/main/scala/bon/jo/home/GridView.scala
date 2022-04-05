@@ -36,6 +36,7 @@ object GridView:
   def x(using ev : MouseEvent,c : HTMLElement ) = ev.pageX - c.offsetLeft
   def y(using ev : MouseEvent,c : HTMLElement ) =ev.pageY - c.offsetTop
   inline def context:OnContext[Context] = Context()
+  def nothing(ev : MouseEvent):OnContextUnit={}
   def draw(ev : MouseEvent):OnContextUnit=
     given MouseEvent = ev
     given HTMLElement =context.c
@@ -161,8 +162,8 @@ object GridView:
 
 
     
-    val c : HTMLCanvasElement = canvas
-    given Context = new Context(grid,c,fact,Color.RGB(0,0,0))
+    val myCanvas : HTMLCanvasElement = canvas
+    given Context = new Context(grid,myCanvas,fact,Color.RGB(0,0,0))
     def updateColor(c : Color):OnContextUnit = 
       context.color = c
       colorPicker.style.backgroundColor =c.toString
@@ -181,14 +182,23 @@ object GridView:
       _ =>
        colorChage()
     }
-    prepare(c,cWidth,cHeight)
+    prepare(myCanvas,cWidth,cHeight)
 
-    c.onmousemove = e => if mousedown then draw(e)
-    c.onmousedown = _ => mousedown = true
-    c.onmouseup = _ => mousedown = false
+    var currentProcess : (MouseEvent) => OnContextUnit  = draw
+    myCanvas.onmousemove = e => if mousedown then currentProcess(e)
+    myCanvas.onmousedown = _ => mousedown = true
+    myCanvas.onmouseup = _ => mousedown = false
     
+    given (String => HTMLElement) = i => div(_text(i.toString))
+    given PaletteContext = PaletteContext("tool-select","row","cell")
+    val palette = Palette(2,"Draw","Select")
 
-    val ret = div(childs(c,colPi))
+    
+    palette.listen = {
+      case "Draw" =>  currentProcess = draw
+      case "Select" =>   currentProcess = nothing
+    }
+    val ret = div(childs( myCanvas, palette.root,colPi))
 
     def save():OnHTMLElement = 
       val s = grid.json().toJsonString()  
@@ -208,7 +218,7 @@ object GridView:
 
       f.readAsText(i.files(0),"utf-8")
     }
-    inline def open():HTMLDivElement = div(childs(label(_text("Open"),me(_.htmlFor="img-json")),i) ) 
+    inline def open():HTMLDivElement = div(childs(button(childs(label(_text("Open"),me(_.htmlFor="img-json")),i) ))) 
 
     def resetData( dataS : List[GridValueExport[String]]):OnContextUnit =
       context.gc.clearRect(0,0,cWidth,cHeight)
