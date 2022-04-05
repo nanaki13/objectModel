@@ -11,11 +11,56 @@ import org.scalajs.dom.PointerEvent
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.CanvasRenderingContext2D
 import bon.jo.Draw.GridValue
+ import bon.jo.Draw.toGridValueExport
 import bon.jo.objects.All.toJsonString
 import java.util.Base64
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.HTMLDivElement
+import org.scalajs.dom.FileReader
+import bon.jo.objects.All
+import bon.jo.Draw.GridValueExport
+import bon.jo.Draw.Positioned
+import bon.jo.home.GridView.Context
+import bon.jo.home.GridView.Context.*
+import bon.jo.HtmlEvent.EventAdder
 object GridView:
+
+  
+  class Context(val grid : Grid[String],val c : HTMLCanvasElement,var factor : Double,var color : Color):
+    val gc =  c.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
+  object Context:
+    type OnContext[A] = Context ?=> A
+    type OnContextUnit = OnContext[Unit]
+    inline def apply():OnContext[Context] = summon
+    
+  def x(using ev : MouseEvent,c : HTMLElement ) = ev.pageX - c.offsetLeft
+  def y(using ev : MouseEvent,c : HTMLElement ) =ev.pageY - c.offsetTop
+  inline def context:OnContext[Context] = Context()
+  def draw(ev : MouseEvent):OnContextUnit=
+    given MouseEvent = ev
+    given HTMLElement =context.c
+    val fact = context.factor
+    val grid = context.grid
+    val colot = context.color
+    val x_ = (x/fact).toInt
+    val y_ = (y/fact).toInt
+    grid(x_,y_) = GridValue(colot.toString)
+    drawPoint(x_,y_,colot.toString)
+      
+  def prepare(c : HTMLCanvasElement,cWidth : Int , cHeight : Int): OnContextUnit = 
+    given HTMLCanvasElement = c
+    EventAdder.click(draw)
+    c.width=cWidth
+    c.height=cHeight
+    c.style.backgroundColor="white"
+  def drawPoint(xGrid: Int,yGrid: Int,color : String):OnContextUnit =
+    val g = context.gc
+    val fact = context.factor
+    g.beginPath()
+    g.fillStyle=color
+    g.rect( xGrid * fact, yGrid * fact,fact,fact)
+    g.fill()
+    g.closePath()
   enum Color:
     case RGB(r:Int,g:Int,b:Int) 
     case HSL(h:Double,s:Double,l:Double) 
@@ -93,19 +138,35 @@ object GridView:
     val colorPicker = div(me(_.style.width = "30px"),me(_.style.height = "30px"))
     
     val rPicker = input(me(_.style.width = "30px"))
-    var r = 0d
     val gPicker = input(me(_.style.width = "30px"))
     val bPicker = input(me(_.style.width = "30px"))
     val colPi = div(childs(colorPicker,div(childs(rPicker,gPicker,bPicker))))
-    var colot: Color = Color.RGB(0,0,0)
+
     def hex(c : Color.RGB) =  
 
       String.format("#%02x%02x%02x", c.r,  c.g, c.b)
    
-    def updateColor(c : Color):Unit = 
-      colot = c
-      colorPicker.style.backgroundColor = colot.toString
-    def colorChage() = 
+
+    val fact = 10
+    val gridX = 40
+    val gridY = 40
+    var grid = Grid[String](gridX,40)
+    val cWidth = gridX*fact
+    val cHeight =  gridY*fact
+    var mousedown = false
+
+
+
+
+
+
+    
+    val c : HTMLCanvasElement = canvas
+    given Context = new Context(grid,c,fact,Color.RGB(0,0,0))
+    def updateColor(c : Color):OnContextUnit = 
+      context.color = c
+      colorPicker.style.backgroundColor =c.toString
+    def colorChage():OnContextUnit = 
       updateColor(Color.RGB(rPicker.value.toInt,gPicker.value.toInt,bPicker.value.toInt))
       
     rPicker.onchange = {
@@ -120,31 +181,12 @@ object GridView:
       _ =>
        colorChage()
     }
-    val fact = 10
-    val grid = Grid[String](40,40)
-    var mousedown = false
+    prepare(c,cWidth,cHeight)
 
-
-    def draw(ev : MouseEvent) =
-        given MouseEvent = ev
-        given HTMLElement = c
-        context.beginPath()
-        context.fillStyle=colot.toString
-        val x_ = (x/fact).toInt
-        val y_ = (y/fact).toInt
-        grid(x_,y_) = GridValue(colot.toString)
-        context.rect( x_ * fact, y_ * fact,fact,fact)
-        context.fill()
-        context.closePath()
-
-    def x(using ev : MouseEvent,c : HTMLElement ) = ev.pageX - c.offsetLeft
-    def y(using ev : MouseEvent,c : HTMLElement ) =ev.pageY - c.offsetTop
-    lazy val context =  c.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
-    lazy val c : HTMLCanvasElement = canvas(click{draw},me(_.width=40*fact),me(_.height=40*fact))
     c.onmousemove = e => if mousedown then draw(e)
     c.onmousedown = _ => mousedown = true
     c.onmouseup = _ => mousedown = false
-    c.style.backgroundColor = "red"
+    
 
     val ret = div(childs(c,colPi))
 
@@ -157,8 +199,24 @@ object GridView:
     val buttonSave = button(_text("save"),click(save()(using ret)))
 
     val i = input(me(_.`type`="file"),me(_.name="img-json"),me(_.id="img-json"),me(_.style.display="none"))
-    def open():HTMLDivElement = div(childs(label(_text("Open"),me(_.htmlFor="img-json")),i) ) 
-      
+    i.onchange = e => {
+      val f : FileReader = new FileReader()
+      f.onloadend = l => 
+        val dataJson : All.ListAll[String] = All(f.result.toString).asInstanceOf
+        val dataS : List[GridValueExport[String]] = dataJson.value.map(_.asInstanceOf[All.ObjectAll[String]].toGridValueExport)
+        resetData(dataS)
+
+      f.readAsText(i.files(0),"utf-8")
+    }
+    inline def open():HTMLDivElement = div(childs(label(_text("Open"),me(_.htmlFor="img-json")),i) ) 
+
+    def resetData( dataS : List[GridValueExport[String]]):OnContextUnit =
+      context.gc.clearRect(0,0,cWidth,cHeight)
+      grid.resetData(dataS)
+      grid.gridValues().foreach{
+        case Positioned(x,y,color) => drawPoint(x,y,color)
+
+      }
 
     lazy val (vRed : VarValueDouble,cRed) = Cursor(f => 
       updateColor(Color.RGB((f*255).round.toInt,(vGreen.value*255).round.toInt,(vBlue.value*255).round.toInt))
