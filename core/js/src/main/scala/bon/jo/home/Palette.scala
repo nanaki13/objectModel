@@ -36,6 +36,10 @@ class Palette[T](rowSize: Int, ts: T*)(using
   var selected : Option[T] = None
   var allHtmlCell: List[HTMLElement] = Nil
   val rowsp = Palette.rows(rowSize, ts*)
+  def select(i: Int):Unit = 
+    selected = Some(ts(i))
+    listen(ts(i))
+    allHtmlCell(i).classList.add(p.cssSelected)
   val childsp = rowsp.map { e =>
     div(
       _class(p.cssRow),

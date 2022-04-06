@@ -25,18 +25,39 @@ import bon.jo.home.GridView.Context.*
 import bon.jo.HtmlEvent.EventAdder
 object GridView:
 
-  
-  class Context(val grid : Grid[String],val c : HTMLCanvasElement,var factor : Double,var color : Color):
+  trait ActionParam
+  case class SelectActionParam(var begin : Boolean,selectDiv : HTMLElement,var xIni : Double,var yIni : Double) extends ActionParam
+  object NoActionParam extends ActionParam
+  class Context(val grid : Grid[String],val c : HTMLCanvasElement,var factor : Double,var color : Color,var currentProcess : (MouseEvent) => OnContextUnit,var actionParam: ActionParam ):
     val gc =  c.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
+    def parentCanvas = c.parentElement
   object Context:
     type OnContext[A] = Context ?=> A
     type OnContextUnit = OnContext[Unit]
     inline def apply():OnContext[Context] = summon
     
-  def x(using ev : MouseEvent,c : HTMLElement ) = ev.pageX - c.offsetLeft
-  def y(using ev : MouseEvent,c : HTMLElement ) =ev.pageY - c.offsetTop
+  def x(using ev : MouseEvent,c : HTMLElement ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
+  def y(using ev : MouseEvent,c : HTMLElement ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetY.asInstanceOf[Int]
   inline def context:OnContext[Context] = Context()
-  def nothing(ev : MouseEvent):OnContextUnit={}
+  def selectAction(ev : MouseEvent):OnContextUnit={
+    println("selectAction")
+    val param :SelectActionParam= context.actionParam.asInstanceOf
+    given MouseEvent = ev
+    given HTMLElement =context.c
+    println((x,y))
+    if param.begin then
+      param.begin = false
+      param.selectDiv.style.left = s"${x}px"
+      param.selectDiv.style.top = s"${y}px"
+      param.xIni = x
+      param.yIni = y
+      context.parentCanvas.append(param.selectDiv)
+    else
+      param.selectDiv.style.width = s"${x - param.xIni -10}px"
+      param.selectDiv.style.height = s"${y - param.yIni-10}px"
+
+
+  }
   def draw(ev : MouseEvent):OnContextUnit=
     given MouseEvent = ev
     given HTMLElement =context.c
@@ -50,7 +71,8 @@ object GridView:
       
   def prepare(c : HTMLCanvasElement,cWidth : Int , cHeight : Int): OnContextUnit = 
     given HTMLCanvasElement = c
-    EventAdder.click(draw)
+    
+    
     c.width=cWidth
     c.height=cHeight
     c.style.backgroundColor="white"
@@ -163,7 +185,7 @@ object GridView:
 
     
     val myCanvas : HTMLCanvasElement = canvas
-    given Context = new Context(grid,myCanvas,fact,Color.RGB(0,0,0))
+    given Context = new Context(grid,myCanvas,fact,Color.RGB(0,0,0),draw,NoActionParam)
     def updateColor(c : Color):OnContextUnit = 
       context.color = c
       colorPicker.style.backgroundColor =c.toString
@@ -184,21 +206,29 @@ object GridView:
     }
     prepare(myCanvas,cWidth,cHeight)
 
-    var currentProcess : (MouseEvent) => OnContextUnit  = draw
-    myCanvas.onmousemove = e => if mousedown then currentProcess(e)
-    myCanvas.onmousedown = _ => mousedown = true
-    myCanvas.onmouseup = _ => mousedown = false
+    
+
     
     given (String => HTMLElement) = i => div(_text(i.toString))
     given PaletteContext = PaletteContext("tool-select","row","cell")
     val palette = Palette(2,"Draw","Select")
-
+    
     
     palette.listen = {
-      case "Draw" =>  currentProcess = draw
-      case "Select" =>   currentProcess = nothing
+      case "Draw" =>  
+        context.actionParam = NoActionParam
+        context.currentProcess = draw
+      case "Select" =>   
+        context.actionParam = SelectActionParam(true,div(_class("select-rect")),0,0)
+        context.currentProcess = selectAction
     }
-    val ret = div(childs( myCanvas, palette.root,colPi))
+    palette.select(0)
+    val parentCanvas = div(_class("parent-c"),childs( myCanvas))
+    parentCanvas.onmousemove = e => if mousedown then context.currentProcess(e)
+    parentCanvas.onmousedown = _ => mousedown = true
+    parentCanvas.onmouseup = _ => mousedown = false
+    EventAdder.click(e =>  context.currentProcess(e))(using parentCanvas)
+    val ret = div(childs( parentCanvas, palette.root,colPi))
 
     def save():OnHTMLElement = 
       val s = grid.json().toJsonString()  
