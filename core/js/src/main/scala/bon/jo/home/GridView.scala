@@ -23,21 +23,54 @@ import bon.jo.Draw.Positioned
 import bon.jo.home.GridView.Context
 import bon.jo.home.GridView.Context.*
 import bon.jo.HtmlEvent.EventAdder
+import bon.jo.Draw.EmptyGridElement
 object GridView:
 
+  sealed trait Sel
+  case class RectSelect(xIni : Int,yIni: Int,xEnd: Int,yEnd: Int) extends Sel
   trait ActionParam
-  case class SelectActionParam(var begin : Boolean,selectDiv : HTMLElement,var xIni : Double,var yIni : Double) extends ActionParam
+  case class SelectActionParam(var begin : Boolean,selectDiv : HTMLElement,var xIni : Int,var yIni : Int) extends ActionParam
   object NoActionParam extends ActionParam
-  class Context(val grid : Grid[String],val c : HTMLCanvasElement,var factor : Double,var color : Color,var currentProcess : (MouseEvent) => OnContextUnit,var actionParam: ActionParam ):
+  trait ProcessEvent:
+    def process(e : MouseEvent) :OnContextUnit
+    def start(e: MouseEvent) :  OnContextUnit
+    def end(e: MouseEvent) :OnContextUnit
+  object DrawProcessEvent extends ProcessEvent:
+    def process(e: MouseEvent):OnContextUnit = draw(e)
+    def start(e: MouseEvent) :  OnContextUnit = ()
+    def end(e: MouseEvent) :OnContextUnit= ()
+  object SelectProcessEvent extends ProcessEvent:
+    def process(e: MouseEvent):OnContextUnit = selectAction(e)
+    def start(e: MouseEvent) :  OnContextUnit = 
+      context.actionParam = SelectActionParam(true,div(_class("select-rect")),0,0)
+    def end(e: MouseEvent) :OnContextUnit= 
+      given MouseEvent = e
+      given HTMLElement =context.parentCanvas
+      val param = context.actionParam.asInstanceOf[SelectActionParam]
+      context.selections.add(RectSelect(param.xIni,param.yIni,x,y) , param.selectDiv)
+  class Context(val grid : Grid[String],val c : HTMLCanvasElement,var factor : Double,var color : Color,var currentProcess : ProcessEvent,var actionParam: ActionParam ):
     val gc =  c.getContext("2d").asInstanceOf[ CanvasRenderingContext2D]
     def parentCanvas = c.parentElement
+    object selections :
+      var select : List[(Sel,HTMLElement)] = Nil
+      def add(sel : Sel,el : HTMLElement) = 
+        select = select :+ sel -> el
+      def clear() = 
+        select.foreach{
+          (_,e) => parentCanvas.removeChild(e)
+        }
+        select = Nil
+    def xInGrid(using ev : MouseEvent):Int = (x/factor).toInt
+    def yInGrid(using ev : MouseEvent ):Int = (y/factor).toInt
+    def xInGrid( x : Int ):Int = (x/factor).toInt
+    def yInGrid( y : Int ):Int = (y/factor).toInt
   object Context:
     type OnContext[A] = Context ?=> A
     type OnContextUnit = OnContext[Unit]
     inline def apply():OnContext[Context] = summon
     
-  def x(using ev : MouseEvent,c : HTMLElement ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
-  def y(using ev : MouseEvent,c : HTMLElement ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetY.asInstanceOf[Int]
+  def x(using ev : MouseEvent ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
+  def y(using ev : MouseEvent ):Int = ev.asInstanceOf[scalajs.js.Dynamic].offsetY.asInstanceOf[Int]
   inline def context:OnContext[Context] = Context()
   def selectAction(ev : MouseEvent):OnContextUnit={
     println("selectAction")
@@ -53,8 +86,23 @@ object GridView:
       param.yIni = y
       context.parentCanvas.append(param.selectDiv)
     else
-      param.selectDiv.style.width = s"${x - param.xIni -10}px"
-      param.selectDiv.style.height = s"${y - param.yIni-10}px"
+      var wR =  x - param.xIni
+      var hR = y - param.yIni
+      hR = if hR < 0 then 
+        param.selectDiv.style.top = s"${ param.yIni + hR}px"
+        -hR
+      else 
+        param.selectDiv.style.top = s"${param.yIni}px" 
+        hR
+      wR = if wR < 0 then 
+        param.selectDiv.style.left = s"${ param.xIni + wR}px"
+        -wR
+      else 
+        param.selectDiv.style.left = s"${param.xIni}px" 
+        wR
+
+      param.selectDiv.style.width = s"${wR }px"
+      param.selectDiv.style.height = s"${hR}px"
 
 
   }
@@ -64,8 +112,8 @@ object GridView:
     val fact = context.factor
     val grid = context.grid
     val colot = context.color
-    val x_ = (x/fact).toInt
-    val y_ = (y/fact).toInt
+    val x_ = context.xInGrid
+    val y_ = context.yInGrid
     grid(x_,y_) = GridValue(colot.toString)
     drawPoint(x_,y_,colot.toString)
       
@@ -182,10 +230,26 @@ object GridView:
 
 
 
-
+    def deleteSele():OnContextUnit = 
+      context.selections.select.foreach{
+        case ( RectSelect(xi,yi,xe,ye),_) => 
+          val xMin = context.xInGrid(Math.min(xi,xe)) 
+          val yMin = context.yInGrid(Math.min(yi,ye))
+          val xMax =context.xInGrid( Math.max(xi,xe))+1
+          val yMax = context.yInGrid(Math.max(yi,ye))+1
+          for{
+            xx <- xMin to xMax
+             yy <- yMin to yMax 
+          }{
+            context.grid(xx,yy) = EmptyGridElement
+          }
+          context.gc.clearRect(xMin*context.factor,yMin*context.factor,(xMax-xMin)*context.factor,(yMax-yMin)*context.factor)
+      }
+    def clearSele():OnContextUnit = 
+      context.selections.clear()
     
     val myCanvas : HTMLCanvasElement = canvas
-    given Context = new Context(grid,myCanvas,fact,Color.RGB(0,0,0),draw,NoActionParam)
+    given Context = new Context(grid,myCanvas,fact,Color.RGB(0,0,0),DrawProcessEvent,NoActionParam)
     def updateColor(c : Color):OnContextUnit = 
       context.color = c
       colorPicker.style.backgroundColor =c.toString
@@ -217,18 +281,25 @@ object GridView:
     palette.listen = {
       case "Draw" =>  
         context.actionParam = NoActionParam
-        context.currentProcess = draw
+        context.currentProcess = DrawProcessEvent
       case "Select" =>   
-        context.actionParam = SelectActionParam(true,div(_class("select-rect")),0,0)
-        context.currentProcess = selectAction
+        context.currentProcess = SelectProcessEvent
     }
     palette.select(0)
     val parentCanvas = div(_class("parent-c"),childs( myCanvas))
-    parentCanvas.onmousemove = e => if mousedown then context.currentProcess(e)
-    parentCanvas.onmousedown = _ => mousedown = true
-    parentCanvas.onmouseup = _ => mousedown = false
-    EventAdder.click(e =>  context.currentProcess(e))(using parentCanvas)
-    val ret = div(childs( parentCanvas, palette.root,colPi))
+    parentCanvas.onmousemove = e => if mousedown then context.currentProcess.process(e)
+    parentCanvas.onmousedown = e => 
+      mousedown = true
+      context.currentProcess.start(e)
+    parentCanvas.onmouseup = e => 
+      mousedown = false
+      context.currentProcess.end(e)
+    EventAdder.click(e =>  context.currentProcess.process(e))(using parentCanvas)
+    val buttonp = button(_text("delete selections"),click( _ => deleteSele()))
+    val buttonRemoveAllSel = button(_text("clear selections"),click( _ => clearSele()))
+    
+
+    val ret = div(childs( parentCanvas,div(childs(buttonp,buttonRemoveAllSel)), palette.root,colPi))
 
     def save():OnHTMLElement = 
       val s = grid.json().toJsonString()  
