@@ -260,9 +260,9 @@ object GridView:
        updateColor(saved)
       )(using d)
 
-    inline def tillColor() =  div(me(_.style.width = "30px"), me(_.style.height = "30px"))
+    inline def tillColor() =  div(_class("color-till"))
     
-    val saveColorDiv = div
+    val saveColorDiv = div(_class("color-saved"))
     val buttonSaveColor= button(_text("save color"), click(_ => saveColor(saveColorDiv)))
     val rPicker = input(me(_.style.width = "30px"))
     val gPicker = input(me(_.style.width = "30px"))
@@ -273,28 +273,40 @@ object GridView:
       String.format("#%02x%02x%02x", c.r, c.g, c.b)
 
     
+    def applyCuurentColorToSel():OnContextUnit = 
+      doOnSelctedcoords((xx,yy)=> 
+        context.grid(xx,yy) match
+          case value :  GridValue[_] => 
+             context.grid(xx,yy) = context.color.toString
+             drawPoint(xx,yy,context.color.toString)
+          case o =>
+        ,(_,_,_,_) => ()   )
 
-
-    def deleteSele(): OnContextUnit =
-      context.selections.select.foreach {
+    def doOnSelctedcoords[A](f : (Int,Int)=> A,sel : (xMin : Int,xMax : Int,yMin : Int,yMax : Int) => Unit):OnContext[List[Seq[A]]]=
+      context.selections.select.map {
         case (RectSelect(xi, yi, xe, ye), _) =>
           val xMin = context.xInGrid(Math.min(xi, xe))
           val yMin = context.yInGrid(Math.min(yi, ye))
           val xMax = context.xInGrid(Math.max(xi, xe)) + 1
           val yMax = context.yInGrid(Math.max(yi, ye)) + 1
+          sel(xMin,xMax,yMin,yMax)
           for {
             xx <- xMin to xMax
             yy <- yMin to yMax
-          } {
-            context.grid(xx, yy) = EmptyGridElement
+          } yield {
+            f(xx,yy)
           }
-          context.gc.clearRect(
+      }
+    def deleteSele(): OnContextUnit =
+      doOnSelctedcoords(context.grid(_, _) = EmptyGridElement,(xMin : Int,xMax : Int,yMin : Int,yMax : Int) =>  {
+        context.gc.clearRect(
             xMin * context.factor,
             yMin * context.factor,
             (xMax - xMin) * context.factor,
             (yMax - yMin) * context.factor
-          )
-      }
+          )   
+      })
+     
     def clearSele(): OnContextUnit =
       context.selections.clear()
 
@@ -338,14 +350,16 @@ object GridView:
       mousedown = false
       context.currentProcess.end(e)
     EventAdder.click(e => context.currentProcess.process(e))(using parentCanvas)
-    val buttonp = button(_text("delete selections"), click(_ => deleteSele()))
+    val buttonDeleteSel = button(_text("delete selections"), click(_ => deleteSele()))
     val buttonRemoveAllSel =
       button(_text("clear selections"), click(_ => clearSele()))
+    val buttonApplyColToSelElements =
+      button(_text("apply color"), click(_ => applyCuurentColorToSel()))
 
     val ret = div(
       childs(
         parentCanvas,
-        div(childs(buttonp, buttonRemoveAllSel)),
+        div(childs(buttonDeleteSel,buttonApplyColToSelElements, buttonRemoveAllSel)),
         palette.root,
         colPi
       )
