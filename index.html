@@ -103,17 +103,32 @@
       pointer-events: none; 
       
     }
+    .relative-inline-block{
+      position: relative;
+      display: inline-block;
+    }
+    .cursor-div{
+      background-color: lightgray;
+      height: 4px;
+    }
     .debug{
       display: none;
     }
     .tool-select{
-      background-color: rgb(70, 246, 100);
+      background-color: #6668ec;
       border: 1px solid;
     }
     .row{
       display: flex;
-
-        
+    }
+    .cursor{
+      position: absolute;
+      left : 0px;
+      background-color : white;
+      width : 10px;
+      height : 10px; 
+      border-radius: 5px;  
+      top: -3px;
     }
     .cell{
       display: flex;

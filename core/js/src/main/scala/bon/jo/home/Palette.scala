@@ -10,50 +10,53 @@ import org.scalajs.dom.HTMLHtmlElement
 case class PaletteContext(cssSelected: String, cssRow: String, cssCell: String)
 object Palette:
 
-  def apply[T](rowSize: Int, ts: T*)(using
+  def apply[T](rowSize: Int,listenClick : Boolean, ts: T*)(using
       T => HTMLElement,
       PaletteContext
-  ): Palette[T] = new Palette(rowSize, ts*)
+  ): Palette[T] = new Palette(rowSize,listenClick, ts*)
 
   def emptyArray[T](rowSize: Int): Array[Option[T]] =
     (for (i <- 0 until rowSize) yield None).toArray
   def rows[T](rowSize: Int, ts: T*): Array[Array[Option[T]]] =
-    val rowCount = ts.length / rowSize
+    val rowCount = (ts.length / rowSize)+1
+
     val datas: Array[Array[Option[T]]] =
       (for (i <- 0 until rowCount) yield emptyArray(rowSize)).toArray
 
+    org.scalajs.dom.console.log(datas)
     ts.zipWithIndex.map { (e, i) =>
       datas(i / rowSize)(i % rowSize) = Some(e)
 
     }
     datas
 
-class Palette[T](rowSize: Int, ts: T*)(using
+class Palette[T](rowSize: Int,listenClick : Boolean, ts: T*)(using
     f: T => HTMLElement,
     p: PaletteContext
 ):
   var listen : T => Unit = e => ()
   var selected : Option[T] = None
   var allHtmlCell: List[HTMLElement] = Nil
-  val rowsp = Palette.rows(rowSize, ts*)
+  def rowsp = Palette.rows(rowSize, ts*)
   def select(i: Int):Unit = 
     selected = Some(ts(i))
     listen(ts(i))
     allHtmlCell(i).classList.add(p.cssSelected)
-  val childsp = rowsp.map { e =>
+  def childsp = rowsp.map { e =>
     div(
       _class(p.cssRow),
       childs(
         e.filter(_.isDefined).toList.map(_.get).map(v => v -> f(v)).map { (v,h) =>
           h.className = p.cssCell
-          h.events.click(_ =>           
-              listen(v)
-              selected = Some(v)
-              allHtmlCell.foreach{
-                  _.classList.remove(p.cssSelected)
-              }
-              h.classList.add(p.cssSelected)
-              )
+          if listenClick then
+            h.events.click(_ =>           
+                listen(v)
+                selected = Some(v)
+                allHtmlCell.foreach{
+                    _.classList.remove(p.cssSelected)
+                }
+                h.classList.add(p.cssSelected)
+                )
           allHtmlCell = allHtmlCell :+ h
           h
         }
