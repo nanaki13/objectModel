@@ -21,298 +21,19 @@ import org.scalajs.dom.FileReader
 import bon.jo.objects.All
 import bon.jo.Draw.GridValueExport
 import bon.jo.Draw.Positioned
-import bon.jo.home.GridView.Context
-import bon.jo.home.GridView.Context.*
+import bon.jo.home.GridViewContext
+import bon.jo.home.GridViewContext.*
+import bon.jo.home.Color
+import bon.jo.home.ProcessEvent.NoActionParam
 import bon.jo.HtmlEvent.EventAdder
 import bon.jo.Draw.EmptyGridElement
 import org.scalajs.dom.TouchList
 import org.scalajs.dom.TouchEvent
-object GridView:
+object GridView extends GridViewOps:
 
+  type Context = GridViewContext
   sealed trait Sel
   case class RectSelect(xIni: Int, yIni: Int, xEnd: Int, yEnd: Int) extends Sel
-  trait ActionParam
-  case class SelectActionParam(
-      var begin: Boolean,
-      selectDiv: HTMLElement,
-      var xIni: Int,
-      var yIni: Int
-  ) extends ActionParam
-  object NoActionParam extends ActionParam
-  trait ProcessEvent:
-    def process(xI : Int,yI:Int): OnContextUnit
-    def start(xI : Int,yI:Int): OnContextUnit
-    def end(xI : Int,yI:Int): OnContextUnit
-  object DrawProcessEvent extends ProcessEvent:
-    def process(xI : Int,yI:Int): OnContextUnit = draw(xI, yI)
-    def start(xI : Int,yI:Int): OnContextUnit = ()
-    def end(xI : Int,yI:Int): OnContextUnit = ()
-  object PasteProcessEvent extends ProcessEvent:
-    def process(xI : Int,yI:Int): OnContextUnit =      
-      paste(xI,yI)
-    def start(xI : Int,yI:Int): OnContextUnit = ()
-    def end(xI : Int,yI:Int): OnContextUnit = ()
-  object SelectProcessEvent extends ProcessEvent:
-    def process(xI : Int,yI:Int): OnContextUnit = 
-      
-      selectAction(xI,yI)
-    def start(xI : Int,yI:Int): OnContextUnit =
-      context.actionParam =
-        SelectActionParam(true, div(_class("select-rect")), 0, 0)
-    def end(xI : Int,yI:Int): OnContextUnit =
-     
-      given HTMLElement = context.parentCanvas
-      val param = context.actionParam.asInstanceOf[SelectActionParam]
-      context.selections.add(
-        RectSelect(param.xIni, param.yIni, xI, yI),
-        param.selectDiv
-      )
-  class Context(
-      val grid: Grid[String],
-      val canvas: HTMLCanvasElement,
-      val colorPicker: HTMLElement,
-      var factor: Double,
-      var color: Color,
-      var currentProcess: ProcessEvent,
-      var actionParam: ActionParam,
-      var savedColor : List[Color],
-      var gridsCopy :List[Positioned[Grid[String]]] = Nil
-  ):
-    val gc = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-    def parentCanvas = canvas.parentElement
-    object selections:
-      var select: List[(Sel, HTMLElement)] = Nil
-      def add(sel: Sel, el: HTMLElement) =
-        select = select :+ sel -> el
-      def clear() =
-        select.foreach { (_, e) =>
-          parentCanvas.removeChild(e)
-        }
-        select = Nil
-
-  object Context:
-    type OnContext[A] = Context ?=> A
-    type OnContextUnit = OnContext[Unit]
-    inline def apply(): OnContext[Context] = summon
-  def xyInGrid( ev: MouseEvent): OnContext[(Int,Int)] = ((xme(ev) / context.factor).toInt, (yme(ev) / context.factor).toInt)
-  def xyInGrid( ev: TouchEvent): OnContext[(Int,Int)] = 
-    val (xx,yy) = xy(ev)
-    ((xx/context.factor.toInt),(yy/context.factor).toInt)
-
-  def xInGrid(x: Int): OnContext[Int] = (x / context.factor).toInt
-  def yInGrid(y: Int): OnContext[Int] = (y / context.factor).toInt
-  def xme( ev: MouseEvent): Int =
-    ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
-  def yme( ev: MouseEvent): Int =
-    ev.asInstanceOf[scalajs.js.Dynamic].offsetY.asInstanceOf[Int]
-  def xy( ev: TouchEvent): (Int,Int) =
-    val rect = ev.target.asInstanceOf[HTMLElement].getBoundingClientRect()
-    val t  = if !scalajs.js.isUndefined( ev.targetTouches(0)) then  ev.targetTouches(0) else ev.changedTouches(0)
-    console.log(ev)
-    ((t.pageX - rect.left).toFloat.round,(t.pageY - rect.top).toFloat.round)
-
-  inline def context: OnContext[Context] = Context()
-  def selectAction(xI : Int,yI : Int): OnContextUnit = {
-
-    val param: SelectActionParam = context.actionParam.asInstanceOf
-    //given MouseEvent = ev
-    given HTMLElement = context.canvas
-    if param.begin then
-      param.begin = false
-      param.selectDiv.style.left = s"${xI*context.factor}px"
-      param.selectDiv.style.top = s"${yI*context.factor}px"
-      param.xIni = xI
-      param.yIni = yI
-      context.parentCanvas.append(param.selectDiv)
-    else
-      var wR = xI - param.xIni
-      var hR = yI - param.yIni
-      hR = if hR < 0 then
-        param.selectDiv.style.top = s"${(param.yIni + hR)*context.factor}px"
-        -hR
-      else
-        param.selectDiv.style.top = s"${param.yIni*context.factor}px"
-        hR
-      wR = if wR < 0 then
-        param.selectDiv.style.left = s"${(param.xIni + wR)*context.factor}px"
-        -wR
-      else
-        param.selectDiv.style.left = s"${param.xIni*context.factor}px"
-        wR
-
-      param.selectDiv.style.width = s"${wR*context.factor}px"
-      param.selectDiv.style.height = s"${hR*context.factor}px"
-
-  }
-  def copySel():OnContextUnit = 
-    context.gridsCopy = Nil
-    doOnSelctedcoords((xx,yy)=> 
-      println((xx,yy))
-      console.log(context.grid.data)
-      context.grid(xx,yy) match
-        case value :  GridValue[_] => 
-            val g = context.gridsCopy.head
-            console.log(g.v.data)
-            g.v(xx-g.x,yy-g.y) = value
-        case o =>
-      ,(xMin : Int,xMax : Int,yMin : Int,yMax : Int) =>  {
-        context.gridsCopy = Positioned(xMin,yMin,Grid(xMax - xMin,yMax - yMin)) :: context.gridsCopy
-      }   )
-  def paste(x : Int,y : Int):OnContextUnit = 
-      context.gridsCopy.foreach{
-        pos => pos.v.gridValues().foreach{
-          gvPos => 
-            val xx = x+gvPos.x
-            val yy = x+gvPos.x
-            if xx < context.grid.xMax && yy < context.grid.yMax then
-              context.grid(x+gvPos.x,y+gvPos.y) = gvPos.v
-        }
-      }
-      draw()
-  def draw(xI : Int,yI : Int): OnContextUnit =
-    given HTMLElement = context.canvas
-    val fact = context.factor
-    val grid = context.grid
-    val colot = context.color
-   
-    val y_ = yInGrid
-    grid(xI, yI) = GridValue(colot.toString)
-    drawPoint(xI, yI, colot.toString)
-
-  def prepare(c: HTMLCanvasElement, cWidth: Int, cHeight: Int): OnContextUnit =
-    given HTMLCanvasElement = c
-
-    c.width = cWidth
-    c.height = cHeight
-    c.style.backgroundColor = "white"
-  def drawPoint(xGrid: Int, yGrid: Int, color: String): OnContextUnit =
-    val g = context.gc
-    val fact = context.factor
-    g.beginPath()
-    g.fillStyle = color
-    g.rect(xGrid * fact, yGrid * fact, fact, fact)
-    g.fill()
-    g.closePath()
-  enum Color:
-    case RGB(r: Int, g: Int, b: Int)
-    case HSL(h: Double, s: Double, l: Double)
-    case Raw(cssColorDef : String)
-    override def toString(): String =
-      this match
-        case RGB(r, g, b) => s"rgb($r,$g,$b)"
-        case HSL(h, s, l) => s"hsl(${h} ${s}% ${l}%)"
-        case Raw(c) => c
-
-  def saveColor(out : HTMLElement): OnContextUnit = 
-    val saved = context.color
-    saveColor(saved,out)
-  inline def tillColor() =  div(_class("color-till"))
-  def  colorFromDraw(outPallette : HTMLElement):OnContextUnit = 
-    val savedSet = context.savedColor.toSet
-    println(savedSet)
-    context.grid.data.filter(_ != EmptyGridElement).map(_.asGridValue[String]().v).toSet.map{
-      v => 
-        val c = Color.Raw(v)
-        println(c)
-        c
-    }.filter(!savedSet.contains(_)).foreach(saveColor(_,outPallette))
-  def updateColor(c: Color): OnContextUnit =
-    context.color = c
-    context.colorPicker.style.backgroundColor = c.toString
-  def saveColor(saved : Color, out : HTMLElement): OnContextUnit = 
-    context.savedColor = context.savedColor :+ saved
-    val d = tillColor()
-    out.append(d)
-    d.style.backgroundColor = saved.toString
-    EventAdder.click(_ => 
-      updateColor(saved)
-    )(using d)
-  def updateGridAndDraw(xx : Int,yy : Int) :OnContextUnit= 
-    context.grid(xx,yy) = context.color.toString
-    drawPoint(xx,yy,context.color.toString)
-  def applyCuurentColorToSel():OnContextUnit = 
-    doOnSelctedcoords((xx,yy)=> 
-      context.grid(xx,yy) match
-        case value :  GridValue[_] => 
-            updateGridAndDraw(xx,yy)
-        case o =>
-      ,(_,_,_,_) => ()   )
-  def strokeSel():OnContextUnit =
-    context.selections.select.foreach {
-      case (RectSelect(xi, yi, xe, ye), _) => 
-        val xMin = Math.min(xi, xe)
-        val yMin = Math.min(yi, ye)
-        val xMax = Math.max(xi, xe) 
-        val yMax = Math.max(yi, ye) 
-        for {
-          xx <- xMin until xMax
-        } {
-          
-          updateGridAndDraw(xx,yMin)
-          updateGridAndDraw(xx,yMax-1)
-        }
-        for {
-          yy <- yMin until yMax
-        } {
-          
-          updateGridAndDraw(xMin,yy)
-          updateGridAndDraw(xMax-1,yy)
-        }
-      }
-  def fillSel():OnContextUnit =
-    context.selections.select.foreach {
-      case (RectSelect(xi, yi, xe, ye), _) => 
-        val xMin = Math.min(xi, xe)
-        val yMin = Math.min(yi, ye)
-        val xMax = Math.max(xi, xe) 
-        val yMax = Math.max(yi, ye) 
-        for {
-          xx <- xMin until xMax
-          yy <- yMin until yMax
-        } yield {
-          updateGridAndDraw(xx,yy)
-        }
-      }
-  
-
-
-  def doOnSelctedcoords[A](f : (Int,Int)=> A,sel : (xMin : Int,xMax : Int,yMin : Int,yMax : Int) => Unit):OnContext[List[Seq[A]]]=
-    context.selections.select.map {
-      case (RectSelect(xi, yi, xe, ye), _) =>
-        val xMin = Math.min(xi, xe)
-        val yMin = Math.min(yi, ye)
-        val xMax = Math.max(xi, xe) 
-        val yMax = Math.max(yi, ye) 
-        sel(xMin,xMax,yMin,yMax)
-        for {
-          xx <- xMin until xMax
-          yy <- yMin until yMax
-        } yield {
-          f(xx,yy)
-        }
-    }
-  def deleteSele(): OnContextUnit =
-    doOnSelctedcoords(context.grid(_, _) = EmptyGridElement,(xMin : Int,xMax : Int,yMin : Int,yMax : Int) =>  {
-      context.gc.clearRect(
-          xMin * context.factor,
-          yMin * context.factor,
-          (xMax - xMin) * context.factor,
-          (yMax - yMin) * context.factor
-        )   
-    })
-    
-  def clearSele(): OnContextUnit =
-    context.selections.clear()
-
-  def resetData(dataS: List[GridValueExport[String]]): OnContextUnit =
-    context.grid.resetData(dataS)
-    draw()
-  def draw(): OnContextUnit =
-    context.gc.clearRect(0, 0, context.canvas.width, context.canvas.height)
-    context.grid.gridValues().foreach { case Positioned(x, y, color) =>
-      drawPoint(x, y, color)
-
-  }
 
 
 
@@ -339,7 +60,7 @@ object GridView:
     val cHeight = gridY * fact
     var mousedown = false
     def arc: Seq[(Double)] = (for {
-      c <- 0 until 500
+      c <- 0 until cntColorStep
 
     } yield c) map (_ * colrStep)
 
@@ -410,14 +131,18 @@ object GridView:
 
       (varval, ret)
 
-    inline def hslColor100_50(h: Double): String = s"hsl(${h} 100% 50%)"
-    inline def hslColor(h: Double, s: Double, l: Double): String =
-      s"hsl(${h} ${s}% ${l}%)"
 
 
 
+
+    val wInput = input(me(_.value = "40"))
+    val hInput = input(me(_.value = "40"))
+    val whDiv = div(childs(span(_text("width : ")),wInput,span(_text("height : ")),hInput))
     
-    
+    def change():Unit = 
+      updateGrid(wInput.value.toInt,hInput.value.toInt)
+    wInput.onchange = _ => change()
+    hInput.onchange = _ => change()
     val saveColorDiv = div(_class("color-saved"))
     val buttonSaveColor= button(_text("save color"), click(_ => saveColor(saveColorDiv)))
     
@@ -428,23 +153,20 @@ object GridView:
     val bPicker = input(me(_.style.width = "30px"))
     val colPi = div(childs(context.colorPicker,buttonSaveColor,buttonColorFromDraw,saveColorDiv, div(childs(rPicker, gPicker, bPicker))))
 
-    def hex(c: Color.RGB) =
-      String.format("#%02x%02x%02x", c.r, c.g, c.b)
 
-
-    def colorChage(): OnContextUnit =
+    def colorRGBChage(): OnContextUnit =
       updateColor(
         Color.RGB(rPicker.value.toInt, gPicker.value.toInt, bPicker.value.toInt)
       )
 
     rPicker.onchange = { _ =>
-      colorChage()
+      colorRGBChage()
     }
     gPicker.onchange = { _ =>
-      colorChage()
+      colorRGBChage()
     }
     bPicker.onchange = { _ =>
-      colorChage()
+      colorRGBChage()
     }
     prepare(myCanvas, cWidth, cHeight)
 
@@ -474,8 +196,6 @@ object GridView:
       context.currentProcess.start.tupled(xyInGrid(e))
     EventAdder.touchstart[TouchEvent]( e =>
       mousedown = true
-      println("touche start")
-      console.log(e)
       context.currentProcess.start.tupled(xyInGrid(e))
     )(using parentCanvas)
     EventAdder.touchend[TouchEvent]( e =>
@@ -498,7 +218,7 @@ object GridView:
     val fillButton =
       button(_text("Fill selection"), click(_ => fillSel()))
     def selectionPalette():Palette[HTMLElement] =
-      given (String => HTMLElement) = i => div(_text(i.toString))
+      
       given PaletteContext = PaletteContext("select-action-select", "row", "cell-large")
       Palette(4,false,buttonDeleteSel,buttonCopySel,buttonApplyColToSelElements, buttonRemoveAllSel, strokeButton, fillButton)
 
@@ -506,6 +226,7 @@ object GridView:
     val ret = div(
       childs(
         parentCanvas,
+        whDiv,
         div(childs(selectionPalette().root)),
         palette.root,
         colPi

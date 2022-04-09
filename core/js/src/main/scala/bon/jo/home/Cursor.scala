@@ -32,7 +32,7 @@ object Cursor:
     content.classList.add("relative-inline-block")
     content.classList.add("cursor-div")
     var mousDown = false
-    cursor.addEventListener[MouseEvent]("mousedown",_ => mousDown = true)
+    content.addEventListener[MouseEvent]("mousedown",_ => mousDown = true)
     moseHandleMove.addEventListener[MouseEvent]("mouseup", _ => mousDown = false)
     moseHandleMove.addEventListener[MouseEvent]("mousemove", e => {
       if mousDown then 
