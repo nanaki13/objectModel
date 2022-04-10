@@ -13,13 +13,13 @@ import bon.jo.Draw.Grid
 
 
 trait OnGridViewContext {
-  def xyInGrid( ev: MouseEvent): OnContext[(Int,Int)] = ((xme(ev) / context.factor).toInt, (yme(ev) / context.factor).toInt)
+  def xyInGrid( ev: MouseEvent): OnContext[(Int,Int)] = ((xme(ev) / context.factor.toDouble).toInt, (yme(ev) / context.factor.toDouble).toInt)
   def xyInGrid( ev: TouchEvent): OnContext[(Int,Int)] = 
     val (xx,yy) = xy(ev)
-    ((xx/context.factor.toInt),(yy/context.factor).toInt)
+    (((xx/context.factor.toDouble).toInt),(yy/context.factor.toDouble).toInt)
 
-  def xInGrid(x: Int): OnContext[Int] = (x / context.factor).toInt
-  def yInGrid(y: Int): OnContext[Int] = (y / context.factor).toInt
+  def xInGrid(x: Int): OnContext[Int] = (x / context.factor.toDouble).toInt
+  def yInGrid(y: Int): OnContext[Int] = (y / context.factor.toDouble).toInt
   def xme( ev: MouseEvent): Int =
     ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
   def yme( ev: MouseEvent): Int =
@@ -59,8 +59,11 @@ trait OnGridViewContext {
     drawPoint(xx,yy,context.color.toString)
   
 
-  def resetData(dataS: List[GridValueExport[String]]): OnContextUnit =
+  def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
+    context.grid = Grid(xSize,ySize)
     context.grid.resetData(dataS)
+    context.canvas.width = (xSize * context.factor.toFloat).round
+    context.canvas.height = (ySize * context.factor.toFloat).round
     draw()
   def draw(): OnContextUnit =
     context.gc.clearRect(0, 0, context.canvas.width, context.canvas.height)
@@ -69,7 +72,24 @@ trait OnGridViewContext {
 
   }
   def updateGrid(xMaxx : Int,yMax : Int): OnContextUnit =
-    context.grid = Grid(xMaxx,yMax)
+    val nGrid = Grid[String](xMaxx,yMax)
+    for{
+      
+      xx <- 0 until xMaxx
+      yy <- 0 until yMax
+    } {
+      if context.grid.isInGrid(xx,yy) then
+        nGrid(xx,yy) =  context.grid(xx,yy)
+      
+
+    }
+    context.grid = nGrid
     context.canvas.width = (xMaxx * context.factor.toFloat).round
     context.canvas.height = (yMax * context.factor.toFloat).round
+    draw()
+  def updateFacor(pxSize : Int):OnContextUnit = 
+    context.factor = pxSize
+    context.canvas.width = (context.grid.xSize * context.factor.toFloat).round
+    context.canvas.height = (context.grid.ySize  * context.factor.toFloat).round
+    draw()
 }

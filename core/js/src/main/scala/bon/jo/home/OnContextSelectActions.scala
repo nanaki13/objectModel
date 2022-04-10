@@ -24,22 +24,27 @@ trait OnContextSelectActions {
         param.selectDiv.style.top = s"${yI*context.factor}px"
         param.xIni = xI
         param.yIni = yI
+        println("start sel : "+(xI,yI))
         context.parentCanvas.append(param.selectDiv)
       else
         var wR = xI - param.xIni
         var hR = yI - param.yIni
         hR = if hR < 0 then
+          println("hr < 0")
           param.selectDiv.style.top = s"${(param.yIni + hR)*context.factor}px"
           -hR
         else
+          println("hr > 0")
           param.selectDiv.style.top = s"${param.yIni*context.factor}px"
-          hR
+          hR+1
         wR = if wR < 0 then
+          println("wR < 0")
           param.selectDiv.style.left = s"${(param.xIni + wR)*context.factor}px"
           -wR
         else
+          println("wR > 0")
           param.selectDiv.style.left = s"${param.xIni*context.factor}px"
-          wR
+          wR+1
 
         param.selectDiv.style.width = s"${wR*context.factor}px"
         param.selectDiv.style.height = s"${hR*context.factor}px"
@@ -61,9 +66,9 @@ trait OnContextSelectActions {
           pos => pos.v.gridValues().foreach{
             gvPos => 
               val xx = x+gvPos.x
-              val yy = x+gvPos.x
-              if xx < context.grid.xMax && yy < context.grid.yMax then
-                context.grid(x+gvPos.x,y+gvPos.y) = gvPos.v
+              val yy = y+gvPos.y
+              if context.grid.isInGrid(xx,yy) then
+                context.grid(xx,yy) = gvPos.v
           }
         }
         draw()
@@ -98,6 +103,7 @@ trait OnContextSelectActions {
           }
         }
     def fillSel():OnContextUnit =
+      println("fillSel start = "+context.grid.data.count(_ != EmptyGridElement))
       context.selections.select.foreach {
         case (RectSelect(xi, yi, xe, ye), _) => 
           val xMin = Math.min(xi, xe)
@@ -108,9 +114,11 @@ trait OnContextSelectActions {
             xx <- xMin until xMax
             yy <- yMin until yMax
           } yield {
+            
             updateGridAndDraw(xx,yy)
           }
         }
+      println("fillSel end = "+context.grid.data.count(_ != EmptyGridElement))
     
 
 

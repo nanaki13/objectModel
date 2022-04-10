@@ -8,6 +8,7 @@ import bon.jo.Draw.toAllObj
 import org.scalajs.dom.HTMLCanvasElement
 import bon.jo.MiniDsl.*
 import bon.jo.HtmlPredef.*
+import bon.jo.HtmlEvent.events
 import org.scalajs.dom.PointerEvent
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.CanvasRenderingContext2D
@@ -44,11 +45,11 @@ object GridView extends GridViewOps:
 
     val gridX = 40
     val gridY = 40
-    var grid = Grid[String](gridX, gridY)
+   
     val fact = 10
     val myCanvas: HTMLCanvasElement = canvas
     given Context = new Context(
-      grid,
+       Grid[String](gridX, gridY),
       myCanvas,
       tillColor(),
       fact,
@@ -59,6 +60,7 @@ object GridView extends GridViewOps:
     val cWidth = gridX * fact
     val cHeight = gridY * fact
     var mousedown = false
+    
     def arc: Seq[(Double)] = (for {
       c <- 0 until cntColorStep
 
@@ -138,11 +140,18 @@ object GridView extends GridViewOps:
     val wInput = input(me(_.value = "40"))
     val hInput = input(me(_.value = "40"))
     val whDiv = div(childs(span(_text("width : ")),wInput,span(_text("height : ")),hInput))
+    val pxSizeInput= input(me(_.value = "10"))
     
-    def change():Unit = 
+    val pxSizeDiv = div(childs(span(_text("px size : ")),pxSizeInput))
+    
+    def changeGridSize():Unit = 
       updateGrid(wInput.value.toInt,hInput.value.toInt)
-    wInput.onchange = _ => change()
-    hInput.onchange = _ => change()
+    wInput.events.change( _ => changeGridSize() )
+    hInput.events.change( _ => changeGridSize())
+    def changePixelSize():Unit = 
+      updateFacor(pxSizeInput.value.toInt)
+    pxSizeInput.events.change( _ => changePixelSize() )
+
     val saveColorDiv = div(_class("color-saved"))
     val buttonSaveColor= button(_text("save color"), click(_ => saveColor(saveColorDiv)))
     
@@ -187,6 +196,7 @@ object GridView extends GridViewOps:
     val parentCanvas = div(_class("parent-c"), childs(myCanvas))
     parentCanvas.onmousemove = e =>
       if mousedown then context.currentProcess.process.tupled(xyInGrid(e))
+
     EventAdder.touchmove[TouchEvent]( e =>
       console.log(e)
       if mousedown then context.currentProcess.process.tupled(xyInGrid(e))
@@ -199,12 +209,14 @@ object GridView extends GridViewOps:
       context.currentProcess.start.tupled(xyInGrid(e))
     )(using parentCanvas)
     EventAdder.touchend[TouchEvent]( e =>
-      mousedown = false
-      context.currentProcess.end.tupled(xyInGrid(e))
-    )(using parentCanvas)
-    parentCanvas.onmouseup = e =>
-      mousedown = false
-      context.currentProcess.end.tupled(xyInGrid(e))
+      if mousedown then
+        mousedown = false
+        context.currentProcess.end.tupled(xyInGrid(e))
+    )(using org.scalajs.dom.document.body)
+     EventAdder.mouseup[MouseEvent](e =>
+      if mousedown then
+        mousedown = false
+        context.currentProcess.end.tupled(xyInGrid(e)))(using org.scalajs.dom.document.body)
     EventAdder.click[MouseEvent](e => context.currentProcess.process.tupled(xyInGrid(e)))(using parentCanvas)
     val buttonDeleteSel = button(_text("Delete selections"), click(_ => deleteSele()))
     val buttonRemoveAllSel =
@@ -223,18 +235,20 @@ object GridView extends GridViewOps:
       Palette(4,false,buttonDeleteSel,buttonCopySel,buttonApplyColToSelElements, buttonRemoveAllSel, strokeButton, fillButton)
 
 
-    val ret = div(
-      childs(
-        parentCanvas,
-        whDiv,
+    val toolDiv = div(childs(        whDiv,
+        pxSizeDiv,
         div(childs(selectionPalette().root)),
         palette.root,
-        colPi
+        colPi))
+    val ret = div(
+      _class("row"),
+      childs(
+        parentCanvas,toolDiv
       )
     )
 
     def save(): OnHTMLElement =
-      val s = grid.json().toJsonString()
+      val s = context.grid.json().toJsonString()
       val aLink = a(
         _text("Download"),
         me(_.asInstanceOf[scalajs.js.Dynamic].download = "image.json"),
@@ -255,14 +269,17 @@ object GridView extends GridViewOps:
       val f: FileReader = new FileReader()
       val tRef = (System.currentTimeMillis)
       f.onloadend = l =>
-        println("onloadend"+(System.currentTimeMillis - tRef))
         val res = f.result.toString
         val resParsed = JSON.parse(res)
-        val dataS: List[GridValueExport[String]] = resParsed.asInstanceOf[scalajs.js.Array[scalajs.js.Dynamic]].map{ e =>
+        val din = resParsed.asInstanceOf[scalajs.js.Dynamic]
+        val xSize : Int = din.xSize.asInstanceOf
+        val ySize : Int = din.ySize.asInstanceOf
+        val data : scalajs.js.Array[scalajs.js.Dynamic] = din.data.asInstanceOf
+
+        val dataS: List[GridValueExport[String]] = data.map{ e =>
           GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
         }.toList
-        resetData(dataS)
-        println("reset data"+(System.currentTimeMillis - tRef))
+        resetData(dataS,xSize,ySize)
       
       f.readAsText(i.files(0), "utf-8")
     }
@@ -319,7 +336,7 @@ object GridView extends GridViewOps:
     lazy val (vH: VarValueDouble, cH) = colorLineCanvas(120,h =>
       updateColor(Color.HSL(h, vS.value * 100, vL.value * 100))
     )
-    ret.append(
+    toolDiv.append(
       div(childs(span(_text("R : ")),cRed)),
       div(childs(span(_text("G : ")),cGreen)),
       div(childs(span(_text("B : ")),cBlues)),

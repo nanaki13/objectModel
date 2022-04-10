@@ -4,6 +4,7 @@ import org.scalajs.dom.HTMLElement
 import bon.jo.home.GridView.RectSelect
 import bon.jo.HtmlPredef.*
 import bon.jo.MiniDsl.*
+import bon.jo.Draw.EmptyGridElement
 trait ProcessEvent:
     def process(xI : Int,yI:Int): OnContextUnit
     def start(xI : Int,yI:Int): OnContextUnit
@@ -26,21 +27,26 @@ object ProcessEvent:
         def end(xI : Int,yI:Int): OnContextUnit = ()
       object PasteProcessEvent extends ProcessEvent:
         def process(xI : Int,yI:Int): OnContextUnit =      
+          println("paste size b = "+context.grid.data.count(_ != EmptyGridElement))
           paste(xI,yI)
+          println("paste size a = "+context.grid.data.count(_ != EmptyGridElement))
         def start(xI : Int,yI:Int): OnContextUnit = ()
         def end(xI : Int,yI:Int): OnContextUnit = ()
       object SelectProcessEvent extends ProcessEvent:
         def process(xI : Int,yI:Int): OnContextUnit = 
-          
+          println("process "+(xI,yI))
           selectAction(xI,yI)
         def start(xI : Int,yI:Int): OnContextUnit =
+          println("start")
           context.actionParam =
             SelectActionParam(true, div(_class("select-rect")), 0, 0)
         def end(xI : Int,yI:Int): OnContextUnit =
-        
+          println("end " +(xI : Int,yI:Int))
           given HTMLElement = context.parentCanvas
           val param = context.actionParam.asInstanceOf[SelectActionParam]
+          val xx = if xI - param.xIni >= 0 then xI+1 else xI
+          val yy = if yI - param.yIni >= 0 then yI+1 else yI
           context.selections.add(
-            RectSelect(param.xIni, param.yIni, xI, yI),
+            RectSelect(param.xIni, param.yIni, xx, yy),
             param.selectDiv
           )

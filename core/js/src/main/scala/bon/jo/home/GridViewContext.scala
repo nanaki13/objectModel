@@ -14,7 +14,7 @@ import bon.jo.home.GridView.Sel
       var grid: Grid[String],
       val canvas: HTMLCanvasElement,
       val colorPicker: HTMLElement,
-      var factor: Double,
+      var factor: Int,
       var color: Color,
       var currentProcess: ProcessEvent,
       var actionParam: ActionParam,
