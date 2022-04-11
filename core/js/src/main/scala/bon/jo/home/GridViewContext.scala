@@ -15,11 +15,13 @@ import bon.jo.home.GridView.Sel
       var grid: MasterGrid[String],
       val canvas: HTMLCanvasElement,
       val colorPicker: HTMLElement,
+      val sheetViewsDiv: HTMLElement,
       var factor: Int,
       var color: Color,
       var currentProcess: ProcessEvent,
       var actionParam: ActionParam,
       var savedColor : List[Color],
+      
       var gridsCopy :List[Positioned[Grid[String]]] = Nil
   ):
     val gc = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]

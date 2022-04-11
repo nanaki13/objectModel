@@ -24,23 +24,26 @@ object Draw {
 
   class MasterGrid[T]( xSize : Int, ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
     var sheet : List[Positioned[Grid[T]] with Access] = Nil
-    override def apply(xp : Int, yp : Int) : GridElement = 
-      sheet.find(_.canReadAndIsIn(xp,yp)).map{
+    override def apply(xp : Int, yp : Int) : GridElement[T] = 
+      sheet.find(_.canReadAndIsIn(xp,yp)).flatMap{
         p => 
+
           val (xx,yy) = p.coorInMe(xp,yp)
-          p.v(xx,yy)
+          p.v(xx,yy) match
+            case EmptyGridElement => None
+            case o => Some(o)
       }.getOrElse(super.apply(xp,yp))
-    override def  update(xp : Int, yp : Int, e : GridElement):Unit = 
+    override def  update(xp : Int, yp : Int, e : GridElement[T]):Unit = 
       sheet.find(_.canWriteAndIsIn(xp,yp)).map{
         p => 
           val (xx,yy) = p.coorInMe(xp,yp)
           p.v(xx,yy) = e
       }.getOrElse(super.update(xp,yp, e))
    
-  sealed trait GridElement:
-    def asGridValue[T]():GridValue[T] = this.asInstanceOf[GridValue[T]]
-  object EmptyGridElement extends GridElement
-  case class GridValue[T](v : T) extends GridElement
+  sealed trait GridElement[+T]:
+    def asGridValue[B >: T]():GridValue[B] = this.asInstanceOf[GridValue[B]]
+  object EmptyGridElement extends GridElement[Nothing]
+  case class GridValue[T](v : T) extends GridElement[T]
   case class GridValueExport[T](v : T,xy : Int) 
   case class Positioned[T](x : Int,y:Int,v : T)
   extension [T] (v : GridValueExport[T])
@@ -51,7 +54,7 @@ object Draw {
       case e : Long =>e.toInt
     )
   class Grid[T](val xSize : Int,val ySize : Int):
-    val data : Array[GridElement] = Array((for (i <- 0 until xSize*ySize) yield EmptyGridElement ) * )
+    val data : Array[GridElement[T]] = Array((for (i <- 0 until xSize*ySize) yield EmptyGridElement ) * )
     def isInGrid(xp : Int, yp : Int):Boolean = isInGridX(xp) && isInGridY(yp)
     inline def isInGridX(xp : Int):Boolean = xp > -1 && xp < xSize
     inline def isInGridY( yp : Int):Boolean = yp > -1 && yp < ySize
@@ -62,13 +65,17 @@ object Draw {
       
     inline def coord(xp : Int, yp : Int) = xp * ySize + yp 
     inline def uncoord(xy : Int):(Int,Int)  = (xy / ySize, xy % ySize )
-    def apply(xp : Int, yp : Int):GridElement = data(coord(xp,yp) )
-    def update(xp : Int, yp : Int,v : GridElement) :Unit= data(coord(xp,yp)) = v
+    def apply(xp : Int, yp : Int):GridElement[T] = data(coord(xp,yp) )
+    def update(xp : Int, yp : Int,v : GridElement[T]) :Unit= data(coord(xp,yp)) = v
     inline def update(xp : Int, yp : Int,v : T):Unit = this(xp, yp) = GridValue(v)
-    def gridValues() = data.zipWithIndex.filter(_._1 != EmptyGridElement).map{(el,i) => 
+    def gridValues() = data.zipWithIndex.flatMap{(el,i) => 
       val (x,y) = uncoord(i)
-      Positioned[String](x,y,el.asGridValue().v)  
+      val ell = this(x,y)
+      ell match
+        case el : GridValue[_] => Option( Positioned[T](x,y,el.asGridValue().v)  )
+        case o => None
     }
+     
     def resetData( dataS : List[GridValueExport[T]]):Unit = 
       for (i <- 0 until xSize*ySize) {
         data(i) = EmptyGridElement

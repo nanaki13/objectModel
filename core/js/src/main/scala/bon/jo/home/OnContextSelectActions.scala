@@ -11,7 +11,9 @@ import bon.jo.Draw.EmptyGridElement
 import bon.jo.Draw.Grid
 import bon.jo.Draw.Access
 import bon.jo.Draw.AccessVar
-
+import bon.jo.MiniDsl.*
+import bon.jo.HtmlPredef.*
+import bon.jo.HtmlEvent.events
 trait OnContextSelectActions {
   self : OnGridViewContext =>
   
@@ -124,9 +126,29 @@ trait OnContextSelectActions {
     
     def sheetFromSel():OnContextUnit =
       selectedBound().foreach{ b =>
-        context.grid.sheet  = new Positioned(b.xMin,b.yMin,Grid[String](b.width,b.height)) with Access with AccessVar ::  context.grid.sheet 
+        val p = new Positioned(b.xMin,b.yMin,Grid[String](b.width,b.height)) with Access with AccessVar
+        context.grid.sheet  =  p ::  context.grid.sheet
+        val sheetDiv = div
+        sheetDiv.classList.add("sheet-rect")
+        sheetDiv.style.width = s"${ b.width * context.factor}px" 
+        sheetDiv.style.height = s"${b.height* context.factor}px" 
+        sheetDiv.style.top = s"${b.yMin* context.factor}px" 
+        sheetDiv.style.left = s"${b.xMin* context.factor}px" 
+        context.parentCanvas.append(sheetDiv) 
+        val seeCheck = input(me(_.`type` = "checkbox"),me(_.checked = true))
+        val lockCheck = input(me(_.`type` = "checkbox"),me(_.checked = false))
+      
+        val sheetViewDiv = div(_text("sheet : "+context.grid.sheet.size), childs(span(_text("see")),seeCheck,span(_text("lock")), lockCheck))
+        seeCheck.events.change(_ =>
+           p.canRead = seeCheck.checked
+           draw()
+        )
+        lockCheck.events.change(_ =>
+           p.canWrite = !lockCheck.checked
+           draw()
+        )
+        context.sheetViewsDiv.append(sheetViewDiv)
       }
-      println(context.grid.sheet.map(e => e.x -> e.y -> e.v))
     case class Bound(xMin : Int,xMax : Int,yMin : Int,yMax : Int):
       inline def width = xMax - xMin
       inline def height = yMax - yMin

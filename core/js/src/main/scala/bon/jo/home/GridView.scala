@@ -53,6 +53,7 @@ object GridView extends GridViewOps:
        MasterGrid[String](gridX, gridY),
       myCanvas,
       tillColor(),
+      div,
       fact,
       Color.RGB(0, 0, 0),
       DrawProcessEvent,
@@ -242,7 +243,7 @@ object GridView extends GridViewOps:
         pxSizeDiv,
         div(childs(selectionPalette().root)),
         palette.root,
-        colPi))
+        colPi,context.sheetViewsDiv))
     val ret = div(
       _class("row"),
       childs(
