@@ -1,5 +1,6 @@
 package bon.jo.home
 
+import bon.jo.Draw.MasterGrid
 import bon.jo.Draw.Grid
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
@@ -11,7 +12,7 @@ import org.scalajs.dom.CanvasRenderingContext2D
 import bon.jo.home.GridView.Sel
 
   class GridViewContext(
-      var grid: Grid[String],
+      var grid: MasterGrid[String],
       val canvas: HTMLCanvasElement,
       val colorPicker: HTMLElement,
       var factor: Int,

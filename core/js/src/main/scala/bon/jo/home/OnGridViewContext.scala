@@ -10,6 +10,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import bon.jo.Draw.GridValue
 import org.scalajs.dom.MouseEvent
 import bon.jo.Draw.Grid
+import bon.jo.Draw.MasterGrid
 
 
 trait OnGridViewContext {
@@ -60,7 +61,7 @@ trait OnGridViewContext {
   
 
   def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
-    context.grid = Grid(xSize,ySize)
+    context.grid = MasterGrid(xSize,ySize)
     context.grid.resetData(dataS)
     context.canvas.width = (xSize * context.factor.toFloat).round
     context.canvas.height = (ySize * context.factor.toFloat).round
@@ -72,7 +73,7 @@ trait OnGridViewContext {
 
   }
   def updateGrid(xMaxx : Int,yMax : Int): OnContextUnit =
-    val nGrid = Grid[String](xMaxx,yMax)
+    val nGrid = MasterGrid[String](xMaxx,yMax)
     for{
       
       xx <- 0 until xMaxx

@@ -9,6 +9,8 @@ import bon.jo.home.GridView.RectSelect
 import bon.jo.Draw.GridValue
 import bon.jo.Draw.EmptyGridElement
 import bon.jo.Draw.Grid
+import bon.jo.Draw.Access
+import bon.jo.Draw.AccessVar
 
 trait OnContextSelectActions {
   self : OnGridViewContext =>
@@ -120,7 +122,23 @@ trait OnContextSelectActions {
         }
       println("fillSel end = "+context.grid.data.count(_ != EmptyGridElement))
     
-
+    def sheetFromSel():OnContextUnit =
+      selectedBound().foreach{ b =>
+        context.grid.sheet  = new Positioned(b.xMin,b.yMin,Grid[String](b.width,b.height)) with Access with AccessVar ::  context.grid.sheet 
+      }
+      println(context.grid.sheet.map(e => e.x -> e.y -> e.v))
+    case class Bound(xMin : Int,xMax : Int,yMin : Int,yMax : Int):
+      inline def width = xMax - xMin
+      inline def height = yMax - yMin
+    def selectedBound():OnContext[Iterable[Bound]] = 
+      context.selections.select.map {
+      case (RectSelect(xi, yi, xe, ye), _) =>
+          val xMin = Math.min(xi, xe)
+          val yMin = Math.min(yi, ye)
+          val xMax = Math.max(xi, xe) 
+          val yMax = Math.max(yi, ye) 
+          Bound(xMin,xMax,yMin,yMax)
+          }  
 
     def doOnSelctedcoords[A](f : (Int,Int)=> A,sel : (xMin : Int,xMax : Int,yMin : Int,yMax : Int) => Unit):OnContext[List[Seq[A]]]=
       context.selections.select.map {

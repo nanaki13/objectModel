@@ -5,6 +5,38 @@ import bon.jo.objects.All.Dsl.*
 import org.scalactic.Bool
 object Draw {
 
+  trait Access:
+    def canRead : Boolean
+    def canWrite : Boolean
+  trait AccessVar:
+    self : Access =>
+      var canRead = true
+      var canWrite = true
+  extension [T] (e : Positioned[Grid[T] ] with Access)
+    def width : Int = e.v.xSize
+    def height : Int = e.v.ySize
+    inline def coorInMe(xp : Int, yp : Int) : (Int,Int) = (xp - e.x,yp - e.y)
+    def isIn(xp : Int, yp : Int) : Boolean = 
+      val (xx,yy) = coorInMe(xp,yp)
+      e.v.isInGrid(xx,yy)
+    def canReadAndIsIn(xp : Int, yp : Int) : Boolean = e.canRead && isIn(xp,yp)
+    def canWriteAndIsIn(xp : Int, yp : Int) : Boolean = e.canWrite && isIn(xp,yp)
+
+  class MasterGrid[T]( xSize : Int, ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
+    var sheet : List[Positioned[Grid[T]] with Access] = Nil
+    override def apply(xp : Int, yp : Int) : GridElement = 
+      sheet.find(_.canReadAndIsIn(xp,yp)).map{
+        p => 
+          val (xx,yy) = p.coorInMe(xp,yp)
+          p.v(xx,yy)
+      }.getOrElse(super.apply(xp,yp))
+    override def  update(xp : Int, yp : Int, e : GridElement):Unit = 
+      sheet.find(_.canWriteAndIsIn(xp,yp)).map{
+        p => 
+          val (xx,yy) = p.coorInMe(xp,yp)
+          p.v(xx,yy) = e
+      }.getOrElse(super.update(xp,yp, e))
+   
   sealed trait GridElement:
     def asGridValue[T]():GridValue[T] = this.asInstanceOf[GridValue[T]]
   object EmptyGridElement extends GridElement
@@ -26,14 +58,13 @@ object Draw {
     def exportFun() : Iterable[GridValueExport[T]] = 
       data.zipWithIndex.filter(_._1 != EmptyGridElement).map((e,i) => GridValueExport(e.asGridValue[T]().v,i))
     def json() : All.ObjectAll[String] = 
-      println("json data size : "+data.count(_ != EmptyGridElement))
       obj("xSize" := xSize,"ySize" := ySize,"data" := All.ListAll(exportFun().map(_.toAllObj).toList))
       
     inline def coord(xp : Int, yp : Int) = xp * ySize + yp 
     inline def uncoord(xy : Int):(Int,Int)  = (xy / ySize, xy % ySize )
     def apply(xp : Int, yp : Int):GridElement = data(coord(xp,yp) )
-    def update(xp : Int, yp : Int,v : GridElement) = data(coord(xp,yp)) = v
-    def update(xp : Int, yp : Int,v : T) = data(coord(xp,yp)) = GridValue(v)
+    def update(xp : Int, yp : Int,v : GridElement) :Unit= data(coord(xp,yp)) = v
+    inline def update(xp : Int, yp : Int,v : T):Unit = this(xp, yp) = GridValue(v)
     def gridValues() = data.zipWithIndex.filter(_._1 != EmptyGridElement).map{(el,i) => 
       val (x,y) = uncoord(i)
       Positioned[String](x,y,el.asGridValue().v)  

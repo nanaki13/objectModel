@@ -30,6 +30,7 @@ import bon.jo.HtmlEvent.EventAdder
 import bon.jo.Draw.EmptyGridElement
 import org.scalajs.dom.TouchList
 import org.scalajs.dom.TouchEvent
+import bon.jo.Draw.MasterGrid
 object GridView extends GridViewOps:
 
   type Context = GridViewContext
@@ -49,7 +50,7 @@ object GridView extends GridViewOps:
     val fact = 10
     val myCanvas: HTMLCanvasElement = canvas
     given Context = new Context(
-       Grid[String](gridX, gridY),
+       MasterGrid[String](gridX, gridY),
       myCanvas,
       tillColor(),
       fact,
@@ -229,10 +230,12 @@ object GridView extends GridViewOps:
       button(_text("Stroke selection"), click(_ => strokeSel()))
     val fillButton =
       button(_text("Fill selection"), click(_ => fillSel()))
+     val createSheetButton =
+      button(_text("Sheat from selection"), click(_ => sheetFromSel()))
     def selectionPalette():Palette[HTMLElement] =
       
       given PaletteContext = PaletteContext("select-action-select", "row", "cell-large")
-      Palette(4,false,buttonDeleteSel,buttonCopySel,buttonApplyColToSelElements, buttonRemoveAllSel, strokeButton, fillButton)
+      Palette(4,false,buttonDeleteSel,buttonCopySel,buttonApplyColToSelElements, buttonRemoveAllSel, strokeButton, fillButton,createSheetButton)
 
 
     val toolDiv = div(childs(        whDiv,
