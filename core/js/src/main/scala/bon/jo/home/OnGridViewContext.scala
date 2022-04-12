@@ -60,12 +60,17 @@ trait OnGridViewContext {
     drawPoint(xx,yy,context.color.toString)
   
 
-  def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
-    context.grid = MasterGrid(xSize,ySize)
-    context.grid.resetData(dataS)
+  def resetDataAndDraw(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
+    resetData(dataS,xSize,ySize)
+   
+  def resierCanvasAndDraw(xSize : Int, ySize : Int):OnContextUnit = 
     context.canvas.width = (xSize * context.factor.toFloat).round
     context.canvas.height = (ySize * context.factor.toFloat).round
     draw()
+  def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
+    context.grid = MasterGrid(xSize,ySize)
+    context.grid.resetData(dataS)
+    
   def draw(): OnContextUnit =
     context.gc.clearRect(0, 0, context.canvas.width, context.canvas.height)
     context.grid.gridValues().foreach { case Positioned(x, y, color) =>

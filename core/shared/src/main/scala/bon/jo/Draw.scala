@@ -12,18 +12,49 @@ object Draw {
     self : Access =>
       var canRead = true
       var canWrite = true
-  extension [T] (e : Positioned[Grid[T] ] with Access)
+  trait Moving[T]:
+    self:Positioned[Grid[T] ] =>
+      private var _moveString = ""
+      private var computed : (frame : Long) => Unit = l=>()
+      def moveString(s : String,xMax: Int,yMax: Int) = 
+        _moveString = s
+        computed = parse(s,xMax,yMax)
+      def moveString : String = _moveString
+      inline def move(l : Long) = computed(l)
+      def parse(s : String,xMax: Int,yMax: Int) : (frame : Long) => Unit = 
+       s match
+          case "up" => (l) =>
+            y = y-1
+            if (y +  self.height) < 0 then y =  yMax
+                    
+          case "left"=> (l) => 
+            x = x-1
+            if x+ self.width < 0 then x = xMax
+          case "down"=> (l) => 
+            y = y+1
+            if y - self.height > yMax then y = 0
+          case "right"=> 
+            (l) => x = x+1
+            if x- self.width > xMax then x = 0
+
+
+
+  extension [T]  (e : Positioned[Grid[T] ] )
     def width : Int = e.v.xSize
     def height : Int = e.v.ySize
     inline def coorInMe(xp : Int, yp : Int) : (Int,Int) = (xp - e.x,yp - e.y)
     def isIn(xp : Int, yp : Int) : Boolean = 
       val (xx,yy) = coorInMe(xp,yp)
       e.v.isInGrid(xx,yy)
-    def canReadAndIsIn(xp : Int, yp : Int) : Boolean = e.canRead && isIn(xp,yp)
-    def canWriteAndIsIn(xp : Int, yp : Int) : Boolean = e.canWrite && isIn(xp,yp)
+  extension [T] (e : Positioned[Grid[T] ] with Access)
+    def canReadAndIsIn(xp : Int, yp : Int) : Boolean = e.canRead && e.isIn(xp,yp)
+    def canWriteAndIsIn(xp : Int, yp : Int) : Boolean = e.canWrite && e.isIn(xp,yp)
 
-  class MasterGrid[T]( xSize : Int, ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
-    var sheet : List[Positioned[Grid[T]] with Access] = Nil
+  class MasterGrid[T](override val xSize : Int,override val ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
+    override def json() : All.ObjectAll[String] = 
+      var base = super.json()
+      base + obj("sheets" := All.ListAll[String](sheet.map(v => obj( "x" := v.x, "y":= v.y) + v.v.json())))
+    var sheet : List[Positioned[Grid[T]] with Access with Moving[T]] = Nil
     override def apply(xp : Int, yp : Int) : GridElement[T] = 
       sheet.find(_.canReadAndIsIn(xp,yp)).flatMap{
         p => 
@@ -45,7 +76,8 @@ object Draw {
   object EmptyGridElement extends GridElement[Nothing]
   case class GridValue[T](v : T) extends GridElement[T]
   case class GridValueExport[T](v : T,xy : Int) 
-  case class Positioned[T](x : Int,y:Int,v : T)
+
+  case class Positioned[T](var x : Int,var y:Int,v : T)
   extension [T] (v : GridValueExport[T])
     def toAllObj : All.ObjectAll[String] = obj("v" := v.v,"xy" := v.xy)
   extension [T] (v : All.ObjectAll[String] )
@@ -53,7 +85,16 @@ object Draw {
       case e : Int => e
       case e : Long =>e.toInt
     )
-  class Grid[T](val xSize : Int,val ySize : Int):
+  trait NormalAccessGrid[T]:
+    self : Grid[T] =>
+      def apply(xp : Int, yp : Int):GridElement[T] = data(coord(xp,yp) )
+      def update(xp : Int, yp : Int,v : GridElement[T]) :Unit= data(coord(xp,yp)) = v
+      inline def update(xp : Int, yp : Int,v : T):Unit = this(xp, yp) = GridValue(v)
+
+  class Grid[T](val xSize : Int,val ySize : Int) extends GridOps[T] with  NormalAccessGrid[T]
+  trait GridOps[T]:
+    val xSize : Int
+    val ySize : Int
     val data : Array[GridElement[T]] = Array((for (i <- 0 until xSize*ySize) yield EmptyGridElement ) * )
     def isInGrid(xp : Int, yp : Int):Boolean = isInGridX(xp) && isInGridY(yp)
     inline def isInGridX(xp : Int):Boolean = xp > -1 && xp < xSize
@@ -65,9 +106,9 @@ object Draw {
       
     inline def coord(xp : Int, yp : Int) = xp * ySize + yp 
     inline def uncoord(xy : Int):(Int,Int)  = (xy / ySize, xy % ySize )
-    def apply(xp : Int, yp : Int):GridElement[T] = data(coord(xp,yp) )
-    def update(xp : Int, yp : Int,v : GridElement[T]) :Unit= data(coord(xp,yp)) = v
-    inline def update(xp : Int, yp : Int,v : T):Unit = this(xp, yp) = GridValue(v)
+    def apply(xp : Int, yp : Int):GridElement[T]
+    def update(xp : Int, yp : Int,v : GridElement[T]) :Unit
+    inline def update(xp : Int, yp : Int,v : T):Unit
     def gridValues() = data.zipWithIndex.flatMap{(el,i) => 
       val (x,y) = uncoord(i)
       val ell = this(x,y)

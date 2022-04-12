@@ -13,7 +13,7 @@ trait AllObjectOps[Key]:
   /**
    * Returns new Object with `this` properties and `o` properties
   */
-  def +(o :  All.ObjectAll[Key]) = copy(props ++ o.props)
+  def +(o :  All.ObjectAll[Key]):  All.ObjectAll[Key] = copy(props ++ o.props)
 
 
   /**

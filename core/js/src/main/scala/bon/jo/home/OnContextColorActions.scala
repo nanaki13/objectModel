@@ -15,13 +15,14 @@ trait OnContextColorActions:
   inline def tillColor() = div(_class("color-till"))
   def colorFromDraw(outPallette: HTMLElement): OnContextUnit =
     val savedSet = context.savedColor.toSet
-    context.grid.data
+    (context.grid.data ++ context.grid.sheet.flatMap(_.v.data))
       .filter(_ != EmptyGridElement)
       .map(_.asGridValue[String]().v)
       .toSet
       .map(Color.Raw.apply)
       .filter(!savedSet.contains(_))
       .foreach(saveColor(_, outPallette))
+    
   def updateColor(c: Color): OnContextUnit =
     context.color = c
     context.colorPicker.style.backgroundColor = c.toString

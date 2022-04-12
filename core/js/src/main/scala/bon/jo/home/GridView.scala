@@ -31,6 +31,9 @@ import bon.jo.Draw.EmptyGridElement
 import org.scalajs.dom.TouchList
 import org.scalajs.dom.TouchEvent
 import bon.jo.Draw.MasterGrid
+import bon.jo.Draw.Access
+import bon.jo.Draw.AccessVar
+import bon.jo.Draw.Moving
 object GridView extends GridViewOps:
 
   type Context = GridViewContext
@@ -238,12 +241,24 @@ object GridView extends GridViewOps:
       given PaletteContext = PaletteContext("select-action-select", "row", "cell-large")
       Palette(4,false,buttonDeleteSel,buttonCopySel,buttonApplyColToSelElements, buttonRemoveAllSel, strokeButton, fillButton,createSheetButton)
 
-
+    val animButton = input(me(_.`type` = "checkbox"))
+    var interval = 0
+    animButton.events.change(e => 
+      if animButton.checked then
+        var count = 0
+        interval = org.scalajs.dom.window.setInterval(() => 
+          context.grid.sheet.foreach(_.move(count))
+          draw()
+          count = count+1
+          ,100)
+      else 
+        org.scalajs.dom.window.clearInterval(interval)
+    )
     val toolDiv = div(childs(        whDiv,
         pxSizeDiv,
         div(childs(selectionPalette().root)),
         palette.root,
-        colPi,context.sheetViewsDiv))
+        colPi,context.sheetViewsDiv,div(_text("anim : "),childs(animButton))))
     val ret = div(
       _class("row"),
       childs(
@@ -279,11 +294,29 @@ object GridView extends GridViewOps:
         val xSize : Int = din.xSize.asInstanceOf
         val ySize : Int = din.ySize.asInstanceOf
         val data : scalajs.js.Array[scalajs.js.Dynamic] = din.data.asInstanceOf
-
+        val sheets : scalajs.js.Array[scalajs.js.Dynamic] =din.sheets.asInstanceOf
+       
         val dataS: List[GridValueExport[String]] = data.map{ e =>
           GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
         }.toList
-        resetData(dataS,xSize,ySize)
+        resetData(dataS,xSize,ySize)     
+        sheets.foreach{
+          sheet =>  
+            val xSizeSheet : Int = sheet.xSize.asInstanceOf
+            val ySizeSheet : Int = sheet.ySize.asInstanceOf
+            val xSheet : Int = sheet.x.asInstanceOf
+            val ySheet : Int = sheet.y.asInstanceOf
+            val dataSheet : scalajs.js.Array[scalajs.js.Dynamic] = sheet.data.asInstanceOf 
+            val nSheet = new Positioned(xSheet,ySheet,Grid[String](xSizeSheet,ySizeSheet)) with Access with AccessVar with Moving[String]
+            val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
+                GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+              }.toList
+            nSheet.v.resetData(dataSheetExport)
+            addSheet(nSheet)
+            
+        }
+        resierCanvasAndDraw(xSize,ySize)
+        
       
       f.readAsText(i.files(0), "utf-8")
     }

@@ -14,6 +14,7 @@ import bon.jo.Draw.AccessVar
 import bon.jo.MiniDsl.*
 import bon.jo.HtmlPredef.*
 import bon.jo.HtmlEvent.events
+import bon.jo.Draw.Moving
 trait OnContextSelectActions {
   self : OnGridViewContext =>
   
@@ -123,31 +124,47 @@ trait OnContextSelectActions {
           }
         }
       println("fillSel end = "+context.grid.data.count(_ != EmptyGridElement))
-    
+    def addSheet(p : Positioned[Grid[String]] with Access with AccessVar with Moving[String]):OnContextUnit = 
+      val sheetDiv = div
+      sheetDiv.classList.add("sheet-rect")
+      sheetDiv.style.width = s"${ p.width * context.factor}px" 
+      sheetDiv.style.height = s"${p.height* context.factor}px" 
+      sheetDiv.style.top = s"${p.y* context.factor}px" 
+      sheetDiv.style.left = s"${p.x* context.factor}px" 
+      context.grid.sheet  =  p ::  context.grid.sheet
+      context.parentCanvas.append(sheetDiv) 
+      val seeCheck = input(me(_.`type` = "checkbox"),me(_.checked = true))
+      val lockCheck = input(me(_.`type` = "checkbox"),me(_.checked = false))
+      val delete = button(_text("delete"))
+      val moveString = input
+      val sheetViewDiv = div(_text("sheet : "+context.grid.sheet.size), childs(span(_text("see")),seeCheck,span(_text("lock")), lockCheck,span(_text("movment")), moveString,delete))
+      seeCheck.events.change(_ =>
+          p.canRead = seeCheck.checked
+          draw()
+      )
+      moveString.events.change(_ => 
+        p.moveString(moveString.value,context.grid.xSize,context.grid.ySize)    
+      )
+      lockCheck.events.change(_ =>
+          p.canWrite = !lockCheck.checked
+         // draw()
+      )
+      val ev =  sheetViewDiv.events
+      ev.mouseenter(e => sheetDiv.classList.add("focus"))
+      ev.mouseleave(e => sheetDiv.classList.remove("focus"))
+      delete.events.click(_ => 
+        context.grid.sheet  =  context.grid.sheet.filter(_!=p)   
+        context.parentCanvas.removeChild(sheetDiv) 
+        context.sheetViewsDiv.removeChild(sheetViewDiv)
+        draw()
+      )
+      context.sheetViewsDiv.append(sheetViewDiv)
+
     def sheetFromSel():OnContextUnit =
       selectedBound().foreach{ b =>
-        val p = new Positioned(b.xMin,b.yMin,Grid[String](b.width,b.height)) with Access with AccessVar
-        context.grid.sheet  =  p ::  context.grid.sheet
-        val sheetDiv = div
-        sheetDiv.classList.add("sheet-rect")
-        sheetDiv.style.width = s"${ b.width * context.factor}px" 
-        sheetDiv.style.height = s"${b.height* context.factor}px" 
-        sheetDiv.style.top = s"${b.yMin* context.factor}px" 
-        sheetDiv.style.left = s"${b.xMin* context.factor}px" 
-        context.parentCanvas.append(sheetDiv) 
-        val seeCheck = input(me(_.`type` = "checkbox"),me(_.checked = true))
-        val lockCheck = input(me(_.`type` = "checkbox"),me(_.checked = false))
+        val p = new Positioned(b.xMin,b.yMin,Grid[String](b.width,b.height)) with Access with AccessVar with Moving[String]
+        addSheet(p)
       
-        val sheetViewDiv = div(_text("sheet : "+context.grid.sheet.size), childs(span(_text("see")),seeCheck,span(_text("lock")), lockCheck))
-        seeCheck.events.change(_ =>
-           p.canRead = seeCheck.checked
-           draw()
-        )
-        lockCheck.events.change(_ =>
-           p.canWrite = !lockCheck.checked
-           draw()
-        )
-        context.sheetViewsDiv.append(sheetViewDiv)
       }
     case class Bound(xMin : Int,xMax : Int,yMin : Int,yMax : Int):
       inline def width = xMax - xMin
