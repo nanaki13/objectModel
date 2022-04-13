@@ -15,6 +15,15 @@ import bon.jo.MiniDsl.*
 import bon.jo.HtmlPredef.*
 import bon.jo.HtmlEvent.events
 import bon.jo.Draw.Moving
+import bon.jo.Draw
+import bon.jo.utils.ModelAndView
+import bon.jo.home.OnContextSelectActions.Bound
+import bon.jo.Draw.FrameGrid
+import org.scalajs.dom.HTMLInputElement
+object OnContextSelectActions:
+    case class Bound(xMin : Int,xMax : Int,yMin : Int,yMax : Int):
+      inline def width = xMax - xMin
+      inline def height = yMax - yMin
 trait OnContextSelectActions {
   self : OnGridViewContext =>
   
@@ -29,25 +38,20 @@ trait OnContextSelectActions {
         param.selectDiv.style.top = s"${yI*context.factor}px"
         param.xIni = xI
         param.yIni = yI
-        println("start sel : "+(xI,yI))
         context.parentCanvas.append(param.selectDiv)
       else
         var wR = xI - param.xIni
         var hR = yI - param.yIni
         hR = if hR < 0 then
-          println("hr < 0")
           param.selectDiv.style.top = s"${(param.yIni + hR)*context.factor}px"
           -hR
         else
-          println("hr > 0")
           param.selectDiv.style.top = s"${param.yIni*context.factor}px"
           hR+1
         wR = if wR < 0 then
-          println("wR < 0")
           param.selectDiv.style.left = s"${(param.xIni + wR)*context.factor}px"
           -wR
         else
-          println("wR > 0")
           param.selectDiv.style.left = s"${param.xIni*context.factor}px"
           wR+1
 
@@ -124,20 +128,24 @@ trait OnContextSelectActions {
           }
         }
       println("fillSel end = "+context.grid.data.count(_ != EmptyGridElement))
+
+ 
+ 
     def addSheet(p : Positioned[Grid[String]] with Access with AccessVar with Moving[String]):OnContextUnit = 
       val sheetDiv = div
+      val mv : SheetV = ModelAndView(p,sheetDiv)
       sheetDiv.classList.add("sheet-rect")
-      sheetDiv.style.width = s"${ p.width * context.factor}px" 
-      sheetDiv.style.height = s"${p.height* context.factor}px" 
-      sheetDiv.style.top = s"${p.y* context.factor}px" 
-      sheetDiv.style.left = s"${p.x* context.factor}px" 
-      context.grid.sheet  =  p ::  context.grid.sheet
+      mv.redraw()
       context.parentCanvas.append(sheetDiv) 
+      context.grid.sheet  =  p ::  context.grid.sheet
+      context.sheetsMv =mv ::context.sheetsMv
       val seeCheck = input(me(_.`type` = "checkbox"),me(_.checked = true))
       val lockCheck = input(me(_.`type` = "checkbox"),me(_.checked = false))
       val delete = button(_text("delete"))
       val moveString = input
-      val sheetViewDiv = div(_text("sheet : "+context.grid.sheet.size), childs(span(_text("see")),seeCheck,span(_text("lock")), lockCheck,span(_text("movment")), moveString,delete))
+      val addFrame = button(_text("add frame"))
+
+      val sheetViewDiv = div(_text("sheet : "+context.grid.sheet.size), childs(span(_text("see:")),seeCheck,span(_text("lock:")), lockCheck,span(_text("movment")), moveString,addFrame,delete))
       seeCheck.events.change(_ =>
           p.canRead = seeCheck.checked
           draw()
@@ -154,10 +162,47 @@ trait OnContextSelectActions {
       ev.mouseleave(e => sheetDiv.classList.remove("focus"))
       delete.events.click(_ => 
         context.grid.sheet  =  context.grid.sheet.filter(_!=p)   
+        context.sheetsMv = context.sheetsMv.filter(_!=mv) 
         context.parentCanvas.removeChild(sheetDiv) 
         context.sheetViewsDiv.removeChild(sheetViewDiv)
         draw()
       )
+      var lastCheck:Option[HTMLInputElement] = None
+      addFrame.events.click(f => {
+        val framep: FrameGrid[_] = p.v match
+          case e : FrameGrid[_] => 
+            e.addFrame()
+            e
+          case o => 
+            val d = p.v.exportFun().toList
+            val f =  FrameGrid[String](p.v.xSize,p.v.ySize)
+            val selectFrameInput = input(me(_.`type` = "checkbox"))
+            sheetViewDiv.append(div(childs(span(_text("0")),selectFrameInput)))
+            selectFrameInput.events.change{
+              _ => 
+                if selectFrameInput.checked then
+                  lastCheck.foreach(_.checked = false)
+                  lastCheck = Some(selectFrameInput)
+                  f.currentFrame = 0
+                  draw()
+            }
+            p.v = f
+            p.v.resetData(d )
+            f.addFrame()
+            f
+        val idxFrame =  framep.frames.size -1
+        val selectFrameInput = input(me(_.`type` = "checkbox"))
+        selectFrameInput.events.change{
+              _ => 
+                if selectFrameInput.checked then
+                  lastCheck.foreach(_.checked = false)
+                  lastCheck = Some(selectFrameInput)
+                  framep.currentFrame = idxFrame
+                  draw()
+            }
+        sheetViewDiv.append(div(childs(span(_text(idxFrame.toString)),selectFrameInput)))
+
+      })
       context.sheetViewsDiv.append(sheetViewDiv)
 
     def sheetFromSel():OnContextUnit =
@@ -166,18 +211,9 @@ trait OnContextSelectActions {
         addSheet(p)
       
       }
-    case class Bound(xMin : Int,xMax : Int,yMin : Int,yMax : Int):
-      inline def width = xMax - xMin
-      inline def height = yMax - yMin
+
     def selectedBound():OnContext[Iterable[Bound]] = 
-      context.selections.select.map {
-      case (RectSelect(xi, yi, xe, ye), _) =>
-          val xMin = Math.min(xi, xe)
-          val yMin = Math.min(yi, ye)
-          val xMax = Math.max(xi, xe) 
-          val yMax = Math.max(yi, ye) 
-          Bound(xMin,xMax,yMin,yMax)
-          }  
+      context.selections.selectedBound()
 
     def doOnSelctedcoords[A](f : (Int,Int)=> A,sel : (xMin : Int,xMax : Int,yMin : Int,yMax : Int) => Unit):OnContext[List[Seq[A]]]=
       context.selections.select.map {

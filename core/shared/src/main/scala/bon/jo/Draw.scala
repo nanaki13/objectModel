@@ -3,6 +3,7 @@ import scala.collection.mutable
 import bon.jo.objects.All
 import bon.jo.objects.All.Dsl.*
 import org.scalactic.Bool
+import bon.jo.utils.ModelAndView
 object Draw {
 
   trait Access:
@@ -32,10 +33,11 @@ object Draw {
             if x+ self.width < 0 then x = xMax
           case "down"=> (l) => 
             y = y+1
-            if y - self.height > yMax then y = 0
+            if y > yMax then y = -self.height
           case "right"=> 
             (l) => x = x+1
-            if x- self.width > xMax then x = 0
+            if x > xMax then x = -self.width
+          case _ => e => ()
 
 
 
@@ -49,21 +51,33 @@ object Draw {
   extension [T] (e : Positioned[Grid[T] ] with Access)
     def canReadAndIsIn(xp : Int, yp : Int) : Boolean = e.canRead && e.isIn(xp,yp)
     def canWriteAndIsIn(xp : Int, yp : Int) : Boolean = e.canWrite && e.isIn(xp,yp)
+  type SheetMV[T,V] = ModelAndView[Positioned[Grid[T]],V] 
 
+  class FrameGrid[T](override val xSize : Int,override val ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
+    var frames : Seq[Array[GridElement[T]]] = IndexedSeq(data)
+    var currentFrame = 0
+    override def apply(xp : Int, yp : Int) : GridElement[T] = frames(currentFrame)(coord(xp,yp))
+    override def  update(xp : Int, yp : Int, e : GridElement[T]):Unit =  frames(currentFrame)(coord(xp,yp)) = e
+
+    def nextFrame() = 
+      println(currentFrame)
+      currentFrame = (currentFrame + 1) % frames.size
+    
+    def addFrame() = frames = frames :+ emptyData()
   class MasterGrid[T](override val xSize : Int,override val ySize : Int) extends Grid[T]( xSize : Int, ySize : Int):
     override def json() : All.ObjectAll[String] = 
       var base = super.json()
       base + obj("sheets" := All.ListAll[String](sheet.map(v => obj( "x" := v.x, "y":= v.y) + v.v.json())))
-    var sheet : List[Positioned[Grid[T]] with Access with Moving[T]] = Nil
+    var sheet : List[Positioned[Grid[T]] with Access with AccessVar with Moving[T]] = Nil
     override def apply(xp : Int, yp : Int) : GridElement[T] = 
-      sheet.find(_.canReadAndIsIn(xp,yp)).flatMap{
+      sheet.filter(_.canReadAndIsIn(xp,yp)).flatMap{
         p => 
 
           val (xx,yy) = p.coorInMe(xp,yp)
           p.v(xx,yy) match
             case EmptyGridElement => None
             case o => Some(o)
-      }.getOrElse(super.apply(xp,yp))
+      }.headOption.getOrElse(super.apply(xp,yp))
     override def  update(xp : Int, yp : Int, e : GridElement[T]):Unit = 
       sheet.find(_.canWriteAndIsIn(xp,yp)).map{
         p => 
@@ -77,7 +91,7 @@ object Draw {
   case class GridValue[T](v : T) extends GridElement[T]
   case class GridValueExport[T](v : T,xy : Int) 
 
-  case class Positioned[T](var x : Int,var y:Int,v : T)
+  case class Positioned[T](var x : Int,var y:Int,var v : T)
   extension [T] (v : GridValueExport[T])
     def toAllObj : All.ObjectAll[String] = obj("v" := v.v,"xy" := v.xy)
   extension [T] (v : All.ObjectAll[String] )
@@ -95,7 +109,8 @@ object Draw {
   trait GridOps[T]:
     val xSize : Int
     val ySize : Int
-    val data : Array[GridElement[T]] = Array((for (i <- 0 until xSize*ySize) yield EmptyGridElement ) * )
+    val data : Array[GridElement[T]] =  emptyData()
+    def emptyData(): Array[GridElement[T]] =  Array((for (i <- 0 until xSize*ySize) yield EmptyGridElement ) * )
     def isInGrid(xp : Int, yp : Int):Boolean = isInGridX(xp) && isInGridY(yp)
     inline def isInGridX(xp : Int):Boolean = xp > -1 && xp < xSize
     inline def isInGridY( yp : Int):Boolean = yp > -1 && yp < ySize

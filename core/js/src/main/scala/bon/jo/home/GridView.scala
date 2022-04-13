@@ -34,6 +34,7 @@ import bon.jo.Draw.MasterGrid
 import bon.jo.Draw.Access
 import bon.jo.Draw.AccessVar
 import bon.jo.Draw.Moving
+import bon.jo.Draw.FrameGrid
 object GridView extends GridViewOps:
 
   type Context = GridViewContext
@@ -247,7 +248,13 @@ object GridView extends GridViewOps:
       if animButton.checked then
         var count = 0
         interval = org.scalajs.dom.window.setInterval(() => 
-          context.grid.sheet.foreach(_.move(count))
+          context.grid.sheet.foreach{ v =>
+            v.v match 
+              case e : FrameGrid[_] => e.nextFrame()
+              case o =>
+            v.move(count)
+          }
+          context.sheetsMv.foreach(_.redraw())
           draw()
           count = count+1
           ,100)

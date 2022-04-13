@@ -10,6 +10,9 @@ import bon.jo.home.ProcessEvent.ActionParam
 import bon.jo.Draw.Positioned
 import org.scalajs.dom.CanvasRenderingContext2D
 import bon.jo.home.GridView.Sel
+import bon.jo.Draw
+import bon.jo.home.OnContextSelectActions.Bound
+import bon.jo.home.GridView.RectSelect
 
   class GridViewContext(
       var grid: MasterGrid[String],
@@ -22,12 +25,32 @@ import bon.jo.home.GridView.Sel
       var actionParam: ActionParam,
       var savedColor : List[Color],
       
-      var gridsCopy :List[Positioned[Grid[String]]] = Nil
+      var gridsCopy :List[Positioned[Grid[String]]] = Nil,
+      var sheetsMv:List[GridViewContext.SheetV] = Nil
   ):
     val gc = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     def parentCanvas = canvas.parentElement
     object selections:
       var select: List[(Sel, HTMLElement)] = Nil
+      def selectedBound():Iterable[Bound] = 
+        select.map {
+        case (RectSelect(xi, yi, xe, ye), _) =>
+            val xMin = Math.min(xi, xe)
+            val yMin = Math.min(yi, ye)
+            val xMax = Math.max(xi, xe) 
+            val yMax = Math.max(yi, ye) 
+            Bound(xMin,xMax,yMin,yMax)
+            }  
+      def selectedBoundAndHtml():Iterable[(Bound,HTMLElement)] = 
+        select.map {
+        case (RectSelect(xi, yi, xe, ye), v) =>
+            val xMin = Math.min(xi, xe)
+            val yMin = Math.min(yi, ye)
+            val xMax = Math.max(xi, xe) 
+            val yMax = Math.max(yi, ye) 
+            ( Bound(xMin,xMax,yMin,yMax),v)
+        } 
+      
       def add(sel: Sel, el: HTMLElement) =
         select = select :+ sel -> el
       def clear() =
@@ -35,9 +58,19 @@ import bon.jo.home.GridView.Sel
           parentCanvas.removeChild(e)
         }
         select = Nil
+      def redraw():GridViewContext.OnContextUnit =
+        selectedBoundAndHtml().foreach{
+        (b,h)=>
+          h.style.left = s"${b.xMin * GridViewContext.context.factor}px"
+          h.style.top = s"${b.yMin * GridViewContext.context.factor}px"
+          h.style.width = s"${b.width * GridViewContext.context.factor}px"
+          h.style.height = s"${b.height * GridViewContext.context.factor}px"
+        }  
+
 
   object GridViewContext:
     type OnContext[A] = GridViewContext ?=> A
     type OnContextUnit = OnContext[Unit]
     inline def apply(): OnContext[GridViewContext] = summon
     inline def context: OnContext[GridViewContext] = GridViewContext()
+    type SheetV = Draw.SheetMV[String,HTMLElement]

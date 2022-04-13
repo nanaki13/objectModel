@@ -11,6 +11,9 @@ import bon.jo.Draw.GridValue
 import org.scalajs.dom.MouseEvent
 import bon.jo.Draw.Grid
 import bon.jo.Draw.MasterGrid
+import bon.jo.Draw.Access
+import bon.jo.Draw.AccessVar
+import bon.jo.Draw.Moving
 
 
 trait OnGridViewContext {
@@ -98,4 +101,18 @@ trait OnGridViewContext {
     context.canvas.width = (context.grid.xSize * context.factor.toFloat).round
     context.canvas.height = (context.grid.ySize  * context.factor.toFloat).round
     draw()
+    redrawSelsAndSheets()
+  extension (s : SheetV)
+    def redraw():OnContextUnit = 
+      val sheetDiv = s.view
+      val p = s.model
+      sheetDiv.style.width = s"${ p.width * context.factor}px" 
+      sheetDiv.style.height = s"${p.height* context.factor}px" 
+      sheetDiv.style.top = s"${p.y* context.factor}px" 
+      sheetDiv.style.left = s"${p.x* context.factor}px" 
+  def redrawSelsAndSheets():OnContextUnit = 
+    context.sheetsMv.foreach(_.redraw())
+    context.selections.redraw()
+   
+  def addSheet(p : Positioned[Grid[String]] with Access with AccessVar with Moving[String]):OnContextUnit
 }
