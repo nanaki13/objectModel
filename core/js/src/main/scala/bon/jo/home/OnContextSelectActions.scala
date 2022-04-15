@@ -177,7 +177,9 @@ trait OnContextSelectActions {
             val d = p.v.exportFun().toList
             val f =  FrameGrid[String](p.v.xSize,p.v.ySize)
             val selectFrameInput = input(me(_.`type` = "checkbox"))
+            //TODO : refaco addFrameInput(f)
             sheetViewDiv.append(div(childs(span(_text("0")),selectFrameInput)))
+            lastCheck = Some(selectFrameInput)
             selectFrameInput.events.change{
               _ => 
                 if selectFrameInput.checked then
@@ -185,13 +187,19 @@ trait OnContextSelectActions {
                   lastCheck = Some(selectFrameInput)
                   f.currentFrame = 0
                   draw()
+                else if selectFrameInput == lastCheck.get then
+                  selectFrameInput.checked = true
             }
             p.v = f
             p.v.resetData(d )
             f.addFrame()
             f
         val idxFrame =  framep.frames.size -1
-        val selectFrameInput = input(me(_.`type` = "checkbox"))
+        framep.currentFrame = idxFrame
+        lastCheck.foreach(_.checked = false)
+        val selectFrameInput = input(me(_.`type` = "checkbox"),me(_.checked = true))
+        lastCheck = Some(selectFrameInput)
+        
         selectFrameInput.events.change{
               _ => 
                 if selectFrameInput.checked then
@@ -199,6 +207,8 @@ trait OnContextSelectActions {
                   lastCheck = Some(selectFrameInput)
                   framep.currentFrame = idxFrame
                   draw()
+                else if selectFrameInput == lastCheck.get then
+                  selectFrameInput.checked = true
             }
         sheetViewDiv.append(div(childs(span(_text(idxFrame.toString)),selectFrameInput)))
 

@@ -14,16 +14,17 @@ import bon.jo.Draw.MasterGrid
 import bon.jo.Draw.Access
 import bon.jo.Draw.AccessVar
 import bon.jo.Draw.Moving
+import bon.jo.Draw.EmptyGridElement
 
 
 trait OnGridViewContext {
-  def xyInGrid( ev: MouseEvent): OnContext[(Int,Int)] = ((xme(ev) / context.factor.toDouble).toInt, (yme(ev) / context.factor.toDouble).toInt)
-  def xyInGrid( ev: TouchEvent): OnContext[(Int,Int)] = 
+  def xyInGrid( ev: MouseEvent): OnFactor[(Int,Int)] = ((xme(ev) / factor.toDouble).toInt, (yme(ev) / factor.toDouble).toInt)
+  def xyInGrid( ev: TouchEvent): OnFactor[(Int,Int)] = 
     val (xx,yy) = xy(ev)
-    (((xx/context.factor.toDouble).toInt),(yy/context.factor.toDouble).toInt)
+    (((xx/factor.toDouble).toInt),(yy/factor.toDouble).toInt)
 
-  def xInGrid(x: Int): OnContext[Int] = (x / context.factor.toDouble).toInt
-  def yInGrid(y: Int): OnContext[Int] = (y / context.factor.toDouble).toInt
+  def xInGrid(x: Int): OnFactor[Int] = (x / factor.toDouble).toInt
+  def yInGrid(y: Int): OnFactor[Int] = (y / factor.toDouble).toInt
   def xme( ev: MouseEvent): Int =
     ev.asInstanceOf[scalajs.js.Dynamic].offsetX.asInstanceOf[Int]
   def yme( ev: MouseEvent): Int =
@@ -35,14 +36,12 @@ trait OnGridViewContext {
     ((t.pageX - rect.left).toFloat.round,(t.pageY - rect.top).toFloat.round)
 
  
-
+  def delete(xI : Int,yI : Int): OnBaseDrawFactor[Unit] =
+    grid(xI, yI) = EmptyGridElement
+    drawDeletePoint(xI, yI)
   def draw(xI : Int,yI : Int): OnContextUnit =
-    given HTMLElement = context.canvas
-    val fact = context.factor
     val grid = context.grid
     val colot = context.color
-   
-    val y_ = yInGrid
     grid(xI, yI) = GridValue(colot.toString)
     drawPoint(xI, yI, colot.toString)
 
@@ -58,6 +57,9 @@ trait OnGridViewContext {
     g.rect(xGrid * fact, yGrid * fact, fact, fact)
     g.fill()
     g.closePath()
+  def drawDeletePoint(xGrid: Int, yGrid: Int): OnBaseDrawFactor[Unit] =
+    gc.clearRect(xGrid * factor, yGrid * factor, factor, factor)
+
   def updateGridAndDraw(xx : Int,yy : Int) :OnContextUnit= 
     context.grid(xx,yy) = context.color.toString
     drawPoint(xx,yy,context.color.toString)

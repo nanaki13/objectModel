@@ -187,7 +187,7 @@ object GridView extends GridViewOps:
 
     given (String => HTMLElement) = i => div(_text(i.toString))
     given PaletteContext = PaletteContext("tool-select", "row", "cell")
-    val palette = Palette(2,true, "Draw", "Select","Paste")
+    val palette = Palette(2,true, "Draw", "Select","Paste","Eraser")
 
     palette.listen = {
       case "Draw" =>
@@ -197,6 +197,9 @@ object GridView extends GridViewOps:
         context.currentProcess = SelectProcessEvent
       case "Paste" =>
         context.currentProcess = PasteProcessEvent
+      case "Eraser" =>
+        context.actionParam = NoActionParam
+        context.currentProcess = EraseProcessEvent
     }
     palette.select(0)
     val parentCanvas = div(_class("parent-c"), childs(myCanvas))
@@ -236,7 +239,7 @@ object GridView extends GridViewOps:
     val fillButton =
       button(_text("Fill selection"), click(_ => fillSel()))
      val createSheetButton =
-      button(_text("Sheat from selection"), click(_ => sheetFromSel()))
+      button(_text("Sheet from selection"), click(_ => sheetFromSel()))
     def selectionPalette():Palette[HTMLElement] =
       
       given PaletteContext = PaletteContext("select-action-select", "row", "cell-large")
@@ -313,12 +316,35 @@ object GridView extends GridViewOps:
             val ySizeSheet : Int = sheet.ySize.asInstanceOf
             val xSheet : Int = sheet.x.asInstanceOf
             val ySheet : Int = sheet.y.asInstanceOf
-            val dataSheet : scalajs.js.Array[scalajs.js.Dynamic] = sheet.data.asInstanceOf 
-            val nSheet = new Positioned(xSheet,ySheet,Grid[String](xSizeSheet,ySizeSheet)) with Access with AccessVar with Moving[String]
-            val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
-                GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
-              }.toList
-            nSheet.v.resetData(dataSheetExport)
+            val movment : String = sheet.m.asInstanceOf
+
+            val gridSheet = 
+              if !scalajs.js.isUndefined(sheet.data) then
+                val dataSheet : scalajs.js.Array[scalajs.js.Dynamic] = sheet.data.asInstanceOf     
+                val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
+                    GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+                  }.toList
+                val g = Grid[String](xSizeSheet,ySizeSheet)
+                g.resetData(dataSheetExport)
+                g
+              else 
+                val fg = FrameGrid[String](xSizeSheet,ySizeSheet)
+                val frames : scalajs.js.Array[scalajs.js.Array[scalajs.js.Dynamic]] = sheet.frames.asInstanceOf  
+                frames.zipWithIndex.map((dataSheet,i) => {
+                  val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
+                    GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+                  }.toList
+                  println(dataSheetExport)
+                  if(i != 0) then
+                    fg.addFrame()
+                  fg.currentFrame = i
+                  fg.resetData(dataSheetExport)
+
+                })  
+ 
+                fg
+            val nSheet = new Positioned(xSheet,ySheet,gridSheet) with Access with AccessVar with Moving[String]
+            nSheet.moveString(movment,grid.xSize,grid.ySize)
             addSheet(nSheet)
             
         }

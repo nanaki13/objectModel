@@ -13,6 +13,8 @@ import bon.jo.home.GridView.Sel
 import bon.jo.Draw
 import bon.jo.home.OnContextSelectActions.Bound
 import bon.jo.home.GridView.RectSelect
+import bon.jo.home.GridViewContext.Factor
+import bon.jo.home.GridViewContext.BaseDraw
 
   class GridViewContext(
       var grid: MasterGrid[String],
@@ -27,8 +29,8 @@ import bon.jo.home.GridView.RectSelect
       
       var gridsCopy :List[Positioned[Grid[String]]] = Nil,
       var sheetsMv:List[GridViewContext.SheetV] = Nil
-  ):
-    val gc = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
+  ) extends Factor with BaseDraw:
+    val gc : CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     def parentCanvas = canvas.parentElement
     object selections:
       var select: List[(Sel, HTMLElement)] = Nil
@@ -70,7 +72,20 @@ import bon.jo.home.GridView.RectSelect
 
   object GridViewContext:
     type OnContext[A] = GridViewContext ?=> A
+    type OnFactor[A] = Factor ?=> A
+    type OnBaseDraw[A] = BaseDraw ?=> A
+    type OnBaseDrawFactor[A] = BaseDraw & Factor ?=> A
     type OnContextUnit = OnContext[Unit]
     inline def apply(): OnContext[GridViewContext] = summon
     inline def context: OnContext[GridViewContext] = GridViewContext()
+    inline def factor: OnFactor[Int] = summon.factor
+    inline def gc: OnBaseDraw[CanvasRenderingContext2D] = summon.gc
+    inline def color: OnBaseDraw[Color] = summon.color
+    inline def grid: OnBaseDraw[MasterGrid[String]] = summon.grid
     type SheetV = Draw.SheetMV[String,HTMLElement]
+    trait Factor:
+      var factor: Int
+    trait BaseDraw:
+      val gc : CanvasRenderingContext2D 
+      var color: Color
+      var grid: MasterGrid[String]
