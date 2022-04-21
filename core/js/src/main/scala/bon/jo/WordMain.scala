@@ -12,7 +12,7 @@ import bon.jo.words.Phrase.ParsingException
 import bon.jo.words.PhraseElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.window
-
+import org.scalajs.dom.console
 import org.scalajs.dom.Text
 import org.scalajs.dom.HTMLSpanElement
 import org.scalajs.dom.Node
@@ -23,6 +23,10 @@ import !.*
 import HtmlPredef.*
 import bon.jo.home.MindMapView
 import bon.jo.home.GridView
+import org.scalajs.dom.window
+import org.scalajs.dom.URLSearchParams
+import scalajs.js.isUndefined
+import bon.jo.home.GridViewContext
 object WordMain :
 
   case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
@@ -34,7 +38,7 @@ object WordMain :
     
 
     val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
-    val gridMenu : MyMenuItem = new MyMenuItem("Pixel arts",GridView.view)
+    val gridMenu : MyMenuItem = new MyMenuItem("Pixel arts",() => GridView.view().root)
     val mindMapMenu : MyMenuItem = new MyMenuItem("Mind map",MindMapView.view)
     val home : MyMenuItem = new MyMenuItem("Home",() => 
       div(_class("welcome container"),childs(
@@ -49,7 +53,13 @@ object WordMain :
      
     
     val root = div(_class("root"),childs(menu.root,menuOut))
-    
+    val data = new URLSearchParams( window.location.search).get("q")
+    if(!isUndefined(data)) then
+      given c: GridViewContext = GridView.view()
+      menuOut.append(c.root)
+      val Lvw(p) = data
+      GridView.resetFromJsonDataString(p)
+      
     
     document.body.appendChild(root)
 

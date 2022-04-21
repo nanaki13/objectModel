@@ -25,6 +25,7 @@ object HtmlPredef {
   inline def a(f : HTMLAnchorElement ?=> HTMLAnchorElement *): HTMLAnchorElement = !.a(f  *)
   inline def button(f : HTMLButtonElement ?=> HTMLButtonElement *): HTMLButtonElement = !.button(f  *)
   inline def input(f : HTMLInputElement ?=> HTMLInputElement *): HTMLInputElement = !.input(f  *)
+  inline def inputCheck(check : Boolean  = false) (f : HTMLInputElement ?=> HTMLInputElement *): HTMLInputElement = input(!.me(_.`type`="checkbox"),!.me(_.checked=check))
   inline def label(f : HTMLLabelElement ?=> HTMLLabelElement *): HTMLLabelElement = !.label(f  *)
   inline def textarea(f : HTMLTextAreaElement ?=> HTMLTextAreaElement *): HTMLTextAreaElement = !.textarea(f  *)
   inline def pre(f : HTMLPreElement ?=> HTMLPreElement *): HTMLPreElement = !.pre(f  *)
@@ -40,6 +41,7 @@ object HtmlPredef {
   inline def a: HTMLAnchorElement = !.a
   inline def button: HTMLButtonElement = !.button
   inline def input: HTMLInputElement = !.input
+  inline def inputCheck(check : Boolean ): HTMLInputElement = input(!.me(_.`type`="checkbox"),!.me(_.checked=check))
   inline def label: HTMLLabelElement = !.label
   inline def textarea: HTMLTextAreaElement = !.textarea
   inline def pre: HTMLPreElement = !.pre

@@ -35,6 +35,10 @@ import bon.jo.Draw.Access
 import bon.jo.Draw.AccessVar
 import bon.jo.Draw.Moving
 import bon.jo.Draw.FrameGrid
+import bon.jo.Lvw
+import org.scalajs.dom.window
+import org.scalajs.dom.URLSearchParams
+import scalajs.js.isUndefined
 object GridView extends GridViewOps:
 
   type Context = GridViewContext
@@ -42,8 +46,59 @@ object GridView extends GridViewOps:
   case class RectSelect(xIni: Int, yIni: Int, xEnd: Int, yEnd: Int) extends Sel
 
 
+  def resetFromJsonDataString(res : String):OnContextUnit = 
+    val resParsed = JSON.parse(res)
+    val din = resParsed.asInstanceOf[scalajs.js.Dynamic]
+    val xSize : Int = din.xSize.asInstanceOf
+    val ySize : Int = din.ySize.asInstanceOf
+    val data : scalajs.js.Array[scalajs.js.Dynamic] = din.data.asInstanceOf
+    val sheets : scalajs.js.Array[scalajs.js.Dynamic] =din.sheets.asInstanceOf
+    
+    val dataS: List[GridValueExport[String]] = data.map{ e =>
+      GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+    }.toList
+    resetData(dataS,xSize,ySize)     
+    sheets.foreach{
+      sheet =>  
+        val xSizeSheet : Int = sheet.xSize.asInstanceOf
+        val ySizeSheet : Int = sheet.ySize.asInstanceOf
+        val xSheet : Int = sheet.x.asInstanceOf
+        val ySheet : Int = sheet.y.asInstanceOf
+        val movment : String = sheet.m.asInstanceOf
 
-  def view(): HTMLElement =
+        val gridSheet = 
+          if !scalajs.js.isUndefined(sheet.data) then
+            val dataSheet : scalajs.js.Array[scalajs.js.Dynamic] = sheet.data.asInstanceOf     
+            val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
+                GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+              }.toList
+            val g = Grid[String](xSizeSheet,ySizeSheet)
+            g.resetData(dataSheetExport)
+            g
+          else 
+            val fg = FrameGrid[String](xSizeSheet,ySizeSheet)
+            val frames : scalajs.js.Array[scalajs.js.Array[scalajs.js.Dynamic]] = sheet.frames.asInstanceOf  
+            frames.zipWithIndex.map((dataSheet,i) => {
+              val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
+                GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
+              }.toList
+              if(i != 0) then
+                fg.addFrame()
+              fg.currentFrame = i
+              fg.resetData(dataSheetExport)
+
+            })  
+
+            fg
+        val nSheet = new Positioned(xSheet,ySheet,gridSheet) with Access with AccessVar with Moving[String]
+        nSheet.moveString(movment,grid.xSize,grid.ySize)
+        addSheet(nSheet)
+        
+    }
+    resierCanvasAndDraw(xSize,ySize)
+
+  def view(): Context =
+    
     inline val cntColorStep = 500
     inline val colorNum = 255 * 255 * 255
     inline val colrStep = 360d / 500d
@@ -53,8 +108,10 @@ object GridView extends GridViewOps:
    
     val fact = 10
     val myCanvas: HTMLCanvasElement = canvas
+    val root = div(_class("row"))
     given Context = new Context(
        MasterGrid[String](gridX, gridY),
+       root,
       myCanvas,
       tillColor(),
       div,
@@ -188,16 +245,23 @@ object GridView extends GridViewOps:
     given (String => HTMLElement) = i => div(_text(i.toString))
     given PaletteContext = PaletteContext("tool-select", "row", "cell")
     val palette = Palette(2,true, "Draw", "Select","Paste","Eraser")
-
+    val paletteOption = div
+ 
     palette.listen = {
       case "Draw" =>
-        context.actionParam = NoActionParam
+        paletteOption.innerHTML=""
+        paletteOption.append( DrawParamSelectionView{
+          param => context.actionParam = param
+        })
         context.currentProcess = DrawProcessEvent
       case "Select" =>
+        paletteOption.innerHTML=""
         context.currentProcess = SelectProcessEvent
       case "Paste" =>
+        paletteOption.innerHTML=""
         context.currentProcess = PasteProcessEvent
       case "Eraser" =>
+        paletteOption.innerHTML=""
         context.actionParam = NoActionParam
         context.currentProcess = EraseProcessEvent
     }
@@ -207,7 +271,6 @@ object GridView extends GridViewOps:
       if mousedown then context.currentProcess.process.tupled(xyInGrid(e))
 
     EventAdder.touchmove[TouchEvent]( e =>
-      console.log(e)
       if mousedown then context.currentProcess.process.tupled(xyInGrid(e))
     )(using parentCanvas)
     parentCanvas.onmousedown = e =>
@@ -264,29 +327,35 @@ object GridView extends GridViewOps:
       else 
         org.scalajs.dom.window.clearInterval(interval)
     )
+   
     val toolDiv = div(childs(        whDiv,
         pxSizeDiv,
         div(childs(selectionPalette().root)),
-        palette.root,
+        div(childs(palette.root,paletteOption)),
         colPi,context.sheetViewsDiv,div(_text("anim : "),childs(animButton))))
-    val ret = div(
-      _class("row"),
-      childs(
+   
+
+      root.append(
         parentCanvas,toolDiv
       )
-    )
+    
 
     def save(): OnHTMLElement =
       val s = context.grid.json().toJsonString()
+      val ss = Lvw(s).toStringData
       val aLink = a(
-        _text("Download"),
+        _text("Download json"),
         me(_.asInstanceOf[scalajs.js.Dynamic].download = "image.json"),
         me(_.href = s"""data:application/json;base64,${Base64.getEncoder
-          .encodeToString(s.getBytes)}""")
-      )
-      OnHtml().append(div(childs(aLink)))
+          .encodeToString(s.getBytes)}"""))
+      val aLinkData = a(
+        _text("Download data"),
+        me(_.asInstanceOf[scalajs.js.Dynamic].download = "image.data"),
+        me(_.href = s"""data:text/plain;base64,${Base64.getEncoder
+          .encodeToString(ss.getBytes)}"""))
+      OnHtml().append(div(childs(div(childs(aLink)),div(childs(aLinkData)))))
 
-    val buttonSave = button(_text("save"), click(save()(using ret)))
+    val buttonSave = button(_text("save"), click(save()(using root)))
 
     val i = input(
       me(_.`type` = "file"),
@@ -298,57 +367,8 @@ object GridView extends GridViewOps:
       val f: FileReader = new FileReader()
       val tRef = (System.currentTimeMillis)
       f.onloadend = l =>
-        val res = f.result.toString
-        val resParsed = JSON.parse(res)
-        val din = resParsed.asInstanceOf[scalajs.js.Dynamic]
-        val xSize : Int = din.xSize.asInstanceOf
-        val ySize : Int = din.ySize.asInstanceOf
-        val data : scalajs.js.Array[scalajs.js.Dynamic] = din.data.asInstanceOf
-        val sheets : scalajs.js.Array[scalajs.js.Dynamic] =din.sheets.asInstanceOf
-       
-        val dataS: List[GridValueExport[String]] = data.map{ e =>
-          GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
-        }.toList
-        resetData(dataS,xSize,ySize)     
-        sheets.foreach{
-          sheet =>  
-            val xSizeSheet : Int = sheet.xSize.asInstanceOf
-            val ySizeSheet : Int = sheet.ySize.asInstanceOf
-            val xSheet : Int = sheet.x.asInstanceOf
-            val ySheet : Int = sheet.y.asInstanceOf
-            val movment : String = sheet.m.asInstanceOf
-
-            val gridSheet = 
-              if !scalajs.js.isUndefined(sheet.data) then
-                val dataSheet : scalajs.js.Array[scalajs.js.Dynamic] = sheet.data.asInstanceOf     
-                val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
-                    GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
-                  }.toList
-                val g = Grid[String](xSizeSheet,ySizeSheet)
-                g.resetData(dataSheetExport)
-                g
-              else 
-                val fg = FrameGrid[String](xSizeSheet,ySizeSheet)
-                val frames : scalajs.js.Array[scalajs.js.Array[scalajs.js.Dynamic]] = sheet.frames.asInstanceOf  
-                frames.zipWithIndex.map((dataSheet,i) => {
-                  val dataSheetExport: List[GridValueExport[String]] = dataSheet.map{ e =>
-                    GridValueExport(e.v.asInstanceOf,e.xy.asInstanceOf) 
-                  }.toList
-                  println(dataSheetExport)
-                  if(i != 0) then
-                    fg.addFrame()
-                  fg.currentFrame = i
-                  fg.resetData(dataSheetExport)
-
-                })  
- 
-                fg
-            val nSheet = new Positioned(xSheet,ySheet,gridSheet) with Access with AccessVar with Moving[String]
-            nSheet.moveString(movment,grid.xSize,grid.ySize)
-            addSheet(nSheet)
-            
-        }
-        resierCanvasAndDraw(xSize,ySize)
+        val Lvw(res) = f.result.toString
+        resetFromJsonDataString(res)
         
       
       f.readAsText(i.files(0), "utf-8")
@@ -370,7 +390,7 @@ object GridView extends GridViewOps:
             (vBlue.value * 255).round.toInt
           )
         ),
-      ret
+      root
     )
     lazy val (vGreen: VarValueDouble, cGreen) = Cursor(0.5,
       f =>
@@ -381,7 +401,7 @@ object GridView extends GridViewOps:
             (vBlue.value * 255).round.toInt
           )
         ),
-      ret
+      root
     )
     lazy val (vBlue: VarValueDouble, cBlues) = Cursor(0.7,
       f =>
@@ -392,16 +412,16 @@ object GridView extends GridViewOps:
             (f * 255).round.toInt
           )
         ),
-      ret
+      root
     )
 
     lazy val (vS: VarValueDouble, cS) = Cursor(1,
       s => updateColor(Color.HSL(vH.value, s * 100, vL.value * 100)),
-      ret
+      root
     )
     lazy val (vL: VarValueDouble, cL) = Cursor(0.5,
       l => updateColor(Color.HSL(vH.value, vS.value * 100, l * 100)),
-      ret
+      root
     )
     lazy val (vH: VarValueDouble, cH) = colorLineCanvas(120,h =>
       updateColor(Color.HSL(h, vS.value * 100, vL.value * 100))
@@ -417,4 +437,10 @@ object GridView extends GridViewOps:
       open()
     )
     updateColor(Color.HSL(vH.value, vS.value * 100, vL.value * 100))
-    ret
+    val data = new URLSearchParams( window.location.search).get("q")
+    console.log(data)
+    if(!isUndefined(data)) then
+      val Lvw(p) = data
+      resetFromJsonDataString(p)
+    
+    context

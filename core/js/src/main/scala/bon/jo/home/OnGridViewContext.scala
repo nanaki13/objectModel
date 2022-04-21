@@ -42,8 +42,28 @@ trait OnGridViewContext {
   def draw(xI : Int,yI : Int): OnContextUnit =
     val grid = context.grid
     val colot = context.color
-    grid(xI, yI) = GridValue(colot.toString)
-    drawPoint(xI, yI, colot.toString)
+    context.actionParam match
+      case DrawParam.Pixel => 
+          grid(xI, yI) = GridValue(colot.toString)
+          drawPoint(xI, yI, colot.toString)
+      case  DrawParam.Circle(r) => 
+        val data = Grid[String](2*r+1,2*r+1)
+        data.circle(colot.toString,r)
+      
+        val roundR = r
+        for{
+          xr <- 0 until 2*r+1
+          yr <- 0 until 2*r+1
+          dataP = data(xr,yr) 
+          xIn = xI - roundR + xr
+          yIn = yI - roundR + yr
+        } {
+          if dataP != EmptyGridElement && grid.isInGrid(xIn, yIn) then
+            grid(xIn, yIn) = dataP
+            drawPoint(xIn, yIn, colot.toString)  
+        }
+       
+   
 
   def prepare(c: HTMLCanvasElement, cWidth: Int, cHeight: Int): OnContextUnit =
     c.width = cWidth

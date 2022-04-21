@@ -18,6 +18,7 @@ import bon.jo.home.GridViewContext.BaseDraw
 
   class GridViewContext(
       var grid: MasterGrid[String],
+      val root: HTMLElement,
       val canvas: HTMLCanvasElement,
       val colorPicker: HTMLElement,
       val sheetViewsDiv: HTMLElement,

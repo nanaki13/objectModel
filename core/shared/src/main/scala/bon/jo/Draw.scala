@@ -67,9 +67,13 @@ object Draw {
     var frames: Seq[Array[GridElement[T]]] = IndexedSeq(data)
     var currentFrame = 0
     override def apply(xp: Int, yp: Int): GridElement[T] =
-      frames(currentFrame)(coord(xp, yp))
+      if(frames.nonEmpty) then
+        frames(currentFrame)(coord(xp, yp))
+      else 
+        EmptyGridElement
     override def update(xp: Int, yp: Int, e: GridElement[T]): Unit =
-      frames(currentFrame)(coord(xp, yp)) = e
+      if(frames.nonEmpty) then
+        frames(currentFrame)(coord(xp, yp)) = e
 
     override def resetData(dataS: List[GridValueExport[T]]): Unit =
       for (i <- 0 until xSize * ySize) {
@@ -80,8 +84,8 @@ object Draw {
       }
 
     def nextFrame() =
-      println(currentFrame)
-      currentFrame = (currentFrame + 1) % frames.size
+      if(frames.size != 0) then
+        currentFrame = (currentFrame + 1) % frames.size
 
     def addFrame() =
       val fd = frames.last
@@ -188,6 +192,24 @@ object Draw {
     inline def uncoord(xy: Int): (Int, Int) = (xy / ySize, xy % ySize)
     def apply(xp: Int, yp: Int): GridElement[T]
     def update(xp: Int, yp: Int, v: GridElement[T]): Unit
+    def circle(value : T,r  :Int):Unit = 
+      val xMiddle = xSize.toDouble/2
+      val yMiddle = ySize.toDouble/2
+      
+      val f : (xp: Int, yp: Int) => Boolean =  (xp: Int, yp: Int) =>
+        val dCenterToxy = Math.sqrt((xp - xMiddle)*(xp - xMiddle) + (yp - yMiddle)*(yp - yMiddle))
+        dCenterToxy <= r
+      updateIf(f,value)
+    def updateIf(f : (xp: Int, yp: Int) => Boolean,value : T):Unit = 
+      for{
+        x <- 0 until xSize
+        y <- 0 until ySize
+      } {
+        if f(x,y) then 
+          this(x,y) = GridValue(value)
+        else
+          this(x,y) = EmptyGridElement
+      }
     inline def update(xp: Int, yp: Int, v: T): Unit
     def gridValues() = data.zipWithIndex.flatMap { (el, i) =>
       val (x, y) = uncoord(i)

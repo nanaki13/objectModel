@@ -30,10 +30,8 @@ object ProcessEvent:
         def start(xI : Int,yI:Int): OnContextUnit = ()
         def end(xI : Int,yI:Int): OnContextUnit = ()
       object PasteProcessEvent extends ProcessEvent:
-        def process(xI : Int,yI:Int): OnContextUnit =      
-          println("paste size b = "+context.grid.data.count(_ != EmptyGridElement))
-          paste(xI,yI)
-          println("paste size a = "+context.grid.data.count(_ != EmptyGridElement))
+        def process(xI : Int,yI:Int): OnContextUnit = paste(xI,yI)
+         
         def start(xI : Int,yI:Int): OnContextUnit = ()
         def end(xI : Int,yI:Int): OnContextUnit = ()
       object SelectProcessEvent extends ProcessEvent:
