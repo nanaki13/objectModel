@@ -39,6 +39,8 @@ import bon.jo.Lvw
 import org.scalajs.dom.window
 import org.scalajs.dom.URLSearchParams
 import scalajs.js.isUndefined
+import scala.scalajs.js.URIUtils
+import bon.jo.home.ProcessEvent.ActionParam
 object GridView extends GridViewOps:
 
   type Context = GridViewContext
@@ -46,7 +48,7 @@ object GridView extends GridViewOps:
   case class RectSelect(xIni: Int, yIni: Int, xEnd: Int, yEnd: Int) extends Sel
 
 
-  def resetFromJsonDataString(res : String):OnContextUnit = 
+  def resetFromJsonDataString(res : String): OnBaseDrawFactor[Unit] = 
     val resParsed = JSON.parse(res)
     val din = resParsed.asInstanceOf[scalajs.js.Dynamic]
     val xSize : Int = din.xSize.asInstanceOf
@@ -92,10 +94,32 @@ object GridView extends GridViewOps:
             fg
         val nSheet = new Positioned(xSheet,ySheet,gridSheet) with Access with AccessVar with Moving[String]
         nSheet.moveString(movment,grid.xSize,grid.ySize)
-        addSheet(nSheet)
+        addSheetToGrid(nSheet)
+        tContext match
+          case given GridViewContext => addSheetUI(nSheet)
+          case _ =>
+        
         
     }
     resierCanvasAndDraw(xSize,ySize)
+
+  def showView(data : String): ShowGridContext =
+    val myCanvas: HTMLCanvasElement = canvas
+    given ctx : ShowGridContext = ShowGridContext(MasterGrid(10,10),20,myCanvas,Color.RGB(200,10,0),div(_class("row"),childs(myCanvas))  )
+    resetFromJsonDataString(data)
+    var interval = 0
+    var count = 0
+    interval = org.scalajs.dom.window.setInterval(() => 
+      ctx.grid.sheet.foreach{ v =>
+        v.v match 
+          case e : FrameGrid[_] => e.nextFrame()
+          case o =>
+        v.move(count)
+      }   
+      draw()
+      count = count+1
+      ,100)
+    ctx
 
   def view(): Context =
     
@@ -250,6 +274,7 @@ object GridView extends GridViewOps:
     palette.listen = {
       case "Draw" =>
         paletteOption.innerHTML=""
+        context.actionParam = DrawParam.Pixel
         paletteOption.append( DrawParamSelectionView{
           param => context.actionParam = param
         })
@@ -266,6 +291,7 @@ object GridView extends GridViewOps:
         context.currentProcess = EraseProcessEvent
     }
     palette.select(0)
+    
     val parentCanvas = div(_class("parent-c"), childs(myCanvas))
     parentCanvas.onmousemove = e =>
       if mousedown then context.currentProcess.process.tupled(xyInGrid(e))
@@ -354,9 +380,16 @@ object GridView extends GridViewOps:
         me(_.href = s"""data:text/plain;base64,${Base64.getEncoder
           .encodeToString(ss.getBytes)}"""))
       OnHtml().append(div(childs(div(childs(aLink)),div(childs(aLinkData)))))
+    def shareLink(): OnHTMLElement =
+      val s = context.grid.json().toJsonString()
+      val ss = Lvw(s).toStringData
+      val aLink = a(_text("link"),
+        me( _.href=window.location.host+window.location.pathname+"?q="+URIUtils.encodeURI(ss)))
+
+      OnHtml().append(div(childs(div(childs(aLink)))))
 
     val buttonSave = button(_text("save"), click(save()(using root)))
-
+    val shareLinkButton = button(_text("share link"), click(shareLink()(using root)))
     val i = input(
       me(_.`type` = "file"),
       me(_.name = "img-json"),
@@ -367,6 +400,7 @@ object GridView extends GridViewOps:
       val f: FileReader = new FileReader()
       val tRef = (System.currentTimeMillis)
       f.onloadend = l =>
+      
         val Lvw(res) = f.result.toString
         resetFromJsonDataString(res)
         
@@ -433,14 +467,8 @@ object GridView extends GridViewOps:
       div(childs(span(_text("H : ")),cH)),
       div(childs(span(_text("S : ")),cS)),
       div(childs(span(_text("L : ")),cL)),
-      div(childs(buttonSave)),
+      div(childs(buttonSave,shareLinkButton)),
       open()
     )
-    updateColor(Color.HSL(vH.value, vS.value * 100, vL.value * 100))
-    val data = new URLSearchParams( window.location.search).get("q")
-    console.log(data)
-    if(!isUndefined(data)) then
-      val Lvw(p) = data
-      resetFromJsonDataString(p)
-    
+    updateColor(Color.HSL(vH.value, vS.value * 100, vL.value * 100))   
     context

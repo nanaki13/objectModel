@@ -15,6 +15,7 @@ import bon.jo.home.OnContextSelectActions.Bound
 import bon.jo.home.GridView.RectSelect
 import bon.jo.home.GridViewContext.Factor
 import bon.jo.home.GridViewContext.BaseDraw
+import bon.jo.home.GridViewContext.RootHtml
 
   class GridViewContext(
       var grid: MasterGrid[String],
@@ -30,7 +31,7 @@ import bon.jo.home.GridViewContext.BaseDraw
       
       var gridsCopy :List[Positioned[Grid[String]]] = Nil,
       var sheetsMv:List[GridViewContext.SheetV] = Nil
-  ) extends Factor with BaseDraw:
+  ) extends Factor with BaseDraw with RootHtml:
     val gc : CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     def parentCanvas = canvas.parentElement
     object selections:
@@ -72,21 +73,28 @@ import bon.jo.home.GridViewContext.BaseDraw
 
 
   object GridViewContext:
+    class ShowGridContext(var grid: MasterGrid[String],var factor: Int,val canvas : HTMLCanvasElement, var color: Color,val root: HTMLElement ) extends Factor with BaseDraw with RootHtml:
+       val gc : CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     type OnContext[A] = GridViewContext ?=> A
     type OnFactor[A] = Factor ?=> A
     type OnBaseDraw[A] = BaseDraw ?=> A
     type OnBaseDrawFactor[A] = BaseDraw & Factor ?=> A
     type OnContextUnit = OnContext[Unit]
     inline def apply(): OnContext[GridViewContext] = summon
-    inline def context: OnContext[GridViewContext] = GridViewContext()
+    inline def context: OnContext[GridViewContext] = summon
+    inline def tContext[A <: Factor]: A ?=> A = summon
     inline def factor: OnFactor[Int] = summon.factor
     inline def gc: OnBaseDraw[CanvasRenderingContext2D] = summon.gc
     inline def color: OnBaseDraw[Color] = summon.color
+    inline def canvasOut: OnBaseDraw[HTMLCanvasElement] = summon.canvas
     inline def grid: OnBaseDraw[MasterGrid[String]] = summon.grid
     type SheetV = Draw.SheetMV[String,HTMLElement]
     trait Factor:
       var factor: Int
     trait BaseDraw:
+      val canvas : HTMLCanvasElement 
       val gc : CanvasRenderingContext2D 
       var color: Color
       var grid: MasterGrid[String]
+    trait RootHtml:
+      val root: HTMLElement

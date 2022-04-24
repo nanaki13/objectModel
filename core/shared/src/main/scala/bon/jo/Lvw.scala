@@ -1,6 +1,6 @@
 package bon.jo
 
-case class Lvw(val symbols : String,val datas : Iterable[Int],val usedDicoElmSize : Int):
+case class Lvw(val symbols : String,val datas : Iterable[Int],val dicoSize : Int):
 
   def dataSize(v : Float,current : Int):Int = 
     if v > 16 then 
@@ -8,7 +8,8 @@ case class Lvw(val symbols : String,val datas : Iterable[Int],val usedDicoElmSiz
     else
       current
   def toStringData : String =     
-    val ds = dataSize(usedDicoElmSize,1)
+    val ds = dataSize(dicoSize,1)
+
     symbols.size.toHexString.reverse.padTo(4,'0').reverse +symbols+ds.toHexString.reverse.padTo(4,'0').reverse +datas.map(e => 
       e.toHexString.reverse.padTo(ds,'0').reverse  
     ).mkString
@@ -35,6 +36,8 @@ object Lvw :
       i <- 0 until size
       read = it.next.toString
     }  {buff.append(read)}
+  
+    
     Integer.parseInt( buff.toString ,16 ) 
   inline def unapply(ss : String):Some[String] = unapply(ss :Iterable[Char] )
   def unapply(ss : Iterable[Char]):Some[String] = 
@@ -43,26 +46,29 @@ object Lvw :
     val mutableDico = scala.collection.mutable.Map(dicoIni.toSeq *)  
     var previous : Option[String] = None
     val all = StringBuilder()
-    val decoded = while (it.hasNext) {
-      val code = readInt(it,dataBlockSize)
-   
-
-      val current = if mutableDico.contains(code) then
-        val c = mutableDico(code)
-        previous.foreach{
-          p => 
-            mutableDico(mutableDico.keys.max +1) = p+c.head
-        }
-        c
-      else
-        val c = previous.get+previous.get.head
-        mutableDico(code) = c
-        c
-        
-      previous = Some(current)
-      all.append(current)
+    try
+      while (it.hasNext) {
+        val code = readInt(it,dataBlockSize)
+        //println(code)
     
-    }
+
+        val current = if mutableDico.contains(code) then
+          val c = mutableDico(code)
+          previous.foreach{
+            p => 
+              mutableDico(mutableDico.keys.max +1) = p+c.head
+          }
+          c
+        else
+          val c = previous.get+previous.get.head
+          mutableDico(code) = c
+          c
+          
+        previous = Some(current)
+        all.append(current)
+      }
+    catch 
+      case e => e.printStackTrace()
     Some(all.toString)
 
   def apply(s :  Iterable[Char]):Lvw = apply(()=>s) 
@@ -71,7 +77,7 @@ object Lvw :
     val dico : scala.collection.mutable.Map[String, Int]= scala.collection.mutable.Map(org.toSeq *)
     var i = 0
     var current = StringBuilder("")
-    val usedDicoElm = scala.collection.mutable.Set[String]()
+   
     val comp = (for(c <- s()) yield
 
       val p = current.clone().append(c)
@@ -83,7 +89,7 @@ object Lvw :
       } else
         dico(p.toString) = dico.values.maxOption.getOrElse(0)+1
         val ret = dico(current.toString)
-        usedDicoElm.add(current.toString)
+       
         current = StringBuilder(c.toString)
         Some(ret)).flatten ++ Some(dico(current.toString))
-    new Lvw(org.keySet.mkString,comp,usedDicoElm.size)
+    new Lvw(org.keySet.mkString,comp,dico.size)

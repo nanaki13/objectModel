@@ -18,6 +18,7 @@ import org.scalajs.dom.HTMLSpanElement
 import org.scalajs.dom.Node
 import org.scalajs.dom.console.log
 import scala.collection.mutable
+import bon.jo.HtmlEvent.events
 import MiniDsl as !
 import !.*
 import HtmlPredef.*
@@ -27,41 +28,61 @@ import org.scalajs.dom.window
 import org.scalajs.dom.URLSearchParams
 import scalajs.js.isUndefined
 import bon.jo.home.GridViewContext
+import bon.jo.home.GridViewContext.ShowGridContext
 object WordMain :
 
   case class MyMenuItem(text : String, view : () => HTMLElement) extends Menu.MenuItem
  
+  def showView(root : HTMLElement):Unit = 
+    val input = textarea
+    root.append(div(childs(div(_text("Code : ")),input)))
+    
+    input.events.change{
+      e => 
+        val Lvw(p) = input.value
+        val c: ShowGridContext = GridView.showView(p)
+        root.innerHTML = ""
+        root.append(c.root)  
+    }
   def graphView() = div{childs(main,resMain,err)}
   @main
   def test() : Unit = 
     val menuOut = div(_class("menu-out"))
-    
+    val sParam = new URLSearchParams( window.location.search)
+    if sParam.has("show") then 
+      val d = div(_class("root j-c-center"))
+      showView(d)
+      document.body.appendChild(d)
+    else
 
-    val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
-    val gridMenu : MyMenuItem = new MyMenuItem("Pixel arts",() => GridView.view().root)
-    val mindMapMenu : MyMenuItem = new MyMenuItem("Mind map",MindMapView.view)
-    val home : MyMenuItem = new MyMenuItem("Home",() => 
-      div(_class("welcome container"),childs(
-        !.h1[HTMLElement](_class(""),_text("Site perso avec des réalisations en Scala")),
-        div(_class(""),childs(t("Mon github : "),a(me(_.href="https://github.com/nanaki13"),_text("https://github.com/nanaki13"))))
-      ))
+      val graphMenu : MyMenuItem = new MyMenuItem("Fonction graph",graphView)
+      val gridMenu : MyMenuItem = new MyMenuItem("Pixel arts",() => GridView.view().root)
+      val mindMapMenu : MyMenuItem = new MyMenuItem("Mind map",MindMapView.view)
+      val home : MyMenuItem = new MyMenuItem("Home",() => 
+        div(_class("welcome container"),childs(
+          !.h1[HTMLElement](_class(""),_text("Site perso avec des réalisations en Scala")),
+          div(_class(""),childs(t("Mon github : "),a(me(_.href="https://github.com/nanaki13"),_text("https://github.com/nanaki13"))))
+        ))
+        
+        
+        
+        )
+      val menu  = new Menu(List(home,graphMenu,mindMapMenu,gridMenu),_.view(),menuOut) 
       
       
+      val root = div(_class("root"),childs(menu.root,menuOut))
+
+
+      val data = Option(sParam.get("q"))
+      data match 
+        case Some(d) =>
+          if(!isUndefined(d)) then
+            val Lvw(p) = d
+            val c: ShowGridContext = GridView.showView(p)
+            menuOut.append(c.root)
+        case _ =>
       
-      )
-    val menu  = new Menu(List(home,graphMenu,mindMapMenu,gridMenu),_.view(),menuOut) 
-     
-    
-    val root = div(_class("root"),childs(menu.root,menuOut))
-    val data = new URLSearchParams( window.location.search).get("q")
-    if(!isUndefined(data)) then
-      given c: GridViewContext = GridView.view()
-      menuOut.append(c.root)
-      val Lvw(p) = data
-      GridView.resetFromJsonDataString(p)
-      
-    
-    document.body.appendChild(root)
+      document.body.appendChild(root)
 
   val formuleEval: HTMLDivElement  = div
   val res : HTMLDivElement = div(_text("--"),_class("debug"))

@@ -69,9 +69,9 @@ trait OnGridViewContext {
     c.width = cWidth
     c.height = cHeight
     c.style.backgroundColor = "white"
-  def drawPoint(xGrid: Int, yGrid: Int, color: String): OnContextUnit =
-    val g = context.gc
-    val fact = context.factor
+  def drawPoint(xGrid: Int, yGrid: Int, color: String):OnBaseDrawFactor[Unit] =
+    val g = gc
+    val fact = factor
     g.beginPath()
     g.fillStyle = color
     g.rect(xGrid * fact, yGrid * fact, fact, fact)
@@ -88,17 +88,17 @@ trait OnGridViewContext {
   def resetDataAndDraw(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
     resetData(dataS,xSize,ySize)
    
-  def resierCanvasAndDraw(xSize : Int, ySize : Int):OnContextUnit = 
-    context.canvas.width = (xSize * context.factor.toFloat).round
-    context.canvas.height = (ySize * context.factor.toFloat).round
+  def resierCanvasAndDraw(xSize : Int, ySize : Int):OnBaseDrawFactor[Unit] = 
+    canvasOut.width = (xSize * factor.toFloat).round
+    canvasOut.height = (ySize * factor.toFloat).round
     draw()
-  def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnContextUnit =
-    context.grid = MasterGrid(xSize,ySize)
-    context.grid.resetData(dataS)
+  def resetData(dataS: List[GridValueExport[String]],xSize : Int, ySize : Int): OnBaseDrawFactor[Unit] =
+    tContext.grid = MasterGrid(xSize,ySize)
+    grid.resetData(dataS)
     
-  def draw(): OnContextUnit =
-    context.gc.clearRect(0, 0, context.canvas.width, context.canvas.height)
-    context.grid.gridValues().foreach { case Positioned(x, y, color) =>
+  def draw():OnBaseDrawFactor[Unit] =
+    gc.clearRect(0, 0, canvasOut.width, canvasOut.height)
+    grid.gridValues().foreach { case Positioned(x, y, color) =>
       drawPoint(x, y, color)
 
   }
@@ -136,5 +136,5 @@ trait OnGridViewContext {
     context.sheetsMv.foreach(_.redraw())
     context.selections.redraw()
    
-  def addSheet(p : Positioned[Grid[String]] with Access with AccessVar with Moving[String]):OnContextUnit
+  def addSheetUI(p : Positioned[Grid[String]] with Access with AccessVar with Moving[String]):OnContextUnit
 }

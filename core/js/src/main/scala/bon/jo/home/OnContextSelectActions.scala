@@ -135,7 +135,11 @@ trait OnContextSelectActions {
     }
     println("fillSel end = " + context.grid.data.count(_ != EmptyGridElement))
 
-  def addSheet(
+  def addSheetToGrid(
+      p: Positioned[Grid[String]] with Access with AccessVar with Moving[String]
+  ): OnBaseDraw[Unit] =
+    grid.sheet = p :: grid.sheet
+  def addSheetUI(
       p: Positioned[Grid[String]] with Access with AccessVar with Moving[String]
   ): OnContextUnit =
     val sheetDiv = div
@@ -143,7 +147,6 @@ trait OnContextSelectActions {
     sheetDiv.classList.add("sheet-rect")
     mv.redraw()
     context.parentCanvas.append(sheetDiv)
-    context.grid.sheet = p :: context.grid.sheet
     context.sheetsMv = mv :: context.sheetsMv
     val seeCheck = input(me(_.`type` = "checkbox"), me(_.checked = true))
     val lockCheck = input(me(_.`type` = "checkbox"), me(_.checked = false))
@@ -265,7 +268,8 @@ trait OnContextSelectActions {
         with Access
         with AccessVar
         with Moving[String]
-      addSheet(p)
+      addSheetToGrid(p)
+      addSheetUI(p)
 
     }
 
