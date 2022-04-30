@@ -1,8 +1,8 @@
-/.bloop
-/.bsp
-/.idea
-/.metals
-/.vscode
+.bloop
+.bsp
+.idea
+.metals
+.vscode
 /project/project
 /project/metals.sbt
 /project/.*
