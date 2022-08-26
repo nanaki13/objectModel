@@ -10,10 +10,10 @@ import akka.http.scaladsl.server.Route
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import akka.actor.typed.ActorRef
-import _root_.bon.jo.user.UserRepo
-import _root_.bon.jo.user.UserModel.User
-import _root_.bon.jo.user.UserRepo.Command
-import _root_.bon.jo.user.UserRepo.Response
+import bon.jo.user.UserRepo
+import bon.jo.user.UserModel.User
+import bon.jo.user.UserRepo.Command
+import bon.jo.user.UserRepo.Response
 import org.json4s.Formats
 
 class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using   ActorSystem[_],Manifest[User],Manifest[Seq[User]],Formats) extends JsonSupport[User] {
