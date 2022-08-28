@@ -2,40 +2,30 @@ package bon.jo
 
 import scala.annotation.tailrec
 
-type S[R] = System ?=> R
-type SystemFlow = S[System]
-type ElementFow = (System,SystemElementProcess) ?=> System
+type S[R] = R ?=> R
+type SystemFlow[R <: System] = S[R]
+type PartialFlow[S<: System] = (SystemElementProcess[S], List[SystemElement] => S) ?=> S
+type ProcessFlow[S<: System] = (S,SystemElementProcess[S], List[SystemElement] => S) ?=> S
+type ElementFlow[S<: System] = S ?=> SystemElement
 trait System:
-  def elements:Iterable[SystemElement]
-  def nextSystem():SystemElementProcess ?=> System = 
-    given System = this
+  def elements:List[SystemElement]
+  def nextSystem[  T <: System ]():PartialFlow[T]  = 
+    given T = this.asInstanceOf[T]
     System.nextSystem()
-  def update[T <: System](old : SystemElement,newE : SystemElement)(using List[SystemElement] => T):T = 
-    System(elements.map{
-        ee => 
-          if ee == old then
-            newE
-          else
-            ee
-      }.toList)
+
 
 object System:
   def apply[T <: System](els : List[SystemElement])(using List[SystemElement] => T):T = summon(els)
-  inline def apply():SystemFlow = summon
-  def nextSystem():ElementFow = 
-    process(System().elements.toList,System())
-  @tailrec
-  private def process(toDo : List[SystemElement], onGoing : System):  ElementFow = 
-    if toDo.isEmpty then
-      onGoing
-    else 
-      process(toDo.tail,SystemElementProcess().next(toDo.head.asInstanceOf,onGoing))
+  inline def apply[T <: System]():SystemFlow[T] = summon
+  def nextSystem[S <: System]():ProcessFlow[S] = 
+     System(System().elements.map(e => SystemElementProcess().next(e)))
+
 trait SystemElement
 object SystemElementProcess:
-  inline def apply():SystemElementProcess ?=> SystemElementProcess = summon
-trait SystemElementProcess:
-  type T <: SystemElement
-  def next(s :  T, onGoing : System):SystemFlow
+  inline def apply[S <: System]():SystemElementProcess[S] ?=> SystemElementProcess[S]  = summon
+trait SystemElementProcess[S <: System]:
+ 
+  def next(s :  SystemElement):ElementFlow[S]
 
     
 
