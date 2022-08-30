@@ -7,55 +7,58 @@ import bon.jo.pong.Player
 import bon.jo.Geom2D.*
 import bon.jo.pong.Board
 import bon.jo.pong.Drawer
+import bon.jo.pong.Rock
 trait Debug:
    def debug():Unit
    def debug(s  :String):Unit = 
       println(s)
       debug()
-class ProcessPong[C](using List[SystemElement] => PongSystem,Debug,Drawer[C],C) extends SystemElementProcess[PongSystem]:
+class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
-    def next(s: SystemElement): ElementFlow[PongSystem] = 
-      val board : Board = summon.board
+    def next(): SystemFlow[PongSystem] = 
+      val sys = System()
+      val ball = sys.ball
+      val board : Board = sys.board
       //println(s.asInstanceOf[Ball].pos)
-      s match
-        case e : PosSpeed  =>  
-          
-          
-         val seg = e.pos -> e.speed
-         val nextDef = e.copy(seg.p2)
-         e match
-            case b : Ball =>
-          
-               val segs = board.paths.flatMap(_.segments) ++ summon.player.flatMap(_.path.segments) ++ summon.rocks.flatMap(_.value.segments)
-               val crosss = segs.flatMap{
-                  sB => 
-                     sB.cross(seg).map{
-                        i =>
-                           val sym = seg.p2.sym(sB)
-                           e.copy(pos = sym,speed = e.speed.length * Segment(i,sym).toVector().unitary())
-                        
-                     }
-                  }
-               crosss.headOption match
-                  case Some(v) => v
-                  case o => nextDef
-            case _ => nextDef
+
+
+      def process( b : Ball):(Ball,Set[Rock]) =
+         val speedN = b.speed.length
+         var dist = 0d
+         var tmpE = b
+         var crosCount = 0
+         var rSet  :Set[Rock] = Set.empty
+         while(dist < speedN && crosCount <99){
+            val seg = tmpE.pos -> (1-dist/speedN) * tmpE.speed 
+            val segs :List[(bon.jo.SystemElement,Segment)]= board.paths.flatMap(e =>  e.segments.map(board -> _)) ++ sys.player.flatMap(p => p.path.segments.map( p -> _)) ++ 
+            sys.rocks.flatMap(r => r.value.segments.map(r -> _))
+            val crosss = segs.flatMap{
+            (source,sB) => 
+               
+               
+               
+               sB.cross(seg).map{
+                  i =>
+                     rSet = source match
+                        case r : Rock => rSet + r
+                        case o => rSet
+                     val sym = seg.p2.sym(sB)
+                     crosCount+=1
+                    
+                     tmpE.copy( sym,(b.speed.length * Segment(i,sym).toVector().unitary()))
+                  
+               }
+            }
+            crosss.headOption match
+               case Some(v) => 
+                  dist = Vector(v.pos,tmpE.pos).length + dist
+                  tmpE = v
+               case o => 
+                  tmpE = tmpE.copy(tmpE.pos + (1-dist/speedN) * tmpE.speed,tmpE.speed )
+                  dist = speedN
+         }
+         (tmpE,rSet)
             
-         
-            /*val nBall = e.copy(pos = e.pos + e.speed)
-            val (x,vx) = if nBall.pos.x > board.w then
-               val diff = nBall.pos.x - board.w
-               (board.w - diff,-e.speed.x)
-            else if nBall.pos.x < 0 then
-               (- nBall.pos.x,-e.speed.x)
-            else
-               (nBall.pos.x,e.speed.x)
-            val (y,vy) = if nBall.pos.y > board.h then
-               val diff = nBall.pos.y - board.h
-               (board.h - diff,-e.speed.y)
-            else if nBall.pos.y < 0 then
-               (- nBall.pos.y,-e.speed.y)
-            else
-               (nBall.pos.y,e.speed.y)
-            nBall.copy(Point(x,y ),Vector(vx,vy ) )*/
-        case _ =>  s
+      val(b,rockRemove) =   process(sys.ball)
+      println(rockRemove)
+      sys.copy(ball = b,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rockRemove.contains(e)))

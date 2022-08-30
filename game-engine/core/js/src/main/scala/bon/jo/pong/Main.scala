@@ -1,7 +1,7 @@
 package bon.jo.pong
 
 import bon.jo.SystemElement
-import bon.jo.SystemElementProcess
+import bon.jo.SystemProcess
 import bon.jo.ProcessPong
 import bon.jo.Geom2D.*
 import bon.jo.html.Html.*
@@ -48,8 +48,8 @@ object Main extends Drawer[CanvasRenderingContext2D] :
       (ComputedPath(List(50 * down,300 * right,50 * up),Point(0,50)).reverse())
     ))
     val pathPlayer =  ComputedPath(List(25 * up,5 * right,25 * down,5 * left),Point(0,50))
-    val rocks =  for(_ <- 0 to 100 ) yield Rock(ComputedPath(List(10 * up,5 * right,10 * down,5 * left),Point(100+Random.nextInt(200),50+Random.nextInt(100))))
-    var u : PongSystem = PongSystem(Ball(Point(50,50),Vector(-4.2,2.3)),Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList)
+    val rocks =  for(_ <- 0 to 100 ) yield Rock(ComputedPath(List(10 * up,5 * right,10 * down,5 * left),Point(100+Random.nextInt(10)*20,50+Random.nextInt(10)*10)))
+    var u : PongSystem = PongSystem(Ball(Point(50,50),Vector(4.2,2.3)),Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList)
     given (List[SystemElement] => PongSystem) =  PongSystem.apply(_,u.board)
     given Debug = () =>  debugger()
     
@@ -58,7 +58,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     val root = <.div[HTMLElement](childs(<.div[HTMLElement](childs(canvas),style(_.margin ="auto",_.width ="fit-content"))),style(_.width ="100%",_.marginTop ="10%")) 
     given CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     given Drawer[CanvasRenderingContext2D] = this
-    given  SystemElementProcess[PongSystem]  = ProcessPong[CanvasRenderingContext2D]()
+    given  SystemProcess[PongSystem]  = ProcessPong[CanvasRenderingContext2D]()
 
     document.body :+ root
     var dir = 0
