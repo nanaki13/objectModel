@@ -2,11 +2,43 @@ package bon.jo
 
 import scala.annotation.tailrec
 import Geom2D.Vector.*
+import Geom2D.Transform.*
 import bon.jo.pong.Drawer
+import bon.jo.pong.Debug
+import Log.log
+import Log.NoLog.given
 object Geom2D:
 
+  class Circle(r : Double,center : Point):
+    def points(nb : Int,from : Point = center):Seq[Point] = 
+      for{
+        i <- 0 until nb
+        teta = i * 2 * Math.PI / nb
+        x = r * Math.cos(teta)
+        y = r * Math.sin(teta)
+        p = center + Vector(x,y)
+    } yield p
+  case class DiscretCircle(r : Double,center : Point,nb : Int) extends Circle(r ,center):
+    lazy val pointsFromCenter = points(nb,O)
+    def points():Seq[Point] = pointsFromCenter.map( _ + center)
   case class Point(x : Double,y : Double)
   case class Segment(p1 : Point,p2 : Point):
+    def middle:Point = 
+      p1 + ((p1 --> p2)/2)
+    def fromMidleAdd(f : Double):Segment = 
+      val size = toVector().length
+      val nSize = size + f
+      val factor = nSize/size
+      log("size = ",size)
+      log("nSize = ",nSize)
+      log("factor = ",factor)
+      given Point = middle
+      factor ** this
+    inline def fromMidleSubstract(f : Double):Segment = fromMidleAdd(-f)
+
+
+    def linkWithSegment(s : Segment):List[Segment] = 
+      List(Segment(this.p2,s.p1),s)
     def reverse :Segment = Segment(p2,p1)
     def cross[C](cd : Segment):(Debug,Drawer[C],C) ?=> Option[Point] = 
       val draw = summon[Drawer[C]]
@@ -23,12 +55,6 @@ object Geom2D:
       val ab_v_ac = abV ^ ac
       val cd_v_cb = cdV ^ cb
       val cd_v_ca = cdV ^ ca
-      
-
-     
-
-
-     
 
       if (ab_v_cd != 0 && ab_v_ad * ab_v_ac <= 0 && cd_v_cb * cd_v_ca <= 0 ) then
         val s1_x = ab.p2.x - ab.p1.x
@@ -70,6 +96,7 @@ object Geom2D:
    
   case class ComputedPath(elements : List[Vector],from : Point = O) extends Path(elements,from):
     override val segments = toSegments()
+    def isClose = segments.head.p1 == segments.last.p2
     val h = {
       val seg = segments
       val min = seg.map(s => Math.min(s.p1.y,s.p2.y)).min
@@ -82,9 +109,48 @@ object Geom2D:
       val max = seg.map(s => Math.max(s.p1.x,s.p2.x)).max
       max - min
     }
+    def biso(n : Double):ComputedPath =
+      log("befotr biso = ",this)
+      log("befotr biso  seg = ",segments)
+      val seg = segments.map(_.fromMidleSubstract(n))
+      log("substract = ",seg)
+      log("is close ",segments.head.p1 == segments.last.p2)
+
+      
+      var ss : List[Segment] = log("ss = ",seg.foldLeft(List[Segment]())((res,s)=> {
+        if res.isEmpty then 
+          s :: Nil
+        else
+          res ++ (res.last.linkWithSegment(s))
+      }))
+      if isClose then
+        ss = ss.drop(1)++ ss.last.linkWithSegment(ss.head)
+      log("bised = ",ComputedPath(ss.map(_.toVector()),from))
+
 
   object O extends Point(0 : Double,0 : Double)
   opaque type Vector = Point
+  object Transform:
+    
+    extension (ab : Segment)
+      def **(fact : Double)(using o : Point): Segment = 
+        log("o = ",o)
+        val oa = o --> ab.p1 
+        val ob = o --> ab.p2 
+        val c = o + (fact * oa)
+        val d = o + (fact * ob)
+        log("oa = ",oa)
+        log("ob = ",ob)
+        log("c = ",c)
+        log("d = ",d)
+        val cd = c to d
+        log("cd = ",cd)
+        cd
+
+        
+        
+    extension (s : Double)
+      inline def **(d : Segment)(using  Point): Segment = d ** s
   object Vector : 
     inline def apply(x : Double,y : Double):Vector =Point(x ,y )
     def apply(p1 : Point,p2 : Point):Vector = p2 - p1
@@ -97,19 +163,21 @@ object Geom2D:
       def *(o : Vector):Vector =  Point(p*o.x,p*o.y)
     extension (p : Vector)
       def unary_- : Vector = Point(- p.x,- p.y)
-      def *(o : Vector):Double = p.x * o.x + p.y * o .y
+      def scal(o : Vector):Double = p.x * o.x + p.y * o .y
       def ^(o : Vector):Double = p.x * o.y - p.y * o .x
       def unitary():Vector = ( 1 / length) * p
-      
+      def /(d  :Double) = Vector(p.x/d,p.y/d)
     
       inline def x : Double = p.x
       inline def y : Double = p.y
       inline def segFrom(o : Point):Segment = Segment(p,p+o)
       def length : Double = Math.sqrt(p.x * p.x + p.y * p.y)
+      def rotate(teta : Double):Vector = 
+        Vector(Math.cos(teta)*p.x,Math.sin(teta)*p.y)
   extension (p : Point)
     def sym(seg  :Segment):Point = 
       val u = seg.toVector().unitary()
-      var scal = Vector(seg.p1,p) * u
+      var scal = Vector(seg.p1,p) scal u
       scal = if scal < 0 then -scal else scal
       val h = seg.p1 + (scal * u)
       val ph = Vector(p,h)
@@ -117,5 +185,7 @@ object Geom2D:
     def +(o :  Vector):Point = Point(p.x+o.x,p.y+o.y)
     def -(o :  Vector):Point = Point(p.x-o.x,p.y-o.y)
     inline def ->(o :  Vector):Segment = Segment(p,p+o)
+    inline def to(o :  Point):Segment = Segment(p,o)
+    inline def -->(o :  Point):Vector = Vector(o.x-p.x,o.y-p.y)
     
     

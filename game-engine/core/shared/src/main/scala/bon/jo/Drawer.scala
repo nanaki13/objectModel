@@ -20,6 +20,7 @@ trait Drawer[C] {
         p.rocks.foreach(_.draw())
     extension (board : Board)
       def draw() :CanvasDraw[Unit] = 
+        
         board.paths.foreach{
           p => 
             p.draw()

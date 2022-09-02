@@ -1,6 +1,6 @@
 package bon.jo
 import bon.jo.Geom2D.*
-
+import bon.jo.System.*
 package pong :
   enum Input:
     case Up,Down,Left,Right,No
@@ -18,8 +18,9 @@ package pong :
       max - min
     }
 
-  case class Ball(pos : Point,speed : Vector) extends PosSpeed:
-    def copy(pos: Point, speed: Vector):Ball = Ball(pos,speed)   
+  case class Ball(shape : DiscretCircle,speed : Vector) extends PosSpeed:
+    def copy(pos: Point, speed: Vector):Ball = Ball(shape.copy(center = pos),speed)   
+    def pos: Point = shape.center
   abstract class Shape(val valuep : ComputedPath,speed : Vector) extends PosSpeed:
     def cross[C](s : Segment):(Debug,Drawer[C],C) ?=> List[Point] = valuep.segments.flatMap(_.cross(s))
     def pos: bon.jo.Geom2D.Point = valuep.from
