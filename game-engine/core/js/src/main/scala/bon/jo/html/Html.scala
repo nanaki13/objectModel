@@ -15,6 +15,8 @@ object Html:
     def :++(ee : Element *):E = 
       e.append(ee *)
       e
+  def _class[T <: HTMLElement](c : String):T ?=> Unit = 
+    summon.className = c
   def text[T <: Element](tag : String):T ?=> Unit = 
     summon.textContent = tag
   def style[T <: HTMLElement](ee : CSSStyleDeclaration => Unit *):T ?=> Unit = 

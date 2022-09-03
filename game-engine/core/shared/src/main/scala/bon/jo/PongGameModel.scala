@@ -37,6 +37,7 @@ package pong :
     def move[T <: PosSpeed]():T = copy(pos + speed).asInstanceOf
 
   case class PongSystem(ball : Ball,player : List[Player] ,board : Board,rocks : List[Rock] )extends System:
+    def gameOver():Boolean = rocks.isEmpty
     def elements: List[SystemElement] = (ball :: player) ++ rocks
   object PongSystem:
     def apply( l : List[SystemElement],board : Board  ) : PongSystem= 

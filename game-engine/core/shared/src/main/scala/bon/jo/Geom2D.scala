@@ -16,7 +16,7 @@ object Geom2D:
         teta = i * 2 * Math.PI / nb
         x = r * Math.cos(teta)
         y = r * Math.sin(teta)
-        p = center + Vector(x,y)
+        p = from + Vector(x,y)
     } yield p
   case class DiscretCircle(r : Double,center : Point,nb : Int) extends Circle(r ,center):
     lazy val pointsFromCenter = points(nb,O)
@@ -162,6 +162,7 @@ object Geom2D:
     extension (p : Double )
       def *(o : Vector):Vector =  Point(p*o.x,p*o.y)
     extension (p : Vector)
+      def +(o :  Vector):Vector = Point(p.x+o.x,p.y+o.y)
       def unary_- : Vector = Point(- p.x,- p.y)
       def scal(o : Vector):Double = p.x * o.x + p.y * o .y
       def ^(o : Vector):Double = p.x * o.y - p.y * o .x

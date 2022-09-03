@@ -2,6 +2,7 @@ package bon.jo.pong
 
 
 import bon.jo.Geom2D.*
+import bon.jo.Geom2D.Vector.`*`
 import bon.jo.System
 import bon.jo.System.*
 trait Debug:
@@ -9,6 +10,9 @@ trait Debug:
    def debug(s  :String):Unit = 
       println(s)
       debug()
+object Debug : 
+   inline def apply(s  :String):Debug ?=>Unit = summon.debug(s)
+   inline def apply():Debug ?=>Unit = summon.debug()
 class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
    type PongSys[A] = Sys[PongSystem,(Ball,Set[Rock])]
@@ -22,6 +26,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       sys.copy(ball = b,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rockRemove.contains(e)))
       //println(s.asInstanceOf[Ball].pos)
 
+  
 
    def process( b : Ball):PongSys[(Ball,Set[Rock])] =
       val speedN = b.speed.length
@@ -31,10 +36,35 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       val sys = System()
       val board : Board = sys.board
       var rSet  :Set[Rock] = Set.empty
+      val segs :List[(SystemElement,Segment)]= board.paths.flatMap(e =>  e.segments.map(board -> _)) ++ sys.player.flatMap(p => p.path.segments.map( p -> _)) ++ 
+         sys.rocks.flatMap(r => r.value.segments.map(r -> _))
+      val poinImageSources = 
+         for
+            p <- b.shape.points()
+            (el,seg) <- segs
+            ptoNew = p -> b.speed
+            cross <- ptoNew.cross(seg)
+            newSym = ptoNew.p2.sym(seg)   
+         yield
+            (Segment(cross,newSym),el,p)
+      for
+         el <- poinImageSources.map(_._2)
+      yield
+         rSet = el match
+               case r : Rock => rSet + r
+               case o => rSet 
+      val l = poinImageSources.map(_._1.p2)
+      if l.nonEmpty then
+         val nv = speedN * poinImageSources.map(_._1.toVector()).reduce(_ + _).unitary()
+         (b.copy(b.pos + nv,nv),rSet)
+      else
+         (b.copy( b.pos + b.speed, b.speed),rSet)  
+      
+      /*
+
       while(dist < speedN && crosCount <99){
          val seg = tmpE.pos -> (1-dist/speedN) * tmpE.speed 
-         val segs :List[(SystemElement,Segment)]= board.paths.flatMap(e =>  e.segments.map(board -> _)) ++ sys.player.flatMap(p => p.path.segments.map( p -> _)) ++ 
-         sys.rocks.flatMap(r => r.value.segments.map(r -> _))
+         
         // val ord : Ordering[(SystemElement,Point,Double)]= (a,b) => a._3.compare(b._3)
          val firstCol = segs.map{
              (source,sB) =>  (source,sB,sB.cross(seg)) 
@@ -67,6 +97,6 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
                tmpE = tmpE.copy(tmpE.pos + (1-dist/speedN) * tmpE.speed,tmpE.speed )
                dist = speedN
       }
-      (tmpE,rSet)
+      (tmpE,rSet) */
             
      
