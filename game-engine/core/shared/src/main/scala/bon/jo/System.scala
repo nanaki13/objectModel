@@ -4,7 +4,7 @@ import scala.annotation.tailrec
 import bon.jo.System.*
 
 trait System:
-  def elements:List[SystemElement]
+ // def elements:Seq[SystemElement]
   def nextSystem[  T <: System ]():PartialFlow[T]  = 
     given T = this.asInstanceOf[T]
     System.nextSystem()

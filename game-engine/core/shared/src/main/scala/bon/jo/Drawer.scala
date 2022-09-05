@@ -10,12 +10,14 @@ trait Drawer[C] {
     type CanvasDraw[A] = C ?=> A
     def clear(b : Board):CanvasDraw[Unit]
     inline def ctx : CanvasDraw[C] = summon
+    extension (p : Rock)
+      def draw() :CanvasDraw[Unit] 
     extension (p : PongSystem)
       def draw() :CanvasDraw[Unit] = 
 
         clear(p.board)
         p.board.draw()
-        p.ball.draw()
+        p.balls.foreach(_.draw())
         p.player.foreach(_.draw())
         p.rocks.foreach(_.draw())
     extension (board : Board)

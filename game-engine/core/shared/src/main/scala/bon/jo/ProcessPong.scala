@@ -19,11 +19,25 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
    def next(): SystemFlow[PongSystem] = 
       val sys = System()
-      val ball = sys.ball
+      val balls = sys.balls
       val board : Board = sys.board
-      val(b,rockRemove) =   process(sys.ball)
+      val b =  balls.map(process)
+      val ballsMod = b.map(_._1)
+      val goodBall  = ballsMod.filter{
+         b => b.pos.x < board.maxX +10 && b.pos.x > board.minX - 10 && 
+            b.pos.y < board.maxY +10 && b.pos.y > board.minY
+      }
+      val rocksToRem = b.flatMap(_._2)
+      val newBalls = 
+         if rocksToRem.nonEmpty && Math.random()>0.95 then
+            val rockToBall : Map[Rock,Seq[Ball]] = b.flatMap{( el:(Ball, Set[Rock])) => el._2.map(e => (e,el._1))}.groupMap(_._1)(_._2)
+            rockToBall.headOption.map{
+               (r,bs )=> bs.head.copy(speed = -bs.head.speed)
+            }
+         else
+            Nil
       
-      sys.copy(ball = b,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rockRemove.contains(e)))
+      sys.copy(balls = goodBall++newBalls,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)))
       //println(s.asInstanceOf[Ball].pos)
 
   
@@ -55,7 +69,13 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
                case o => rSet 
       val l = poinImageSources.map(_._1.p2)
       if l.nonEmpty then
-         val nv = speedN * poinImageSources.map(_._1.toVector()).reduce(_ + _).unitary()
+         val somme = poinImageSources.map(_._1.toVector()).reduce(_ + _)
+         
+         val nv = 
+            if somme != Point(0,0) then
+               speedN * somme.unitary()
+            else
+               - b.speed
          (b.copy(b.pos + nv,nv),rSet)
       else
          (b.copy( b.pos + b.speed, b.speed),rSet)  

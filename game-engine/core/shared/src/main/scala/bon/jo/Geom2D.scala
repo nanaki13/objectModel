@@ -70,11 +70,7 @@ object Geom2D:
    
 
     def toVector():Vector = p2 - p1
-  trait PosSpeed :
-    def pos  : Point
-    def speed  : Vector
-    def impact[C](s : Segment):(Debug,Drawer[C],C) ?=> Option[Point] = 
-      Segment(pos,pos + speed).cross(s)
+
   sealed abstract class Path(elements : List[Vector],from : Point = O):
     def segments :  List[Segment]= toSegments()
     def join(p : Path):ComputedPath = 
@@ -184,6 +180,7 @@ object Geom2D:
       val ph = Vector(p,h)
       h + ph
     def +(o :  Vector):Point = Point(p.x+o.x,p.y+o.y)
+   
     def -(o :  Vector):Point = Point(p.x-o.x,p.y-o.y)
     inline def ->(o :  Vector):Segment = Segment(p,p+o)
     inline def to(o :  Point):Segment = Segment(p,o)
