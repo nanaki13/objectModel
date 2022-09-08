@@ -2,6 +2,7 @@ package bon.jo.pong
 
 import bon.jo.System.*
 import bon.jo.pong.ProcessPong
+import bon.jo.pong.ProcessPong.giftRandom
 import bon.jo.Geom2D.*
 import bon.jo.html.Html.*
 import bon.jo.Geom2D.Vector.*
@@ -14,6 +15,7 @@ import org.scalajs.dom.CanvasRenderingContext2D
 import scalajs.js.special.debugger
 import bon.jo.pong.Debug
 import scala.util.Random
+import org.scalajs.dom.HTMLImageElement
 
 object Main extends Drawer[CanvasRenderingContext2D] :
   
@@ -48,15 +50,16 @@ object Main extends Drawer[CanvasRenderingContext2D] :
       ctx.moveTo(s.p1.x,s.p1.y)
       ctx.lineTo(s.p2.x,s.p2.y)
       ctx.stroke()
-      
+  val ballImage = <.img[HTMLImageElement].>(_.src="https://img.lovepik.com/element/45007/2796.png_300.png")
+
   extension (ball : Ball)
     def draw() :CanvasDraw[Unit] = 
       val pos = ball.pos
       
-      circle(pos,ball.shape.r)
+      //circle(pos,ball.shape.r)
       val fs = ctx.fillStyle
       ctx.fillStyle="red"
-      ball.shape.points().foreach(circle(_ , 0.5))
+      ctx.drawImage(ballImage,pos.x-ball.shape.r,pos.y-ball.shape.r,2*ball.shape.r,2*ball.shape.r)
       ctx.fillStyle=fs
   extension (player : Player)
     def draw() :CanvasDraw[Unit] = 
@@ -76,7 +79,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
       xi <- 0 until blockByRow
       yi <- 0 until blockByColumn
       p = Point(widthBlock * xi,heightBlock * yi)
-      r = Rock(ComputedPath(List(heightBlock* up,widthBlock* right,heightBlock * down,widthBlock * left),p+fromV),Vector(0,0),randomHSL())
+      r = Rock(ComputedPath(List(heightBlock* up,widthBlock* right,heightBlock * down,widthBlock * left),p+fromV),Vector(0,0),randomHSL(),None)
     } yield r
   inline def makeRocks(board : Board, blockByRow : Int,blockByColumn : Int):Seq[Rock] = 
     val minw = board.paths.flatMap(_.segments.flatMap(z => List(z.p1 ,z.p2))).map(_.x).min
@@ -85,32 +88,34 @@ object Main extends Drawer[CanvasRenderingContext2D] :
   def createSys( fact :Int ) = 
     
     val board = Board(List(
-      (ComputedPath(List(50 * fact * left,300* fact * down,50 * fact* right),Point(50* fact,300* fact)) join
-      (ComputedPath(List(50* fact * right,300* fact * down,50* fact * left),Point(100* fact,300* fact)).reverse())).biso(4* fact)
-    ))
+      ComputedPath(List(10 * fact * left,300* fact * down,150 * fact* right,300* fact * up,10 * fact * left),Point(10* fact,300* fact)).biso(4* fact))
+    )
     val pathPlayer =  ComputedPath(List(25* fact * right,5* fact * down,25* fact * left,5* fact * up),Point(75* fact,298* fact)).biso(2* fact)
     def r1 = +Random.nextInt(10)*12* fact
     def r2 = Random.nextInt(10)*20* fact
     def point = Point(10+r1,50+r2)
     val rocks =  
       //for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
-      makeRocks(board,10,20)
+      makeRocks(board,10,20).map(_.giftRandom)
     PongSystem(Ball(DiscretCircle(3* fact, Point(board.w / 2,board.h -10*10 ),8),Vector(0.5,-0.8))::Nil,Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList,Seq.empty)
   @main
   def test2():Unit =
 
     val fact= 3
-    var u : PongSystem = createSys(fact)
-    val board = u.board
+    
+    
  
     given Debug = () =>  debugger()
-    
 
-    val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h*1.2).toInt,_.width = (board.w*1.2).toInt)
+    
+    var u : PongSystem = createSys(fact)
+    val board = u.board   
+    val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h).toInt,_.width = (board.w*1.2).toInt)
     val root = <.div[HTMLElement](childs(<.div[HTMLElement](childs(canvas),style(_.margin ="auto",_.width ="fit-content"))),style(_.width ="100%",_.marginTop ="4%")) 
     given CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
+    given  ProcessPong[CanvasRenderingContext2D]  = ProcessPong[CanvasRenderingContext2D]()
     given Drawer[CanvasRenderingContext2D] = this
-    given  SystemProcess[PongSystem]  = ProcessPong[CanvasRenderingContext2D]()
+
 
     document.body :+ root
     var dir = 0

@@ -7,6 +7,8 @@ import bon.jo.pong.Drawer
 import bon.jo.pong.Debug
 import Log.log
 import Log.NoLog.given
+import bon.jo.Geom2D.Boundary.corner
+import Geom2D.Boundary.*
 object Geom2D:
 
   class Circle(r : Double,center : Point):
@@ -71,6 +73,26 @@ object Geom2D:
 
     def toVector():Vector = p2 - p1
 
+  opaque type Boundary = ( Point,  Double,  Double)
+  object Boundary:
+    extension (boundary : Boundary )
+      inline def corner : Point = boundary._1
+      inline def w : Double = boundary._2
+      inline def h : Double = boundary._3
+      inline def isIn(x : Double,y:Double):Boolean = 
+        x > boundary.corner.x && x < boundary.corner.x + boundary.w
+        && y > boundary.corner.y && y < boundary.corner.y + boundary.h  
+      def cross(o : Boundary):Boolean = 
+        val ret = boundary.isIn(o.corner.x,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y+o.h) 
+        || boundary.isIn(o.corner.x,o.corner.y+o.h) || o.isIn(boundary.corner.x,boundary.corner.y) || o.isIn(boundary.corner.x+boundary.w,boundary.corner.y) 
+        || o.isIn(boundary.corner.x+boundary.w,boundary.corner.y+boundary.h) 
+        || o.isIn(boundary.corner.x,boundary.corner.y+boundary.h)
+        if ret then
+          println((boundary,o))
+        ret
+    def apply(e  : Point,w:  Double, h :  Double) :Boundary = (e, w, h)
+    //def unapply(b : Boundary):  (Point,  Double,  Double)= b
+
   sealed abstract class Path(elements : List[Vector],from : Point = O):
     def segments :  List[Segment]= toSegments()
     def join(p : Path):ComputedPath = 
@@ -81,6 +103,21 @@ object Geom2D:
       ComputedPath(seg.map(_.toVector()),seg.head.p1)
     def toSegments():List[Segment] = 
       computeSegments(from,from + elements.head,elements.tail,Nil)
+    def boundary() : Boundary = 
+        val seg = segments
+        val minY = seg.map(s => Math.min(s.p1.y,s.p2.y)).min
+        val maxY = seg.map(s => Math.max(s.p1.y,s.p2.y)).max
+        val minX = seg.map(s => Math.min(s.p1.x,s.p2.x)).min
+        val maxX = seg.map(s => Math.max(s.p1.x,s.p2.x)).max
+        val h =  maxY - minY
+        val w = maxX - minX
+        Boundary(Point(minX,minY),w,h)
+    def boundaryCross(p : Path):Boolean = boundary().cross(p.boundary())
+
+    def middle():Point = 
+      val bound = boundary()
+      Point(bound.corner.x+bound.w/2, bound.corner.y+bound.h/2)
+
 
     @tailrec
     private def computeSegments(p1 : Point,p2 : Point,still : List[Vector],done : List[Segment]):List[Segment] = 
@@ -180,6 +217,7 @@ object Geom2D:
       val ph = Vector(p,h)
       h + ph
     def +(o :  Vector):Point = Point(p.x+o.x,p.y+o.y)
+    def +(x :  Int,y : Int):Point = Point(p.x+x,p.y+y)
    
     def -(o :  Vector):Point = Point(p.x-o.x,p.y-o.y)
     inline def ->(o :  Vector):Segment = Segment(p,p+o)

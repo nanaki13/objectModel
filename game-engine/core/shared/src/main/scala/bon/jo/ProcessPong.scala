@@ -13,34 +13,59 @@ trait Debug:
 object Debug : 
    inline def apply(s  :String):Debug ?=>Unit = summon.debug(s)
    inline def apply():Debug ?=>Unit = summon.debug()
+object ProcessPong:
+   extension (r : Rock)
+      def giftRandom:Rock = 
+         val g  =if Math.random() > 0.60 then
+            Some(Gift.random(r.value.middle(),Vector(0,0.5)))
+         else None
+         r.copy(gift = g)
+
 class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
    type PongSys[A] = Sys[PongSystem,(Ball,Set[Rock])]
+   
+ 
 
    def next(): SystemFlow[PongSystem] = 
-      val sys = System()
+      var sys = System()
       val balls = sys.balls
       val board : Board = sys.board
       val b =  balls.map(process)
       val ballsMod = b.map(_._1)
       val goodBall  = ballsMod.filter{
          b => b.pos.x < board.maxX +10 && b.pos.x > board.minX - 10 && 
-            b.pos.y < board.maxY +10 && b.pos.y > board.minY
+            b.pos.y < board.maxY +10 && b.pos.y > board.minY - 10d
       }
-      val rocksToRem = b.flatMap(_._2)
-      val newBalls = 
-         if rocksToRem.nonEmpty && Math.random()>0.95 then
-            val rockToBall : Map[Rock,Seq[Ball]] = b.flatMap{( el:(Ball, Set[Rock])) => el._2.map(e => (e,el._1))}.groupMap(_._1)(_._2)
-            rockToBall.headOption.map{
-               (r,bs )=> bs.head.copy(speed = -bs.head.speed)
-            }
+      val rocksToRem : Seq[Rock] = b.flatMap(_._2)
+      val g : Seq[Gift] = rocksToRem.flatMap(e => e.gift)
+      val agg : (Seq[(Gift,Player)],Seq[Gift])= (Nil,Nil)
+      val (giftReachByPlayer,other) = (for{
+         gift <- sys.gifts
+         player <- sys.player
+         cross = if gift.valuep.boundaryCross(player.path) then Some(gift,player) else None
+
+      } yield (gift,player)).foldLeft(agg)((agg,el)=>{
+         if el._1.valuep.boundaryCross(el._2.path) then
+            (agg._1:+el,agg._2) 
          else
-            Nil
+           (agg._1,agg._2:+el._1) 
+      })
       
-      sys.copy(balls = goodBall++newBalls,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)))
+      val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
+
+      sys = sys.copy(balls = goodBall,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
+      giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
       //println(s.asInstanceOf[Ball].pos)
 
-  
+   def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 
+      gift match
+         case _ : Gift.NewBall => 
+            val headBall = sys.balls.head
+            val nBall = headBall.copy(headBall.pos,-headBall.speed)
+            sys.copy(balls = sys.balls :+ nBall)
+         case _ => sys
+      
 
    def process( b : Ball):PongSys[(Ball,Set[Rock])] =
       val speedN = b.speed.length
@@ -75,7 +100,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
             if somme != Point(0,0) then
                speedN * somme.unitary()
             else
-               - b.speed
+               b.speed
          (b.copy(b.pos + nv,nv),rSet)
       else
          (b.copy( b.pos + b.speed, b.speed),rSet)  
