@@ -17,7 +17,7 @@ object ProcessPong:
    extension (r : Rock)
       def giftRandom:Rock = 
          val g  =if Math.random() > 0.60 then
-            Some(Gift.random(r.value.middle(),Vector(0,0.5)))
+            Some(Gift.random(r.value.middle(),Vector(0,3)))
          else None
          r.copy(gift = g)
 
@@ -78,28 +78,29 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       val segs :List[(SystemElement,Segment)]= board.paths.flatMap(e =>  e.segments.map(board -> _)) ++ sys.player.flatMap(p => p.path.segments.map( p -> _)) ++ 
          sys.rocks.flatMap(r => r.value.segments.map(r -> _))
       val poinImageSources = 
-         for
+         (for
             p <- b.shape.points()
             (el,seg) <- segs
             ptoNew = p -> b.speed
             cross <- ptoNew.cross(seg)
             newSym = ptoNew.p2.sym(seg)   
          yield
-            (Segment(cross,newSym),el,p)
+            (Segment(cross,newSym),el,p)).headOption
       for
          el <- poinImageSources.map(_._2)
       yield
          rSet = el match
                case r : Rock => rSet + r
                case o => rSet 
-      val l = poinImageSources.map(_._1.p2)
-      if l.nonEmpty then
-         val somme = poinImageSources.map(_._1.toVector()).reduce(_ + _)
+      
+      if poinImageSources.nonEmpty then
+         val somme = poinImageSources.map(_._1.toVector()).head//.head//.reduce(_ + _)
          
          val nv = 
             if somme != Point(0,0) then
                speedN * somme.unitary()
             else
+               println(b)
                b.speed
          (b.copy(b.pos + nv,nv),rSet)
       else

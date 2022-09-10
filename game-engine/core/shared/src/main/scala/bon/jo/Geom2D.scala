@@ -11,6 +11,71 @@ import bon.jo.Geom2D.Boundary.corner
 import Geom2D.Boundary.*
 object Geom2D:
 
+  //@main 
+  def test() : Unit = 
+    var s1 = Point(0,0) to Point(1,1)
+    var s2 = Point(0,0) to Point(1,1)
+    println( Equation(s1).solve(Equation(s2)))
+    s1 = Point(0,0) to Point(3,3)
+    s2 = Point(0,2) to Point(1,2)
+    println( Equation(s1))
+    println( Equation(s2))
+    println( Equation(s1).solve(Equation(s2)))
+    println( Equation(s2).cross(s1))
+    s1 = Point(0,0) to Point(1,1)
+    s2 = Point(0,2) to Point(1,3)
+    println( Equation(s1))
+    println( Equation(s2))
+    println( Equation(s1).solve(Equation(s2)))
+    println( Equation(s1).cross(s2))
+  enum Solution:
+    case Droite(equation : Equation)
+    case SegmentSolution(segment : Segment)
+    case One(point : Point)
+    case NoSolution
+  sealed trait Equation:
+    def cross(o : Segment):Solution = 
+      this solve Equation(o) match
+        case _ : Solution.Droite => Solution.SegmentSolution(o)
+        case sol@Solution.One(s) if o.isInBoundary(s.x,s.y) => sol
+        case _ => Solution.NoSolution
+      
+    def solve(o : Equation):Solution = 
+      if this == o then
+        Solution.Droite(o)
+      else 
+        this match
+          case XConstant(x1) => 
+            o match
+              case _ : XConstant => Solution.NoSolution
+              case AxPlusB(a ,b) => Solution.One(Point(x1,a*x1+b))
+          case f@AxPlusB(a1 ,b1) => 
+            o match
+              case XConstant(x1) => Solution.One(Point(x1,a1*x1+b1))
+              case AxPlusB(a2 ,b2) if a2 - a1 != 0 =>
+                // ys = a1*xs+b1 // ys = a2*xs+b2 -->   
+                // xs = (b1 - b2)/(a2 - a1)
+                val xs = (b1 - b2)/(a2 - a1)
+                val ys = f(xs)
+                Solution.One(Point(xs,ys))
+              case _ => Solution.NoSolution
+        
+
+    
+  case class AxPlusB(a : Double,b : Double) extends Equation :
+      def apply(x : Double):Double = a * x + b 
+  
+      
+  case class XConstant(x0 : Double) extends Equation
+  object Equation:
+    def apply(seg : Segment):Equation =
+      if seg.p2.x != seg.p1.x then
+        // y0 = b  ->  a = (yp - b)/(xp) ->  yp-a*xp
+        val a = (seg.p2.y - seg.p1.y)/(seg.p2.x - seg.p1.x)
+        val b = seg.p2.y-a*seg.p2.x
+        AxPlusB(a,b)
+      else
+        XConstant(seg.p1.x)
   class Circle(r : Double,center : Point):
     def points(nb : Int,from : Point = center):Seq[Point] = 
       for{
@@ -25,6 +90,12 @@ object Geom2D:
     def points():Seq[Point] = pointsFromCenter.map( _ + center)
   case class Point(x : Double,y : Double)
   case class Segment(p1 : Point,p2 : Point):
+    inline def isInBoundary(x : Double,y:Double):Boolean = 
+        val minX = Math.min(p1.x,p2.x)
+        val miny = Math.min(p1.y,p2.y)
+        val maxX = Math.max(p1.x,p2.x)
+        val maxY = Math.max(p1.y,p2.y)
+        x >= minX && x <= maxX && y >= miny && y <= maxY
     def middle:Point = 
       p1 + ((p1 --> p2)/2)
     def fromMidleAdd(f : Double):Segment = 
@@ -43,7 +114,12 @@ object Geom2D:
       List(Segment(this.p2,s.p1),s)
     def reverse :Segment = Segment(p2,p1)
     def cross[C](cd : Segment):(Debug,Drawer[C],C) ?=> Option[Point] = 
-      val draw = summon[Drawer[C]]
+      val solve = Equation(this) cross cd
+      solve match
+        case Solution.One(p) if this.isInBoundary(p.x,p.y) => Some(p)
+        case Solution.SegmentSolution(s) => Some(s.middle)
+        case o => None
+    /*  val draw = summon[Drawer[C]]
       import draw.*
       val ab = this
       val abV  = ab.toVector()
@@ -68,7 +144,7 @@ object Geom2D:
         //summon[Debug].debug("Inter !")
         Some(Point(ab.p1.x + (t * s1_x),ab.p1.y + (t * s1_y)))
       else
-        None
+        None */
    
 
     def toVector():Vector = p2 - p1
@@ -79,29 +155,26 @@ object Geom2D:
       inline def corner : Point = boundary._1
       inline def w : Double = boundary._2
       inline def h : Double = boundary._3
-      inline def isIn(x : Double,y:Double):Boolean = 
-        x > boundary.corner.x && x < boundary.corner.x + boundary.w
-        && y > boundary.corner.y && y < boundary.corner.y + boundary.h  
+      inline def isIn(x : Double,y:Double):Boolean = x >= boundary.corner.x && x <= boundary.corner.x + boundary.w  && y >= boundary.corner.y && y <= boundary.corner.y + boundary.h  
+        
       def cross(o : Boundary):Boolean = 
-        val ret = boundary.isIn(o.corner.x,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y+o.h) 
+        boundary.isIn(o.corner.x,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y) || boundary.isIn(o.corner.x+o.w,o.corner.y+o.h) 
         || boundary.isIn(o.corner.x,o.corner.y+o.h) || o.isIn(boundary.corner.x,boundary.corner.y) || o.isIn(boundary.corner.x+boundary.w,boundary.corner.y) 
         || o.isIn(boundary.corner.x+boundary.w,boundary.corner.y+boundary.h) 
         || o.isIn(boundary.corner.x,boundary.corner.y+boundary.h)
-        if ret then
-          println((boundary,o))
-        ret
+
     def apply(e  : Point,w:  Double, h :  Double) :Boundary = (e, w, h)
     //def unapply(b : Boundary):  (Point,  Double,  Double)= b
 
-  sealed abstract class Path(elements : List[Vector],from : Point = O):
-    def segments :  List[Segment]= toSegments()
+  sealed abstract class Path(elements : Seq[Vector],from : Point = O):
+    def segments :  Seq[Segment]= toSegments()
     def join(p : Path):ComputedPath = 
       val nSeg = (segments :+ Segment(segments.last.p2,p.segments.head.p1))++p.segments
       ComputedPath(nSeg.map(_.toVector()),from)
     def reverse():ComputedPath = 
       val seg = segments.map(_.reverse).reverse
       ComputedPath(seg.map(_.toVector()),seg.head.p1)
-    def toSegments():List[Segment] = 
+    def toSegments():Seq[Segment] = 
       computeSegments(from,from + elements.head,elements.tail,Nil)
     def boundary() : Boundary = 
         val seg = segments
@@ -120,14 +193,14 @@ object Geom2D:
 
 
     @tailrec
-    private def computeSegments(p1 : Point,p2 : Point,still : List[Vector],done : List[Segment]):List[Segment] = 
+    private def computeSegments(p1 : Point,p2 : Point,still : Seq[Vector],done : Seq[Segment]):Seq[Segment] = 
       if still.isEmpty then
         done :+ Segment(p1,p2) 
       else
         computeSegments(p2,p2 + still.head,still.tail,done:+ Segment(p1,p2))
-  case class LazyPath(elements : List[Vector],from : Point = O) extends Path(elements,from)
+  case class LazyPath(elements : Seq[Vector],from : Point = O) extends Path(elements,from)
    
-  case class ComputedPath(elements : List[Vector],from : Point = O) extends Path(elements,from):
+  case class ComputedPath(elements : Seq[Vector],from : Point = O) extends Path(elements,from):
     override val segments = toSegments()
     def isClose = segments.head.p1 == segments.last.p2
     val h = {
@@ -207,7 +280,7 @@ object Geom2D:
       inline def segFrom(o : Point):Segment = Segment(p,p+o)
       def length : Double = Math.sqrt(p.x * p.x + p.y * p.y)
       def rotate(teta : Double):Vector = 
-        Vector(Math.cos(teta)*p.x,Math.sin(teta)*p.y)
+        Vector(Math.cos(teta)*p.x-Math.sin(teta)*p.y,Math.sin(teta)*p.x+Math.cos(teta)*p.y)
   extension (p : Point)
     def sym(seg  :Segment):Point = 
       val u = seg.toVector().unitary()

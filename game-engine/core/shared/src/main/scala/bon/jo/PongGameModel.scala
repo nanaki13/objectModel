@@ -29,7 +29,7 @@ package pong :
     def pos: Point = shape.center
   abstract class Shape(val valuep : ComputedPath,speed : Vector) extends PosSpeed:
 
-    def cross[C](s : Segment):(Debug,Drawer[C],C) ?=> List[Point] = valuep.segments.flatMap(_.cross(s))
+    def cross[C](s : Segment):(Debug,Drawer[C],C) ?=> Seq[Point] = valuep.segments.flatMap(_.cross(s))
     def pos: bon.jo.Geom2D.Point = valuep.from
 
   case class Rock(value : ComputedPath,speed : Vector = Vector(0,0),color : String,gift : Option[Gift]) extends Shape(value,speed):

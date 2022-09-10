@@ -8,13 +8,15 @@ import bon.jo.Geom2D.ComputedPath
 
 trait Drawer[C] {
     type CanvasDraw[A] = C ?=> A
+    type CustomizedDraw[P,A] = (C,(C,P)=>Unit) ?=>  A
     def clear(b : Board):CanvasDraw[Unit]
     inline def ctx : CanvasDraw[C] = summon
+    inline def customize[P] : ((C,P)=>Unit)?=>( (C,P)=>Unit) = summon
     extension (p : Rock)
-      def draw() :CanvasDraw[Unit]
+      def draw() :CustomizedDraw[Rock,Unit]
     extension (p : Gift)
       def draw() :CanvasDraw[Unit] = (p : Shape).draw()
-    extension (p : PongSystem)
+    extension (p : PongSystem)(using (C,Rock)=>Unit)
       def draw() :CanvasDraw[Unit] = 
 
         clear(p.board)
