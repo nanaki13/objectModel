@@ -6,17 +6,20 @@ import bon.jo.pong.Ball
 import bon.jo.Geom2D.Segment
 import bon.jo.Geom2D.ComputedPath
 
+trait DoDraw[C,P]:
+  def apply(p : P): C ?=> Unit
 trait Drawer[C] {
     type CanvasDraw[A] = C ?=> A
-    type CustomizedDraw[P,A] = (C,(C,P)=>Unit) ?=>  A
+    type _DoDraw[P] = DoDraw[C,P]
+    type CustomizedDraw[P,A] = (C,_DoDraw[P] )?=>  A
     def clear(b : Board):CanvasDraw[Unit]
     inline def ctx : CanvasDraw[C] = summon
-    inline def customize[P] : ((C,P)=>Unit)?=>( (C,P)=>Unit) = summon
-    extension (p : Rock)
-      def draw() :CustomizedDraw[Rock,Unit]
-    extension (p : Gift)
-      def draw() :CanvasDraw[Unit] = (p : Shape).draw()
-    extension (p : PongSystem)(using (C,Rock)=>Unit)
+    inline def gdraw[P] : _DoDraw[P]?=>_DoDraw[P]= summon
+    extension [T] (p : T)
+      def draw() :CustomizedDraw[T,Unit] = gdraw(p)
+   
+
+    extension (p : PongSystem)(using _DoDraw[Rock],_DoDraw[Player],_DoDraw[Board],_DoDraw[Gift])
       def draw() :CanvasDraw[Unit] = 
 
         clear(p.board)
@@ -25,20 +28,14 @@ trait Drawer[C] {
         p.player.foreach(_.draw())
         p.rocks.foreach(_.draw())
         p.gifts.foreach(_.draw())
-    extension (board : Board)
-      def draw() :CanvasDraw[Unit] = 
-        
-        board.paths.foreach{
-          p => 
-            p.draw()
-        }
+
     extension (cp : ComputedPath)
       def draw() :CanvasDraw[Unit] = 
         cp.segments.foreach{ s =>
           s.draw()
         }
     extension (cp : Shape)
-      def draw() :CanvasDraw[Unit] = 
+      def drawDef() :CanvasDraw[Unit] = 
         cp.valuep.segments.foreach{ s =>
           s.draw()
         }
@@ -46,6 +43,5 @@ trait Drawer[C] {
       def draw() :CanvasDraw[Unit] 
     extension (ball : Segment)
       def draw() :CanvasDraw[Unit] 
-    extension (player : Player)
-      def draw() :CanvasDraw[Unit] 
+
 }

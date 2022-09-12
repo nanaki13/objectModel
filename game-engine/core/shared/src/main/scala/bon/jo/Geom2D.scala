@@ -166,7 +166,7 @@ object Geom2D:
     def apply(e  : Point,w:  Double, h :  Double) :Boundary = (e, w, h)
     //def unapply(b : Boundary):  (Point,  Double,  Double)= b
 
-  sealed abstract class Path(elements : Seq[Vector],from : Point = O):
+  sealed abstract class Path(val elements : Seq[Vector],val from : Point = O):
     def segments :  Seq[Segment]= toSegments()
     def join(p : Path):ComputedPath = 
       val nSeg = (segments :+ Segment(segments.last.p2,p.segments.head.p1))++p.segments
@@ -198,9 +198,9 @@ object Geom2D:
         done :+ Segment(p1,p2) 
       else
         computeSegments(p2,p2 + still.head,still.tail,done:+ Segment(p1,p2))
-  case class LazyPath(elements : Seq[Vector],from : Point = O) extends Path(elements,from)
+  case class LazyPath(elementsp : Seq[Vector],fromp : Point = O) extends Path(elementsp,fromp)
    
-  case class ComputedPath(elements : Seq[Vector],from : Point = O) extends Path(elements,from):
+  case class ComputedPath(elementsp : Seq[Vector],fromp : Point = O) extends Path(elementsp,fromp):
     override val segments = toSegments()
     def isClose = segments.head.p1 == segments.last.p2
     val h = {
