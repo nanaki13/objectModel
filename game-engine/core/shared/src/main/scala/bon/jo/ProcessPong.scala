@@ -7,8 +7,8 @@ import bon.jo.System
 import bon.jo.System.*
 trait Debug:
    def debug():Unit
-   def debug(s  :String):Unit = 
-      println(s)
+   def debug(toDebug  :String):Unit = 
+      println(toDebug)
       debug()
 object Debug : 
    inline def apply(s  :String):Debug ?=>Unit = summon.debug(s)
@@ -16,7 +16,7 @@ object Debug :
 object ProcessPong:
    extension (r : Rock)
       def giftRandom:Rock = 
-         val g  =if Math.random() > 0.60 then
+         val g  =if Math.random() > 0 then
             Some(Gift.random(r.value.middle(),Vector(0,3)))
          else None
          r.copy(gift = g)
@@ -54,9 +54,8 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       
       val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
 
-      sys = sys.copy(balls = goodBall,player = sys.player.map(_.move[Player]()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
+      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = sys.player.map(_.move[Player]()).map(_.applyEffect()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
-      //println(s.asInstanceOf[Ball].pos)
 
    def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 
       gift match
@@ -64,7 +63,9 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
             val headBall = sys.balls.head
             val nBall = headBall.copy(headBall.pos,-headBall.speed)
             sys.copy(balls = sys.balls :+ nBall)
-         case _ => sys
+         case _ : Gift.GreaterPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSizeEffect(10,1.01))))
+         case _ : Gift.GreaterBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ Ball.multSizeEffect(10,1.015))))
+         case _ : Gift.SmallerBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ Ball.multSizeEffect(10,0.99))))
       
 
    def process( b : Ball):PongSys[(Ball,Set[Rock])] =
@@ -100,7 +101,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
             if somme != Point(0,0) then
                speedN * somme.unitary()
             else
-               println(b)
+
                b.speed
          (b.copy(b.pos + nv,nv),rSet)
       else

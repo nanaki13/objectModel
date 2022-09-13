@@ -115,7 +115,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     val rocks =  
       //for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
       makeRocks(board,7,15).map(_.giftRandom)
-    PongSystem(Ball(DiscretCircle(3* fact, Point(board.w / 2,board.h -10*10 ),8),Vector(5,-5))::Nil,Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList,Seq.empty)
+    PongSystem(Ball(DiscretCircle(3* fact, Point(board.w / 2,board.h -10*10 ),8),Vector(5,-5),Seq())::Nil,Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList,Seq.empty)
 
   
   given DoDraw[CanvasRenderingContext2D,Gift] with
@@ -235,7 +235,6 @@ object Main extends Drawer[CanvasRenderingContext2D] :
                  b.speed.rotate(-Math.PI/4) 
                 else
                   b.speed
-              println(nv)
               b.copy(b.pos,nv)
           
           }
