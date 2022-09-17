@@ -115,7 +115,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     val rocks =  
       //for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
       makeRocks(board,7,15).map(_.giftRandom)
-    PongSystem(Ball(DiscretCircle(3* fact, Point(board.w / 2,board.h -10*10 ),8),Vector(5,-5),Seq())::Nil,Player(pathPlayer,Vector(0,0))::Nil,  board,rocks.toList,Seq.empty)
+    PongSystem(Ball(DiscretCircle(3* fact, Point(board.w / 2,board.h -10*10 ),8),Vector(5,-5),Seq())::Nil,Player(pathPlayer,Vector(0,0),0.2,3 * fact,Vector(0,0))::Nil,  board,rocks.toList,Seq.empty)
 
   
   given DoDraw[CanvasRenderingContext2D,Gift] with
@@ -190,39 +190,62 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h).toInt,_.width = (board.w*1.2).toInt)
     val timeDiv  = <.div[HTMLElement](text("0s")) 
     val root = <.div[HTMLElement](childs(<.div[HTMLElement](childs(canvas),style(_.margin ="auto",_.width ="fit-content")),timeDiv),style(_.width ="100%",_.marginTop ="4%")) 
-    val t = currentMillis
+    var t = currentMillis
     given CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     given  ProcessPong[CanvasRenderingContext2D]  = ProcessPong[CanvasRenderingContext2D]()
     given Drawer[CanvasRenderingContext2D] = this
-
+    enum StateMove:
+      case Start(dir : Vector)
+      case End
+      case AddedEffect
+    import StateMove.*
 
     document.body :+ root
-    var dir = 0
-    document.body.onkeydown = e => dir = e.keyCode
-    document.body.onkeyup= e => dir = 0
+
+    var startMove = End
+   
+    document.body.onkeydown = e => {
+      if startMove == End then
+        startMove = e.keyCode match
+          case Main.leftK => Start(left) 
+          case Main.rightK =>  Start(right) 
+          case _ => End
+    }
+    document.body.onkeyup= e => {startMove = End}
     //u = u.copy(rocks = Nil)
-    play()
+    
+    val accPlayer = Player.AccSpped(1.5)
 
     
     def play():Unit = 
       u.draw()
       var count = 0
       lazy val int : Int = window.setInterval(() =>{
-        val speedPlayer = dir match
-          case Main.leftK =>3 * fact * left
-          case Main.rightK => 3 * fact  * right
-          case _ => Vector(0,0)
+        startMove match
+          case Start(dirPlayer) => 
+            startMove = AddedEffect
+            println("Start move")
+            u = u.copy(player = u.player.map(_.copy(dir = dirPlayer)))
+            u = u.copy(player = u.player.map{
+              p => p.withEffect(p.effects :+ accPlayer)})
+          case End =>
+            u = u.copy(player = u.player.map{p => p.copy(speed = Vector(0,0),speedPlayer = 1, effects = p.effects.filter(_ !=accPlayer))})
+          case AddedEffect =>
         
-        u = u.copy(player = u.player.map{
-          p => p.copy(p.pos,speedPlayer)
-
-        })
+       
+        
         
         
         //for(i <- 1 to 15)
         u = u.nextSystem()
         count+=1
-        timeDiv.textContent = (currentMillis - t)+"ms"
+        def format(milli : Long):String = 
+          val ml = milli %1000
+          val s_t = milli/1000
+          val m = s_t / 60
+          val s = s_t % 60
+          s"${m}m${s}s${ml}ms"
+        timeDiv.textContent = format(currentMillis - t)
         if count % 10 == 0 then
           count = 0
           
@@ -235,13 +258,13 @@ object Main extends Drawer[CanvasRenderingContext2D] :
                  b.speed.rotate(-Math.PI/4) 
                 else
                   b.speed
-              b.copy(b.pos,nv)
+              b.withPosAndSpeed(b.pos,nv)
           
           }
           u = u.copy(balls = nBalls)
         //println(currentMillis - t)
         if u.gameOver() then
-          
+          t = currentMillis
           window.clearInterval(int)
           lazy val cont : HTMLElement = <.div[HTMLElement]{
             _class("splash")
@@ -272,6 +295,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
       },1000/20 )
       int
 
+    play()
      
     
   

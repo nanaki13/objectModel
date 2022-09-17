@@ -31,7 +31,9 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       var sys = System()
       val balls = sys.balls
       val board : Board = sys.board
-      val b =  balls.map(process)
+      val nPlayer = sys.player.map(_.move[Player]()).map(_.applyEffect())
+      sys = sys.copy(player = nPlayer)
+      val b =  balls.map(process(sys))
       val ballsMod = b.map(_._1)
       val goodBall  = ballsMod.filter{
          b => b.pos.x < board.maxX +10 && b.pos.x > board.minX - 10 && 
@@ -40,9 +42,10 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       val rocksToRem : Seq[Rock] = b.flatMap(_._2)
       val g : Seq[Gift] = rocksToRem.flatMap(e => e.gift)
       val agg : (Seq[(Gift,Player)],Seq[Gift])= (Nil,Nil)
+      
       val (giftReachByPlayer,other) = (for{
          gift <- sys.gifts
-         player <- sys.player
+         player <- nPlayer
          cross = if gift.valuep.boundaryCross(player.path) then Some(gift,player) else None
 
       } yield (gift,player)).foldLeft(agg)((agg,el)=>{
@@ -54,26 +57,32 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       
       val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
 
-      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = sys.player.map(_.move[Player]()).map(_.applyEffect()),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
+      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer,rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
 
    def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 
       gift match
          case _ : Gift.NewBall => 
             val headBall = sys.balls.head
-            val nBall = headBall.copy(headBall.pos,-headBall.speed)
+            val nBall = headBall.withPosAndSpeed(headBall.pos,-headBall.speed)
             sys.copy(balls = sys.balls :+ nBall)
-         case _ : Gift.GreaterPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSizeEffect(10,1.01))))
+         case _ : Gift.GreaterPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSizeEffect(10,1.015))))
          case _ : Gift.GreaterBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ Ball.multSizeEffect(10,1.015))))
          case _ : Gift.SmallerBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ Ball.multSizeEffect(10,0.99))))
+         case _ : Gift.SmallerPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSizeEffect(10,0.99))))
+         case _ : Gift.FasterPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSpeedEffect(10,1.01))))
+         case _ : Gift.FasterBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ PosSpeed.multSpeedEffect(10,1.01))))
+         case _ : Gift.SlowBall => sys.copy(balls = sys.balls.map(e => e.copy(effects = e.effects :+ PosSpeed.multSpeedEffect(10,0.99))))
+         case _ : Gift.SlowPlayer => sys.copy(player = sys.player.map(e => e.copy(effects = e.effects :+ Player.multSpeedEffect(10,0.99))))
+
       
 
-   def process( b : Ball):PongSys[(Ball,Set[Rock])] =
+   def process( sys : PongSystem)( b : Ball):(Ball,Set[Rock]) =
       val speedN = b.speed.length
       var dist = 0d
       var tmpE = b
       var crosCount = 0
-      val sys = System()
+      
       val board : Board = sys.board
       var rSet  :Set[Rock] = Set.empty
       val segs :List[(SystemElement,Segment)]= board.paths.flatMap(e =>  e.segments.map(board -> _)) ++ sys.player.flatMap(p => p.path.segments.map( p -> _)) ++ 
@@ -103,9 +112,9 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
             else
 
                b.speed
-         (b.copy(b.pos + nv,nv),rSet)
+         (b.withPosAndSpeed(b.pos + nv,nv),rSet)
       else
-         (b.copy( b.pos + b.speed, b.speed),rSet)  
+         (b.withPosAndSpeed( b.pos + b.speed, b.speed),rSet)  
       
       /*
 
