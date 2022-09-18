@@ -31,16 +31,17 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       var sys = System()
       val balls = sys.balls
       val board : Board = sys.board
-      val nPlayer = sys.player.map(_.move[Player]()).map(_.applyEffect())
+      var nPlayer = sys.player.map(_.move[Player]()).map(_.applyEffect())
       sys = sys.copy(player = nPlayer)
-      val b =  balls.map(process(sys))
-      val ballsMod = b.map(_._1)
+      val ballsRocks =  balls.map(process(sys))
+      val ballsMod = ballsRocks.map(_._1)
       val goodBall  = ballsMod.filter{
          b => b.pos.x < board.maxX +10 && b.pos.x > board.minX - 10 && 
             b.pos.y < board.maxY +10 && b.pos.y > board.minY - 10d
       }
-      val rocksToRem : Seq[Rock] = b.flatMap(_._2)
-      val g : Seq[Gift] = rocksToRem.flatMap(e => e.gift)
+      val rocksToRem : Seq[Rock] = ballsRocks.flatMap(_._2)
+      
+      val giftsToAdd : Seq[Gift] = rocksToRem.flatMap(e => e.gift)
       val agg : (Seq[(Gift,Player)],Seq[Gift])= (Nil,Nil)
       
       val (giftReachByPlayer,other) = (for{
@@ -56,8 +57,8 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       })
       
       val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
-
-      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer,rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ g )
+      val points = rocksToRem.size * 50 + giftReachByPlayer.size * 75
+      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore(points)),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ giftsToAdd )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
 
    def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 
@@ -116,43 +117,6 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       else
          (b.withPosAndSpeed( b.pos + b.speed, b.speed),rSet)  
       
-      /*
 
-      while(dist < speedN && crosCount <99){
-         val seg = tmpE.pos -> (1-dist/speedN) * tmpE.speed 
-         
-        // val ord : Ordering[(SystemElement,Point,Double)]= (a,b) => a._3.compare(b._3)
-         val firstCol = segs.map{
-             (source,sB) =>  (source,sB,sB.cross(seg)) 
-         }.filter(_._3.isDefined).map(e=>(e._1,e._2,e._3.get,(e._3.get --> b.pos).length)).sortBy(_._4)
-         
-         val crosss = firstCol.headOption.flatMap{
-         (source,sB,i,d) => 
-            
-            
-            rSet = source match
-               case r : Rock => rSet + r
-               case o => rSet
-            val sym = seg.p2.sym(sB)
-            crosCount+=1
-            val dri = Segment(i,sym).toVector().unitary()
-            
-            if dri.x.toString != "NaN" && dri.y.toString != "NaN" then      
-               Some(tmpE.copy( sym,(b.speed.length *dri)))
-            else 
-               None
-               
-         }
-         
-         
-         crosss.headOption match
-            case Some(v) => 
-               dist = Vector(v.pos,tmpE.pos).length + dist
-               tmpE = v
-            case o => 
-               tmpE = tmpE.copy(tmpE.pos + (1-dist/speedN) * tmpE.speed,tmpE.speed )
-               dist = speedN
-      }
-      (tmpE,rSet) */
             
      

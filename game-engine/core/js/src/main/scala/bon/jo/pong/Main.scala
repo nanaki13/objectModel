@@ -16,6 +16,7 @@ import scalajs.js.special.debugger
 import bon.jo.pong.Debug
 import scala.util.Random
 import org.scalajs.dom.HTMLImageElement
+import concurrent.ExecutionContext.Implicits.global
 
 object Main extends Drawer[CanvasRenderingContext2D] :
   
@@ -175,9 +176,15 @@ object Main extends Drawer[CanvasRenderingContext2D] :
       ctx.fillStyle = o
       r.drawDef()
   def currentMillis = System.currentTimeMillis()
+  var currentInterval : Option[Int] = None
   @main
   def test2():Unit =
 
+    Login.log().foreach{
+      pseudo => go()
+
+    }
+  def go():Unit =
     val fact= 3
     
     
@@ -187,9 +194,14 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     
     var u : PongSystem = createSys(fact)
     val board = u.board   
-    val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h).toInt,_.width = (board.w*1.2).toInt)
-    val timeDiv  = <.div[HTMLElement](text("0s")) 
-    val root = <.div[HTMLElement](childs(<.div[HTMLElement](childs(canvas),style(_.margin ="auto",_.width ="fit-content")),timeDiv),style(_.width ="100%",_.marginTop ="4%")) 
+    val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h).toInt,_.width = board.w.toInt)
+    val timeDiv  = <.div[HTMLElement]{text("0s")} 
+    val scoreDiv  = <.div[HTMLElement]{text("0")} 
+    val athDiv = <.div[HTMLElement]{childs(timeDiv,scoreDiv);_class("dialog")} 
+    def onLogOut()  = 
+      currentInterval.foreach(window.clearInterval(_) )
+      
+    val root = <.div[HTMLElement](childs(Login.logoutButton(onLogOut()),<.div[HTMLElement](childs(athDiv, canvas),_class("ath-game"))),style(_.width ="100%",_.marginTop ="4%")) 
     var t = currentMillis
     given CanvasRenderingContext2D = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
     given  ProcessPong[CanvasRenderingContext2D]  = ProcessPong[CanvasRenderingContext2D]()
@@ -220,6 +232,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     def play():Unit = 
       u.draw()
       var count = 0
+      t = currentMillis
       lazy val int : Int = window.setInterval(() =>{
         startMove match
           case Start(dirPlayer) => 
@@ -244,8 +257,9 @@ object Main extends Drawer[CanvasRenderingContext2D] :
           val s_t = milli/1000
           val m = s_t / 60
           val s = s_t % 60
-          s"${m}m${s}s${ml}ms"
+          f"${m}%02dm${s}%02ds${ml}%03dms"
         timeDiv.textContent = format(currentMillis - t)
+        scoreDiv.textContent = u.player.head.score.toString()
         if count % 10 == 0 then
           count = 0
           
@@ -264,24 +278,31 @@ object Main extends Drawer[CanvasRenderingContext2D] :
           u = u.copy(balls = nBalls)
         //println(currentMillis - t)
         if u.gameOver() then
-          t = currentMillis
+          
           window.clearInterval(int)
+          currentInterval = None
           lazy val cont : HTMLElement = <.div[HTMLElement]{
             _class("splash")
             childs(
               <.div[HTMLElement]{
                 _class("flex-center")
-                childs(
+                childs(              
                   <.div[HTMLElement]{
-                    text("play again ?")
-                  },
-                  <.div[HTMLElement]{
-                    childs((<.button[HTMLElement](text("yes")).>(
-                      _.onclick = _ => {
-                          u = createSys(fact)
-                          play()
-                          document.body.removeChild(cont)
-                        })))
+                    _class("dialog")
+                    childs(
+                      <.div[HTMLElement]{
+                        text("play again ?")
+                      },
+                      <.div[HTMLElement]{
+                        childs(<.button[HTMLElement](text("yes")).>(
+                          _.onclick = _ => {
+                              u = createSys(fact)
+                              play()
+                              document.body.removeChild(cont)
+                          }
+                        ))
+                      }
+                    )
                   }
                 )
               }
@@ -293,7 +314,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
         u.draw()
       
       },1000/20 )
-      int
+      currentInterval = Some(int)
 
     play()
      

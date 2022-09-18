@@ -133,9 +133,11 @@ package pong :
 
   case class Rock(value : ComputedPath,override val speed : Vector = Vector(0,0),color : String,gift : Option[Gift]) extends Shape(value,speed):
     def withPosAndSpeed(pos: Point, speed: Vector):Rock = Rock(value.copy(fromp = pos),speed,color,gift)
-  case class Player(path : ComputedPath,override val speed : Vector,speedPlayer : Double,maxSpeed : Double,dir : Vector, effects : Seq[Effect[Player]] = Seq.empty)  extends Shape(path,speed) with Effects[Player] :
-    def withPosAndSpeed(pos: Point, speed: Vector):Player = Player(path.copy(fromp = pos),speed,speedPlayer,maxSpeed,dir,effects)
-    def withEffect(effs: Seq[Effect[Player]]): Player = copy(effects = effs)
+  case class Player(path : ComputedPath,override val speed : Vector,speedPlayer : Double,maxSpeed : Double,dir : Vector, effects : Seq[Effect[Player]] = Seq.empty,score : Int = 0)  extends Shape(path,speed) with Effects[Player] :
+    inline def withPosAndSpeed(pos: Point, speed: Vector):Player = copy(path.copy(fromp = pos),speed)
+    inline def withEffect(effs: Seq[Effect[Player]]): Player = copy(effects = effs)
+    inline def withScore(score : Int ): Player = copy(score = score)
+    inline def addToScore(toAdd : Int) : Player = withScore(score + toAdd)
   object Player:
     class AccSpped(speedMul : Double) extends ConditionalEffect[Player]:
       def effect(t : Player):Player = 

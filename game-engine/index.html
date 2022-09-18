@@ -1,160 +1,200 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Break Broke</title>
   </head>
   <style>
-    .splash{
+    @import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+    .top-right{
+      position: absolute;
+      right: 0;
+      top:0;
+      background-color: white;
+      z-index: 1000;
+    }
+    .top-right:hover{
+
+      background-color: grey;
+    }
+    .ath-game{
+      margin: auto;
+      width: fit-content;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+    }
+    .ath-game > .dialog{
+      width: 98%;
+    }
+    .dialog{
+      border: solid;
+      background: white;
+      border: 0.2em black solid;
+      border-radius: 0.5em;
+      width: fit-content;
+      
+    }
+    .dialog > *{
+      display: flex;
+      justify-content: center;
+      margin: 0.8em;
+    }
+    body {
+      font-family: "DotGothic16", sans-serif;
+     
+    }
+    .splash {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
     }
-    .root{
+    .root {
       display: flex;
       margin: 0;
       min-height: 100%;
     }
-    .t-right{
+    .t-right {
       text-align: right;
     }
-    .d-flex{
+    .d-flex {
       display: flex;
     }
-    .menu{
+    .menu {
       width: fit-content;
       padding-right: 0.5em;
       background-color: #6668ec;
     }
-    .flex-center{
+    .flex-center {
       display: flex;
       align-items: center;
       justify-items: center;
       place-content: center;
       margin-top: 20%;
     }
-    html, body {
+    html,
+    body {
       margin: 0;
     }
-    .menu-out{
+    .menu-out {
       flex-grow: 8;
       padding-left: 0.5em;
       background-color: #eaf5ff;
     }
-    .j-c-end{
+    .j-c-end {
       justify-content: end;
     }
-    .j-c-center{
+    .j-c-center {
       justify-content: center;
     }
-    body{
-     background-color: #eaf5ff;
+    body {
+      background-color: #eaf5ff;
     }
-    .graph-params-user-input{
+    .graph-params-user-input {
       display: flex;
     }
-    .border{
+    .border {
       border: #1488ef;
       border-style: solid;
       border-radius: 12px;
       padding: 0.5em;
     }
-    .graph-user-input{
+    .graph-user-input {
       width: fit-content;
     }
-    .small-input{
+    .small-input {
       max-width: 4em;
     }
     .erreur {
       color: red;
     }
     .formule {
-    font-size: 1.5em;
-    display: inline-block;
-    min-width: 1.1em;
-
+      font-size: 1.5em;
+      display: inline-block;
+      min-width: 1.1em;
     }
     .point {
       position: absolute;
-      
-      height :2px;
-      width :2px ;
-      background-color :transparent;
+
+      height: 2px;
+      width: 2px;
+      background-color: transparent;
     }
     .point:hover {
-      height :4px;
-      width :4px ;
-      background-color :red;
+      height: 4px;
+      width: 4px;
+      background-color: red;
     }
-  
+
     .active {
-    border: solid 2px ;
+      border: solid 2px;
     }
     .top {
-        padding-top: 3em;
+      padding-top: 3em;
     }
-    .color-till{
+    .color-till {
       width: 30px;
       height: 30px;
     }
-    .color-saved{
+    .color-saved {
       display: flex;
       flex-wrap: wrap;
       width: 120px;
     }
     .container {
-        width: fit-content;
-        max-width: 70%;
-        min-width: 20%;      
+      width: fit-content;
+      max-width: 70%;
+      min-width: 20%;
     }
-    .parent-c{
+    .parent-c {
       position: relative;
     }
-    .select-rect{
+    .select-rect {
       position: absolute;
       border: solid 1px black;
-      pointer-events: none; 
-      
+      pointer-events: none;
     }
-    .sheet-rect.focus{
-      border: dashed 3px rgb(241, 75, 14);  
+    .sheet-rect.focus {
+      border: dashed 3px rgb(241, 75, 14);
     }
-    .sheet-rect{
+    .sheet-rect {
       position: absolute;
       border: dashed 1px rgb(241, 75, 14);
-      pointer-events: none; 
-      
+      pointer-events: none;
     }
-    .relative-inline-block{
+    .relative-inline-block {
       position: relative;
       display: inline-block;
     }
-    .cursor-div{
+    .cursor-div {
       background-color: lightgray;
       height: 4px;
     }
-    .debug{
+    .debug {
       display: none;
     }
-    .tool-select{
+    .tool-select {
       background-color: #6668ec;
       border: 1px solid;
     }
-    .row{
+    .row {
       display: flex;
     }
-    .cursor{
+    .cursor {
       position: absolute;
-      left : 0px;
-      background-color : white;
-      width : 10px;
-      height : 10px; 
-      border-radius: 5px;  
+      left: 0px;
+      background-color: white;
+      width: 10px;
+      height: 10px;
+      border-radius: 5px;
       top: -3px;
     }
-    .cell{
+    .cell {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -168,7 +208,13 @@
   </style>
   <body>
     <!-- Include Scala.js compiled code -->
-    <script type="text/javascript" src="./core/js/target/scala-3.1.2/game-engine-fastopt.js"></script>
-    <script type="text/javascript" src="./core/js/target/scala-3.1.2/game-engine-opt.js"></script>
+    <script
+      type="text/javascript"
+      src="./core/js/target/scala-3.1.2/game-engine-fastopt.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="./core/js/target/scala-3.1.2/game-engine-opt.js"
+    ></script>
   </body>
 </html>
