@@ -16,11 +16,11 @@ object UserLogin {
   val passwordInput = input(_text("name"),me(_.`type`="password"),me(_.placeholder = "password"))
   okButton.events.click{
     cl => 
-      var oReq = new XMLHttpRequest();
+      val oReq = new XMLHttpRequest();
 
-      oReq.open("POST", "http://localhost:8080/auth", true);
+      oReq.open("POST", "http://localhost:8080/token", true);
       oReq.onload = e => {
-        var arraybuffer = oReq.response; // n'est pas responseText
+        val arraybuffer = oReq.response; // n'est pas responseText
         /* ... */
       }
       oReq.send(JSON.stringify( literal(name = loginInput.value,pwd = passwordInput.value )));

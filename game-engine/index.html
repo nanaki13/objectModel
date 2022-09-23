@@ -7,6 +7,10 @@
   <style>
     @import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
 
+    .score{
+      font-size: 1.5em;
+      margin: 0.1em !important;
+    }
     .top-right{
       position: absolute;
       right: 0;
@@ -30,6 +34,22 @@
     .ath-game > .dialog{
       width: 98%;
     }
+    .p-relative{
+      position: relative;
+    }
+    .login-warn{
+      font-size: 0.8em;
+      display: inline-flex;
+      flex-direction: column;
+      width: 50%;
+      margin-left: 0.7em;
+    }
+    .create-account{
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      font-size: 0.6em;
+    }
     .dialog{
       border: solid;
       background: white;
@@ -39,9 +59,13 @@
       
     }
     .dialog > *{
-      display: flex;
-      justify-content: center;
+      /* display: flex; */
+    
       margin: 0.8em;
+    }
+    .dialog > div > input{
+      float: right;
+      margin-left: 0.5em;
     }
     body {
       font-family: "DotGothic16", sans-serif;
@@ -75,7 +99,7 @@
       align-items: center;
       justify-items: center;
       place-content: center;
-      margin-top: 20%;
+      height: 100%;
     }
     html,
     body {

@@ -48,7 +48,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
       stmtSetObject(from,v)
       from+1
   given ConnectionTableService[User] = ConnectionTableService(UserModel.userTable,()=>con)
-
+  given ResultSetMapping[Int] = _.getInt(1)
   val service = Service[User,Int]
 
   "A service" should "read,upate delete insert" in {
@@ -57,7 +57,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
 
     println(service.update(1,User(1,"toto")))
     println(service.read(1))
-   // println(service.delete(1))
+    println(service.delete(1))
     service.readOption(1) should be (None)
     con.close  
   }

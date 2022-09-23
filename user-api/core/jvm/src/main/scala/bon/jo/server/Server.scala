@@ -20,26 +20,25 @@ import bon.jo.user.UserModel
 import bon.jo.sql.Sql.doSql
 import bon.jo.sql.Sql.executeUpdate
 import bon.jo.user.UserModel.User
+import bon.jo.user.TokenRepo
 object Server {
 
   Class.forName("org.sqlite.JDBC")
   given con : Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
   println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
-  /*doSql("DROP TABLE if exists user "){
+  doSql("DROP TABLE if exists user "){
     executeUpdate()  
-  }*/
+  }
   
 
   val service = SqlServiceUser(()=>con)
   try 
-    
     doSql(UserModel.userTable.createSql){
       executeUpdate()  
     }
   catch
     case _ => 
   try 
-    
     service.create(User(1,"nanaki","test"))
   catch
     case _ => 
@@ -52,13 +51,15 @@ object Server {
 
     given ActorSystem[_] = ctx.system
 
-    val buildJobRepository = ctx.spawn(UserRepo(service), "UserRepository")
-
+    val buildJobRepository = ctx.spawn(UserRepo(service,service.maxId()+1), "UserRepository")
+    val tokenRepo = ctx.spawn(TokenRepo(), "TokenRepository")
+   
     given Formats = DefaultFormats
     val routes = new UserRoutes(buildJobRepository)
-    val routesAuth = new AuthRoutes(buildJobRepository)
+    //val routesAuth = new AuthRoutes(buildJobRepository)
+    val tokenRoute = new TokenRoutes(buildJobRepository,tokenRepo)
     val serverBinding: Future[Http.ServerBinding] =
-      Http().newServerAt(host, port).bind(concat(routes.theUserRoutes,routesAuth.theAuthRoutes))
+      Http().newServerAt(host, port).bind(concat(routes.theUserRoutes,tokenRoute.theTokenRoutes))
     ctx.pipeToSelf(serverBinding) {
       case Success(binding) => Started(binding)
       case Failure(ex)      => StartFailed(ex)

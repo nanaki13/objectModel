@@ -17,6 +17,10 @@ import bon.jo.pong.Debug
 import scala.util.Random
 import org.scalajs.dom.HTMLImageElement
 import concurrent.ExecutionContext.Implicits.global
+import bon.jo.service.ScoreService
+import scala.concurrent.Future
+import bon.jo.service.ScoreService.Score
+import bon.jo.service.ScoreService.SaveResult
 
 object Main extends Drawer[CanvasRenderingContext2D] :
   
@@ -179,12 +183,12 @@ object Main extends Drawer[CanvasRenderingContext2D] :
   var currentInterval : Option[Int] = None
   @main
   def test2():Unit =
-
-    Login.log().foreach{
-      pseudo => go()
-
-    }
-  def go():Unit =
+    given ScoreService with
+      def getScores(): Future[Seq[Score]] = ???
+      def saveScore(s: Score): Future[SaveResult] = ???
+      def getScore(pseudo: String): Future[Option[Score]] = ???
+    Login.log().foreach(go)
+  def go(pseudo : String):Unit =
     val fact= 3
     
     
@@ -196,7 +200,7 @@ object Main extends Drawer[CanvasRenderingContext2D] :
     val board = u.board   
     val canvas  = <.canvas[HTMLCanvasElement]> (_.height = (board.h).toInt,_.width = board.w.toInt)
     val timeDiv  = <.div[HTMLElement]{text("0s")} 
-    val scoreDiv  = <.div[HTMLElement]{text("0")} 
+    val scoreDiv  = <.div[HTMLElement](text("0"),_class("score")) 
     val athDiv = <.div[HTMLElement]{childs(timeDiv,scoreDiv);_class("dialog")} 
     def onLogOut()  = 
       currentInterval.foreach(window.clearInterval(_) )

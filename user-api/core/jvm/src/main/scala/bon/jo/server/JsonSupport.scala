@@ -8,6 +8,11 @@ import org.json4s.Formats
 
 import scala.concurrent.{ExecutionContext, Future}
 
+object JsonSupport:
+  given  [A](using  Materializer,Manifest[A],Manifest[Seq[A]],Formats) : JsonSupport[A] = new JsonSupport[A]{}
+
+  def apply[A]()(using  JsonSupport[A]):JsonSupport[A] = summon
+
 trait JsonSupport[A](using Materializer,Manifest[A],Manifest[Seq[A]],Formats ) {
 
   def entityConv[B](a : B): HttpEntity.Strict = {

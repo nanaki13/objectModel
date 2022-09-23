@@ -9,33 +9,38 @@ import bon.jo.sql.Sql.PSMapping
 import bon.jo.sql.Sql.ConnectionTableService
 import ConnectionTableService.connectionTableService
 object Sql {
-  case class Builder(var value : Table)
+  case class Builder(var value : Table,val id : ColumnsId = ColumnsId())
   case class BuilderCol(var value : Column)
   type ColumnInTable = Builder ?=> Column
   type OnBuildColumnInTable = (Builder,BuilderCol) ?=> Unit
   type OnBuild = Builder ?=> Unit
   type OnBuildCol = BuilderCol ?=> Unit
+  inline def tableBuilder: Builder ?=> Builder = summon
+  inline def columnBuilder: BuilderCol ?=> BuilderCol = summon
+  inline def tableid: Builder ?=> ColumnsId = tableBuilder.id
+  case class ColumnsId(var idNames : Seq[String] = Nil)
   object Table:
     def tableName(name : String): OnBuild = 
       summon.value = summon.value.copy(name)  
     def id(): OnBuildColumnInTable = 
-        id(summon[BuilderCol].value)
-    def id(col : Column): OnBuild = 
-      val prev = summon.value
-      summon.value = prev.copy(ids = prev.ids :+ col)
+      tableid.idNames = tableid.idNames :+ columnBuilder.value.name   
+
     def apply(f : OnBuild ):Table = 
       given Builder = Builder(Table("",Seq.empty,Seq.empty))
       f
-      summon.value
+      val colMap = tableBuilder.value.columns.map(e => e.name -> e).toMap
+      val columnsId  = tableBuilder.id.idNames.map(colMap)
+      summon.value.copy(id = columnsId)
     def col(f : OnBuildCol ): OnBuild = 
       given BuilderCol = BuilderCol(Column("",""))
       f
       summon.value
-  case class Table(name : String,columns : Seq[Column],ids:Seq[Column]):
+  case class Table(name : String,columns : Seq[Column],id:Seq[Column]):
     def createSql : String = 
       s"""CREATE TABLE $name(
         ${columns.mkString(",\n")},
-        PRIMARY KEY(${ids.map(_.name).mkString(",\n")})
+        PRIMARY KEY(${id.map(_.name).mkString(",")})
+        
       )"""
   case class Column(name : String,dbType : String):
     override def toString() = s"$name $dbType"
@@ -89,14 +94,14 @@ object Sql {
     val table : Table
     def connection() : Connection
     def columnsString = table.columns.map(_.name).mkString(", ")
-    def idsString = table.ids.map(_.name).mkString(", ")
-    def idsParamString = table.ids.map(_ => "?").mkString(", ")
+    def idsString = table.id.map(_.name).mkString(", ")
+    def idsParamString = table.id.map(_ => "?").mkString(", ")
     def columnsParamString = table.columns.map(_ => "?").mkString(", ")
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
     val sqlBaseSelect = s"""SELECT $columnsString FROM ${table.name}"""
     val selectByIdString = s"""SELECT $columnsString FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
     val containsByIdString = s"""SELECT 1 FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
-    val selectColumnIdIndex= table.ids.zipWithIndex.toMap
+    val selectColumnIdIndex= table.id.zipWithIndex.toMap
     val columnIdIndex= table.columns.zipWithIndex.toMap
     val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
     val updateByIdString = s"""UPDATE  ${table.name} SET ${updateSetString}  WHERE ${idsString} = ${idsParamString}"""
@@ -105,7 +110,7 @@ object Sql {
 
 
       
-  trait Service[T,ID](using ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]):
+  trait Service[T,ID](using ResultSetMapping[ID],ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]):
   
     inline def service = connectionTableService
 
@@ -123,6 +128,12 @@ object Sql {
         PSMapping[ID](1,ids)
         val r = executeQuery()
         r.next()
+      }
+    def maxId():ID = 
+      service.sql[ID](s"SELECT MAX(${service.table.id.map(_.name).mkString(", ")}) FROM "+service.table.name){
+        val r = executeQuery()
+        r.next()
+        ResultSetMapping[ID](r)
       }
     def read(ids :ID):T  = 
       service.sql[T](service.selectByIdString){
@@ -158,7 +169,7 @@ object Sql {
       } 
 
   object Service:
-    class Impl[T,ID](using ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]) extends Service[T,ID]
-    def apply[T,ID](using ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]): Service[T,ID] = Impl()
+    class Impl[T,ID](using ResultSetMapping[ID], ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]) extends Service[T,ID]
+    def apply[T,ID](using ResultSetMapping[ID],ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]): Service[T,ID] = Impl()
   
 }

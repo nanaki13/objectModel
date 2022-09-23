@@ -16,6 +16,9 @@ object SqlServiceUser {
   given ResultSetMapping[User] with
     def apply(r : ResultSet):User = 
       User(r.getLong(1).asInstanceOf,r.getObject(2).asInstanceOf,r.getObject(3).asInstanceOf)
+  given ResultSetMapping[Long] with
+    def apply(r : ResultSet):Long = 
+      r.getLong(1).asInstanceOf
   given PSMapping[User] with
      def apply(from : Int,v : User)(using PreparedStatement):Int=
       stmtSetObject(from,v.id)
