@@ -35,6 +35,7 @@ object TokenRepo {
   // This behavior handles all possible incoming messages and keeps the state in the function parameter
   def apply(): Behavior[Command] = Behaviors.receiveMessage {
     case GetToken(user, replyTo) =>
+
       val jwtClaim = JwtClaim.apply(content = Serialization.write(user),expiration = Some(ZonedDateTime.now().plusSeconds(30).toEpochSecond()))
       replyTo ! Jwt.encode(jwtClaim,key,algo)
       Behaviors.same
