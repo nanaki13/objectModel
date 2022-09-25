@@ -19,19 +19,21 @@ import org.json4s.Formats
 import scala.concurrent.ExecutionContext
 import bon.jo.user.UserModel.UserInfo
 import bon.jo.user.UserModel.UserLogin
+import bon.jo.user.TokenRepo
+import bon.jo.user.TokenRepo.{toUserInfo as toUi}
 
-class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using   ActorSystem[_],Manifest[User],Manifest[Seq[User]],Formats) extends JsonSupport[User] with CORSHandler {
+class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using   ActorRef[TokenRepo.Command],ActorSystem[_],Manifest[User],Manifest[Seq[User]],Formats) extends JsonSupport[User] with CORSHandler with TokenRouteGuard{
 
   import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
   import akka.actor.typed.scaladsl.AskPattern.Askable
-  given ExecutionContext = summon[ActorSystem[_]].executionContext
+  given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
   val userInfoJson : JsonSupport[UserInfo] = JsonSupport[UserInfo]()
   import userInfoJson.given
    val userLoginJson : JsonSupport[UserLogin] = JsonSupport[UserLogin]()
   import userLoginJson.given
-  given Timeout = 3.seconds
+  given t:Timeout = 3.seconds
 
   lazy val theUserRoutes: Route =
     pathPrefix("users") {
@@ -60,12 +62,20 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using   ActorS
           )
         },
         (delete& path(LongNumber)) { id =>
-          val operationPerformed: Future[Response] =
-            buildUserRepository.ask(Command.ClearUsers(id,_))
-          onSuccess(operationPerformed) {
-            case Response.OK         => complete("Users cleared")
-            case Response.KO(reason) => complete(StatusCodes.InternalServerError -> reason)
+
+          guard {
+            claim => 
+              val ui = claim.toUi
+              ui.name match
+                case "Nanaki" =>       
+                  val operationPerformed: Future[Response] = buildUserRepository.ask(Command.ClearUsers(id,_))
+                  onSuccess(operationPerformed) {
+                    case Response.OK         => complete("Users cleared")
+                    case Response.KO(reason) => complete(StatusCodes.InternalServerError -> reason)
+                  }
+                case o => complete(StatusCodes.Forbidden)
           }
+        
         },
         
         (get & path(LongNumber)) { id =>

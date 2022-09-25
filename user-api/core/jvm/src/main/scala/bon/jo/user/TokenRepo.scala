@@ -15,6 +15,7 @@ import pdi.jwt.JwtAlgorithm
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import scala.util.Try
 object TokenRepo {
 
   val key = scala.sys.env.getOrElse("bon.jo.secret","secret")
@@ -30,6 +31,7 @@ object TokenRepo {
   // Trait and its implementations representing all possible messages that can be sent to this Behavior
   enum Command:
     case  GetToken(user : UserInfo, replyTo: ActorRef[String]) extends Command
+    case  ParseToken(token : String, replyTo: ActorRef[Try[JwtClaim]]) extends Command
 
 
   // This behavior handles all possible incoming messages and keeps the state in the function parameter
@@ -40,6 +42,13 @@ object TokenRepo {
       replyTo ! Jwt.encode(jwtClaim,key,algo)
       Behaviors.same
 
+    case ParseToken(token,replyTo) => 
+      replyTo ! Jwt.decode(token,key,Seq(algo))
+      Behaviors.same
+
   }
+
+  extension (c : JwtClaim)
+    def toUserInfo : UserInfo = Serialization.read(c.content)
 
 }

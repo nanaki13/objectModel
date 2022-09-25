@@ -12,7 +12,8 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
   version := "0.1.0-SNAPSHOT"
 ).settings(commonSetting).
   jvmSettings(
-     libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided"
+     libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided",
+     libraryDependencies += "bon.jo" %% "user-core" % "1.0.0-SNAPSHOT"
   ).
   jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",

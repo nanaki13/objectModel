@@ -3,6 +3,8 @@ import bon.jo.sql.Sql.Table
 import bon.jo.sql.Sql.Column 
 
 import bon.jo.sql.Sql.Table.id
+import bon.jo.sql.Sql.Table.index
+import bon.jo.sql.Sql.Table.unique
 import bon.jo.sql.Sql.Table.tableName
 import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
@@ -18,19 +20,9 @@ object UserModel:
 
   val userTable = Table{
     tableName("user")
-    Column{
-      columnName("id")
-      _type("INTEGER")
-      id()
-    }   
-    Column{
-        columnName(cName)
-        _type("VARCHAR(255)")
+      Column{columnName("id");_type("BIGINT");id} 
+      Column{columnName(cName);_type("VARCHAR(255)");unique} 
+      Column{columnName(cPwd);_type("VARCHAR(255)")} 
+
+
     }
-    Column{
-        columnName(cPwd)
-        _type("VARCHAR(255)")
-    }
-      
-    
-  }

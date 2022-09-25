@@ -23,6 +23,7 @@ import bon.jo.user.UserModel
 import scala.util.Success
 import scala.util.Failure
 import scala.util.Try
+import bon.jo.user.ScoreModel
 class AllTest extends AnyFlatSpec with should.Matchers {
   Class.forName("org.sqlite.JDBC")
   given con : Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
@@ -30,50 +31,19 @@ class AllTest extends AnyFlatSpec with should.Matchers {
  
  
   stmtDo(){
-    stmt.execute("DROP TABLE if exists user; ")
+    stmt.execute("DROP TABLE if exists score; ")
   }
   def p[T](e : T):T =
     println(e)
     e
   stmtDo(){
-     UserModel.userTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
+     ScoreModel.scoreTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
   }
 
 
 
- 
-  case class User(id : Long,name : String)
-
-  given ResultSetMapping[User] with
-    def apply(r : ResultSet):User = 
-      User(r.getLong(1).asInstanceOf,r.getObject(2).asInstanceOf)
-  given PSMapping[User] with
-     def apply(from : Int,v : User)(using PreparedStatement):Int=
-      stmtSetObject(from,v.id)
-      stmtSetObject(from+1,v.name)
-      println(summon[PreparedStatement])
-      from+3
-  given PSMapping[Int] with
-     def apply(from : Int,v : Int)(using PreparedStatement):Int=
-      stmtSetObject(from,v)
-      from+1
-  given ConnectionTableService[User] = ConnectionTableService(UserModel.userTable,()=>con)
-  given ResultSetMapping[Int] = _.getInt(1)
-  val service = Service[User,Int]
-
    "A service" should "read,upate delete insert" in {
-    service.create(User(1,"tett")) 
-    println(service.read(1))
-  
-    println(service.update(1,User(1,"toto")))
-    val ex = intercept[SQLException](service.create(User(2,"toto")) ) 
-    
-    println(service.read(1))
-    //println(service.delete(1))
-    service.readOption(1) should be (Some(User(1,"toto")))
-    service.findBy("name","toto") should be (Some(User(1,"toto")))
-    println(service.delete(1))
-    service.readOption(1) should be (None)
+
     
     con.close  
    }

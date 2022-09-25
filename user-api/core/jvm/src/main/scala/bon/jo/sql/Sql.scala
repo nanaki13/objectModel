@@ -8,8 +8,9 @@ import bon.jo.sql.Sql.PSMapping
 
 import bon.jo.sql.Sql.ConnectionTableService
 import ConnectionTableService.connectionTableService
+import java.sql.Statement
 object Sql {
-  case class Builder(var value : Table,val id : ColumnsId = ColumnsId())
+  case class Builder(var value : Table,val id : ColumnsRef = ColumnsRef(),var indexs : Seq[Index] = Nil)
   case class BuilderCol(var value : Column)
   type ColumnInTable = Builder ?=> Column
   type OnBuildColumnInTable = (Builder,BuilderCol) ?=> Unit
@@ -17,31 +18,44 @@ object Sql {
   type OnBuildCol = BuilderCol ?=> Unit
   inline def tableBuilder: Builder ?=> Builder = summon
   inline def columnBuilder: BuilderCol ?=> BuilderCol = summon
-  inline def tableid: Builder ?=> ColumnsId = tableBuilder.id
-  case class ColumnsId(var idNames : Seq[String] = Nil)
+  inline def tableid: Builder ?=> ColumnsRef = tableBuilder.id
+  class ColumnsRef(var values : Seq[String] = Nil)
+  enum IndexType:
+    case Simple,Unique
+  case class Index(var values : Seq[String] = Nil,indexType : IndexType = IndexType.Simple)
+
   object Table:
     def tableName(name : String): OnBuild = 
       summon.value = summon.value.copy(name)  
-    def id(): OnBuildColumnInTable = 
-      tableid.idNames = tableid.idNames :+ columnBuilder.value.name   
+    def id: OnBuildColumnInTable = 
+      tableid.values = tableid.values :+ columnBuilder.value.name   
+    def index: OnBuildColumnInTable = 
+      tableBuilder.indexs = tableBuilder.indexs  :+ Index(columnBuilder.value.name :: Nil)
+    def unique: OnBuildColumnInTable = 
+      tableBuilder.indexs = tableBuilder.indexs  :+ Index(columnBuilder.value.name :: Nil, IndexType.Unique)
 
     def apply(f : OnBuild ):Table = 
-      given Builder = Builder(Table("",Seq.empty,Seq.empty))
+      given Builder = Builder(Table("",Nil , Nil, Nil))
       f
-      val colMap = tableBuilder.value.columns.map(e => e.name -> e).toMap
-      val columnsId  = tableBuilder.id.idNames.map(colMap)
-      summon.value.copy(id = columnsId)
+
+      summon.value.copy(id = tableBuilder.id.values,indexs =  tableBuilder.indexs)
     def col(f : OnBuildCol ): OnBuild = 
       given BuilderCol = BuilderCol(Column("",""))
       f
       summon.value
-  case class Table(name : String,columns : Seq[Column],id:Seq[Column]):
+  case class Table(name : String,columns : Seq[Column],id:Seq[String],indexs:Seq[Index]):
     def createSql : String = 
       s"""CREATE TABLE $name(
-        ${columns.mkString(",\n")},
-        PRIMARY KEY(${id.map(_.name).mkString(",")})
-        
-      )"""
+        ${columns.mkString(",\n        ")},
+        PRIMARY KEY(${id.mkString(",")}));
+        ${indexs.map{
+          index => 
+            val indexType = index.indexType match
+              case IndexType.Unique => "UNIQUE"
+              case _ => ""
+            
+            s"""CREATE $indexType INDEX ${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
+        }.mkString("\n")}"""
   case class Column(name : String,dbType : String):
     override def toString() = s"$name $dbType"
   object Column:
@@ -49,23 +63,30 @@ object Sql {
       summon.value = summon.value.copy(name)  
     def _type(name : String): OnBuildCol = 
       summon.value = summon.value.copy(dbType = name)  
-    def apply(f : OnBuildCol ):ColumnInTable = 
+    def apply(f : OnBuildCol * ):ColumnInTable = 
       given BuilderCol = BuilderCol(Column("",""))
-      f
-      val t = summon[Builder].value
-      val c =  summon[BuilderCol].value
-      summon[Builder].value =  t.copy(columns = t.columns :+  c) 
+      f.foreach(ff => ff)
+      val t = tableBuilder.value
+      val c =  columnBuilder.value
+      tableBuilder.value =  t.copy(columns = t.columns :+  c) 
       c
   inline def prepare(sql :String)(using Connection):PreparedStatement = summon.prepareStatement(sql)
 
   inline def stmtSetObject(i : Int,o : Any)(using PreparedStatement) =  summon.setObject(i,o)
   inline def executeQuery()(using PreparedStatement): ResultSet =  summon.executeQuery()
   inline def executeUpdate()(using PreparedStatement): Int =  summon.executeUpdate()
-  inline def stmtClose(using PreparedStatement) = summon.close
+  inline def execute()(using PreparedStatement): Boolean =  summon.execute()
+  inline def stmtClose(using Statement) = summon.close
  
   def doSql[A](sql : String)(f : PreparedStatement ?=> A)(using Connection) :A = 
   
     given PreparedStatement = prepare(sql)
+    val rest = f
+    stmtClose
+    rest
+  inline def stmt : Statement ?=> Statement = summon
+  def stmtDo[A]()(f : Statement ?=> A)(using c :Connection) :A = 
+    given Statement = c.createStatement()
     val rest = f
     stmtClose
     rest
@@ -94,7 +115,7 @@ object Sql {
     val table : Table
     def connection() : Connection
     def columnsString = table.columns.map(_.name).mkString(", ")
-    def idsString = table.id.map(_.name).mkString(", ")
+    def idsString = table.id.mkString(", ")
     def idsParamString = table.id.map(_ => "?").mkString(", ")
     def columnsParamString = table.columns.map(_ => "?").mkString(", ")
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
@@ -130,7 +151,7 @@ object Sql {
         r.next()
       }
     def maxId():ID = 
-      service.sql[ID](s"SELECT MAX(${service.table.id.map(_.name).mkString(", ")}) FROM "+service.table.name){
+      service.sql[ID](s"SELECT MAX(${service.table.id.mkString(", ")}) FROM "+service.table.name){
         val r = executeQuery()
         r.next()
         ResultSetMapping[ID](r)

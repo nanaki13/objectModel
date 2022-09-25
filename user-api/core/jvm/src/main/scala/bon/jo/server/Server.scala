@@ -18,23 +18,24 @@ import akka.actor.typed.ActorSystem
 import bon.jo.user.UserRepo
 import bon.jo.user.UserModel
 import bon.jo.sql.Sql.doSql
-import bon.jo.sql.Sql.executeUpdate
+import bon.jo.sql.Sql.execute
 import bon.jo.user.UserModel.User
 import bon.jo.user.TokenRepo
+import akka.actor.typed.ActorRef
 object Server {
 
   Class.forName("org.sqlite.JDBC")
   given con : Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
   println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
   doSql("DROP TABLE if exists user "){
-    executeUpdate()  
+    execute()  
   }
   
 
   val service = SqlServiceUser(()=>con)
   try 
     doSql(UserModel.userTable.createSql){
-      executeUpdate()  
+      execute()  
     }
   catch
     case _ => 
@@ -52,7 +53,7 @@ object Server {
     given ActorSystem[_] = ctx.system
 
     val buildJobRepository = ctx.spawn(UserRepo(service,service.maxId()+1), "UserRepository")
-    val tokenRepo = ctx.spawn(TokenRepo(), "TokenRepository")
+    given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
    
     given Formats = DefaultFormats
     val routes = new UserRoutes(buildJobRepository)

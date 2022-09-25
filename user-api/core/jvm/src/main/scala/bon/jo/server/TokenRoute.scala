@@ -4,7 +4,10 @@ import akka.actor.typed.ActorSystem
 import akka.util.Timeout
 
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directive0
+import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Authorization
 import akka.http.scaladsl.server.Route
 
 import scala.concurrent.duration._
@@ -19,11 +22,19 @@ import bon.jo.user.TokenRepo
 import org.json4s.Formats
 import scala.concurrent.ExecutionContext
 import bon.jo.user.UserModel.UserLogin
-
+import pdi.jwt.JwtClaim.apply
+import pdi.jwt.JwtClaim
+import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
+import akka.actor.typed.scaladsl.AskPattern.Askable
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
+import akka.http.scaladsl.server.StandardRoute.toDirective
+import akka.http.scaladsl.server.Directive
+import akka.http.scaladsl.server.AuthorizationFailedRejection
 class TokenRoutes(userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorRef[TokenRepo.Command])(using   ActorSystem[_],Formats) extends  CORSHandler  {
 
-  import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
-  import akka.actor.typed.scaladsl.AskPattern.Askable
+
 
   given ExecutionContext = summon[ActorSystem[_]].executionContext
   //object userJson  extends JsonSupport[User] 
@@ -58,4 +69,24 @@ class TokenRoutes(userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorRef[Token
         }
       )
     })
+    
 }
+trait TokenRouteGuard(using tokenRepo: ActorRef[TokenRepo.Command],s :ActorSystem[_]):
+    given t:  Timeout 
+    given ec : ExecutionContext  
+    def guard : Directive1[JwtClaim] = {
+    optionalHeaderValueByName(Authorization.name).flatMap{
+      case Some(auth ) => 
+        val tokenEx = "Bearer ([\\s]*)".r
+        auth match 
+          case tokenEx(token) => 
+            onSuccess( tokenRepo.ask[Try[JwtClaim]](TokenRepo.Command.ParseToken(token,_))).flatMap{
+              case Success(t) => provide(t)
+              case Failure(t) =>reject(AuthorizationFailedRejection)
+            }
+          case _ => reject(AuthorizationFailedRejection)
+        
+      case None => reject(AuthorizationFailedRejection)
+
+    }
+  }
