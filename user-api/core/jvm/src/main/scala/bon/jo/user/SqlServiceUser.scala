@@ -14,11 +14,11 @@ object SqlServiceUser {
   type ServiceUser = Service[User,Long] with SqlServiceUser
   
   given ResultSetMapping[User] with
-    def apply(r : ResultSet):User = 
-      User(r.getLong(1).asInstanceOf,r.getObject(2).asInstanceOf,r.getObject(3).asInstanceOf)
+    def apply(from : Int,r : ResultSet):User = 
+      User(r.getLong(from).asInstanceOf,r.getObject(from+1).asInstanceOf,r.getObject(from+2).asInstanceOf)
   given ResultSetMapping[Long] with
-    def apply(r : ResultSet):Long = 
-      r.getLong(1).asInstanceOf
+    def apply(from : Int,r : ResultSet):Long = 
+      r.getLong(from).asInstanceOf
   given PSMapping[User] with
      def apply(from : Int,v : User)(using PreparedStatement):Int=
       stmtSetObject(from,v.id)

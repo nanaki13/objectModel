@@ -44,9 +44,8 @@ class AllTest extends AnyFlatSpec with should.Matchers {
  
   case class User(id : Long,name : String)
 
-  given ResultSetMapping[User] with
-    def apply(r : ResultSet):User = 
-      User(r.getLong(1).asInstanceOf,r.getObject(2).asInstanceOf)
+  given ResultSetMapping[User] = (from,r )=> 
+      User(r.getLong(from),r.getString(from+1))
   given PSMapping[User] with
      def apply(from : Int,v : User)(using PreparedStatement):Int=
       stmtSetObject(from,v.id)
@@ -58,7 +57,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
       stmtSetObject(from,v)
       from+1
   given ConnectionTableService[User] = ConnectionTableService(UserModel.userTable,()=>con)
-  given ResultSetMapping[Int] = _.getInt(1)
+  given ResultSetMapping[Int] = (from,r) => r.getInt(from)
   val service = Service[User,Int]
 
    "A service" should "read,upate delete insert" in {

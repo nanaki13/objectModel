@@ -1,4 +1,4 @@
-package bon.jo.user
+package bon.jo.model
 import bon.jo.sql.Sql.Table 
 import bon.jo.sql.Sql.Column 
 
@@ -10,14 +10,22 @@ import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
 import java.time.LocalDateTime
 object ScoreModel:
-  case class Score(idGame : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
+  case class Score(idGame : Int,lvl : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
 
+  val cIdGame = "id_game"
+  val cLvl = "lvl"
+  val cIdUser = "id_user"
+  val cScoreDate = "score_date_time"
+  val cScore = "score_value"
 
+  case class GameLevel(idGame : Int,lvl : Int)
+  case class GameLevelUser(idGame : Int,lvl : Int,idUser : Long)
 
   val scoreTable = Table{
     tableName("score")    
-      Column{columnName("id_game");_type("INT");id} 
-      Column{columnName("id_user");_type("BIGINT");id} 
-      Column{columnName("score_date_time");_type("DATETIME")} 
-      Column{columnName("score_value");_type("BIGINT")} 
+      Column{columnName(cIdGame);_type("INT");id} 
+      Column{columnName(cLvl);_type("INT");id} 
+      Column{columnName(cIdUser);_type("BIGINT");id} 
+      Column{columnName(cScoreDate);_type("DATETIME")} 
+      Column{columnName(cScore);_type("BIGINT")} 
     }

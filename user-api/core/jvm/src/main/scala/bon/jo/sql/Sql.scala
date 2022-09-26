@@ -19,6 +19,11 @@ object Sql {
   inline def tableBuilder: Builder ?=> Builder = summon
   inline def columnBuilder: BuilderCol ?=> BuilderCol = summon
   inline def tableid: Builder ?=> ColumnsRef = tableBuilder.id
+  extension (r : ResultSet)
+    def iterator : Iterator[ResultSet] = new Iterator[ResultSet]{
+        def hasNext: Boolean = r.next()
+        def next():ResultSet =r
+    }
   class ColumnsRef(var values : Seq[String] = Nil)
   enum IndexType:
     case Simple,Unique
@@ -93,7 +98,8 @@ object Sql {
  
 
   trait ResultSetMapping[T]:
-    def apply(v : ResultSet):T
+    def apply(from : Int,v : ResultSet):T
+    inline def apply(v : ResultSet):T = this(1,v)
   object ResultSetMapping:
     inline def apply[T](using ResultSetMapping[T]) = summon
   trait PSMapping[T]:
@@ -116,16 +122,16 @@ object Sql {
     def connection() : Connection
     def columnsString = table.columns.map(_.name).mkString(", ")
     def idsString = table.id.mkString(", ")
-    def idsParamString = table.id.map(_ => "?").mkString(", ")
+    def idsConditionString = s" ${table.id.map(idCol => s"$idCol = ?").mkString(" AND ")} "
     def columnsParamString = table.columns.map(_ => "?").mkString(", ")
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
     val sqlBaseSelect = s"""SELECT $columnsString FROM ${table.name}"""
-    val selectByIdString = s"""SELECT $columnsString FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
-    val containsByIdString = s"""SELECT 1 FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
+    val selectByIdString = s"""SELECT $columnsString FROM ${table.name} WHERE $idsConditionString"""
+    val containsByIdString = s"""SELECT 1 FROM ${table.name} WHERE ${idsConditionString}"""
     val selectColumnIdIndex= table.id.zipWithIndex.toMap
     val columnIdIndex= table.columns.zipWithIndex.toMap
-    val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsString} = ${idsParamString}"""
-    val updateByIdString = s"""UPDATE  ${table.name} SET ${updateSetString}  WHERE ${idsString} = ${idsParamString}"""
+    val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsConditionString}"""
+    val updateByIdString = s"""UPDATE  ${table.name} SET ${updateSetString}  WHERE $idsConditionString"""
     val insertString = s"""INSERT INTO ${table.name} ( $columnsString) VALUES ( ${columnsParamString} )"""
     def sql[A](sql : String)(f : PreparedStatement ?=> A):A = doSql(sql)(f)(using connection())
 
@@ -140,9 +146,17 @@ object Sql {
         stmtSetObject(1,value)
         val r = executeQuery()
         if r.next() then
-          Some(ResultSetMapping[T](r))
+          Some(ResultSetMapping[T](1,r))
         else 
           None
+      } 
+    def findBys(fieldvalue : (String,Any) *):Seq[T] = 
+      val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
+      service.sql(service.sqlBaseSelect+s" WHERE $paramsQ"){
+        fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
+        
+        val r = executeQuery()
+        r.iterator.map( r => ResultSetMapping[T](r)).toSeq
       } 
     def contains(ids : ID):Boolean = 
        service.sql(service.selectByIdString){
