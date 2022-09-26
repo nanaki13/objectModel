@@ -23,6 +23,9 @@ import bon.jo.Validator.*
 import bon.jo.Validator
 import org.scalajs.dom.HTMLLabelElement
 import org.scalajs.dom.HTMLFormElement
+import bon.jo.domain.UserLogin
+import bon.jo.domain.UserInfo
+import java.util.Base64
 object Login:
 
   import HttpServiceConfig.given
@@ -32,40 +35,48 @@ object Login:
       (if u.name.isBlank() then ValidationResult.Failure(u,"give a name") else ValidationResult.Success(u)) 
       .and(if u.pwd.isBlank() then ValidationResult.Failure(u,"\ngive a password") else ValidationResult.Success(u))
   }
-  trait UserLogin extends js.Object:
+  trait UserLoginJs extends js.Object:
     val name: String
     val pwd: String
-  object UserLogin:
-    def apply(name: String, pwd: String): UserLogin =
-      js.Dynamic.literal(name = name, pwd = pwd).asInstanceOf
-  class UserInfo(name: String) extends js.Object
+  trait UserInfoJs extends js.Object:
+    val id: Double
+    val name: String
+  object UserLoginJs:
+    def apply(userLogin : UserLogin): UserLoginJs =
+      js.Dynamic.literal(name = userLogin.name, pwd = userLogin.pwd).asInstanceOf
+ 
   given Conversion[String, String] = e => e
   object baseTokenService extends HttpRequest.Service:
     val basePath: String = "/token"
     def getToken(user: UserLogin): Future[String] =
-      POST.sendJsEntity("", user).map(_.okWith[String, String](200))
+      POST.sendJsEntity("", UserLoginJs(user)).map(_.okWith[String, String](200))
 
   object userService extends HttpRequest.Service:
     val basePath: String = "/users"
     def createAccount(user: UserLogin): Future[String] =
-      POST.sendJsEntity("", user).map(_.okWith[String, String](200))
+      POST.sendJsEntity("", UserLoginJs(user)).map(_.okWith[String, String](200))
+  def userInfo(jsObj : UserInfoJs) : UserInfo = 
+    UserInfo(id = jsObj.id.toLong, name = jsObj.name)  
+  def userInfo(token : String) : UserInfo =  userInfo(js.JSON.parse(new String( Base64.getUrlDecoder().decode(token.split("\\.")(1)))).asInstanceOf[UserInfoJs])
+  
 
-  val pseudoKey = "pseudo"
   val tokenKey = "token"
   def logoutButton(onlogOut: => Unit): HTMLButtonElement =
     <.button[HTMLButtonElement](text("Exit"), _class("top-right"))
       .>(_.onclick = e => {
-        pseudoKey.storageRemove
+       
         tokenKey.storageRemove
         onlogOut
         window.location.reload(true)
       })
-
-  def log(): Future[String] =
-    val pro: Promise[String] = Promise()
-    val pseudo = pseudoKey.storageRead
-    pseudo match
-      case Some(p) => pro.success(p)
+  case class UserContext(user : UserInfo,token : String):
+    def this(token : String) =
+      this(userInfo(token),token)
+  def log(): Future[UserContext] =
+    val pro: Promise[UserContext] = Promise()
+    val tokenOption = tokenKey.storageRead
+    tokenOption match
+      case Some(token) => pro.success(new UserContext(token))
       case None =>
         val inp = <.input[HTMLInputElement].>(_.id = "name",_.name = "name")
         val inpwd = <.input[HTMLInputElement].>(_.`type` = "password",_.id = "pwd",_.name = "pwd")
@@ -134,8 +145,8 @@ object Login:
                 case Success(token) =>
                   body.removeChild(diag)
                   token.storageWrite(tokenKey)
-                  inp.value.storageWrite(pseudoKey)
-                  pro.success(inp.value)
+                  
+                  pro.success(new UserContext(token))
                 case Failure(BadStatusException(value)) =>
                   bottom :+ <.span[HTMLElement](
                     text(value.toString()),

@@ -11,14 +11,14 @@ import scala.concurrent.duration._
 import scala.concurrent.Future
 import akka.actor.typed.ActorRef
 import bon.jo.user.UserRepo
-import bon.jo.user.UserModel.User
+import bon.jo.domain.User
 import bon.jo.user.UserModel.toUserInfo
 import bon.jo.user.UserRepo.Command
 import bon.jo.user.UserRepo.Response
 import org.json4s.Formats
 import scala.concurrent.ExecutionContext
-import bon.jo.user.UserModel.UserInfo
-import bon.jo.user.UserModel.UserLogin
+import bon.jo.domain.UserInfo
+import bon.jo.domain.UserLogin
 import bon.jo.user.TokenRepo
 import bon.jo.user.TokenRepo.{toUserInfo as toUi}
 

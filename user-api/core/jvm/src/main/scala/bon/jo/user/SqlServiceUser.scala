@@ -2,7 +2,7 @@ package bon.jo.user
 
 import bon.jo.sql.Sql.ResultSetMapping
 import java.sql.ResultSet
-import bon.jo.user.UserModel.User
+import bon.jo.domain.User
 import java.sql.PreparedStatement
 import bon.jo.sql.Sql.Service
 import bon.jo.sql.Sql.ConnectionTableService

@@ -19,7 +19,7 @@ import bon.jo.user.UserRepo
 import bon.jo.user.UserModel
 import bon.jo.sql.Sql.doSql
 import bon.jo.sql.Sql.execute
-import bon.jo.user.UserModel.User
+import bon.jo.domain.User
 import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef
 object Server {

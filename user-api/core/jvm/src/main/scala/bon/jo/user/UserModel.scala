@@ -8,10 +8,9 @@ import bon.jo.sql.Sql.Table.unique
 import bon.jo.sql.Sql.Table.tableName
 import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
+import bon.jo.domain.{UserInfo , User}
 object UserModel:
-  case class User(id : Long,name : String,pwd : String)
-  case class UserLogin(name : String,pwd : String)
-  case class UserInfo(id : Long,name : String)
+
   extension (e : User)
     def toUserInfo = UserInfo(e.id,e.name)
   val cId = "id"

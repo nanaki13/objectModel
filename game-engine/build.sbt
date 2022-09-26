@@ -17,10 +17,12 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
   ).
   jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",
+    libraryDependencies += "bon.jo" %%% "user-core" % "1.0.0-SNAPSHOT",
     // Add JS-specific settings here
     scalaJSUseMainModuleInitializer := true
   ).settings(
-    libraryDependencies ++= testDep
+    libraryDependencies ++= testDep,
+    
   )
 
 

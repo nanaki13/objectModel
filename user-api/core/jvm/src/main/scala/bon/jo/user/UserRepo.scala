@@ -2,12 +2,12 @@ package bon.jo.user
 
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
-import bon.jo.user.UserModel.User
+import bon.jo.domain.User
 import UserRepo.Command.*
 import UserRepo.Response.*
 import bon.jo.sql.Sql
 import bon.jo.user.SqlServiceUser.ServiceUser
-import bon.jo.user.UserModel.UserLogin
+import bon.jo.domain.UserLogin
 object UserRepo {
 
 

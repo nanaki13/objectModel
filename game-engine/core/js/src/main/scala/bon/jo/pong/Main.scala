@@ -183,12 +183,9 @@ object Main extends Drawer[CanvasRenderingContext2D] :
   var currentInterval : Option[Int] = None
   @main
   def test2():Unit =
-    given ScoreService with
-      def getScores(): Future[Seq[Score]] = ???
-      def saveScore(s: Score): Future[SaveResult] = ???
-      def getScore(pseudo: String): Future[Option[Score]] = ???
+
     Login.log().foreach(go)
-  def go(pseudo : String):Unit =
+  def go(pseudo : Login.UserContext):Unit =
     val fact= 3
     
     
