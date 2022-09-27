@@ -18,8 +18,6 @@ object ScoreModel:
   val cScoreDate = "score_date_time"
   val cScore = "score_value"
 
-  case class GameLevel(idGame : Int,lvl : Int)
-  case class GameLevelUser(idGame : Int,lvl : Int,idUser : Long)
 
   val scoreTable = Table{
     tableName("score")    

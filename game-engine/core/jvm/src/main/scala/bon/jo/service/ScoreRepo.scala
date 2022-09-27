@@ -3,14 +3,14 @@ package bon.jo.service
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
 
-import ServiceRepo.Command.*
-import ServiceRepo.Response.*
+import ScoreRepo.Command.*
+import ScoreRepo.Response.*
 import bon.jo.sql.Sql
 import bon.jo.service.SqlServiceScore.ServiceScore
 
 import bon.jo.model.ScoreModel.Score
-import bon.jo.model.ScoreModel.GameLevel
-object ServiceRepo {
+import bon.jo.domain.GameLevel
+object ScoreRepo {
 
 
   // Trait defining successful and failure responses

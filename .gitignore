@@ -8,3 +8,4 @@ metals.sbt
 /project/.*
 **/target
 target
+sample2.db
