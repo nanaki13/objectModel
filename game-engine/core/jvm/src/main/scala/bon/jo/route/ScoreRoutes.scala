@@ -28,8 +28,6 @@ import java.time.LocalDateTime
 class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
     ActorRef[TokenRepo.Command],
     ActorSystem[_],
-    //  Manifest[User],
-    //  Manifest[Seq[User]],
     Formats
 ) extends JsonSupport[ScoreInfo]
     with CORSHandler
@@ -40,11 +38,11 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
   given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
-  // val userInfoJson: JsonSupport[UserInfo] = JsonSupport[UserInfo]()
-  // import userInfoJson.given
+  val scoreJson: JsonSupport[Score] = JsonSupport[Score]()
+  import scoreJson.given
   given t: Timeout = 3.seconds
 
-  lazy val theUserRoutes: Route = corsHandler {
+  lazy val route: Route = corsHandler {
     pathPrefix("scores") {
       concat(
         pathEnd {
@@ -68,7 +66,7 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
                     )
                   onSuccess(operationPerformed) {
                     case Response.OK =>
-                      complete(StatusCodes.Created, "User added")
+                      complete(StatusCodes.Created, "Score added")
                     case Response.KO(reason) =>
                       complete(StatusCodes.InternalServerError -> reason)
                   }
@@ -84,7 +82,7 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
                     buildUserRepository.ask(
                       Command.ReadScores(GameLevel(idGame, lvl), _)
                     )
-                  complete("")
+                  onSuccess(maybeUser)(complete)
                 }
               }
             }

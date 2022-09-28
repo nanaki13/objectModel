@@ -22,10 +22,23 @@ import bon.jo.sql.Sql.execute
 import bon.jo.domain.User
 import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef
-object Server {
+import Message.*
+import akka.http.scaladsl.server.Route
+
+enum Message:
+  case StartFailed(cause: Throwable)
+  case Started(binding: ServerBinding)
+  case Stop  
+object Server extends Server{
 
   Class.forName("org.sqlite.JDBC")
   given con : Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+ 
+}
+
+trait Server:
+
+  given con : Connection 
   println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
   doSql("DROP TABLE if exists user "){
     execute()  
@@ -43,12 +56,7 @@ object Server {
     service.create(User(1,"nanaki","test"))
   catch
     case _ => 
-  sealed trait Message
-  private final case class StartFailed(cause: Throwable) extends Message
-  private final case class Started(binding: ServerBinding) extends Message
-  case object Stop extends Message
-
-  def apply(host: String, port: Int): Behavior[Message] = Behaviors.setup { ctx =>
+  def apply(host: String, port: Int,route : Option[Route] = None): Behavior[Message] = Behaviors.setup { ctx =>
 
     given ActorSystem[_] = ctx.system
 
@@ -59,8 +67,13 @@ object Server {
     val routes = new UserRoutes(buildJobRepository)
     //val routesAuth = new AuthRoutes(buildJobRepository)
     val tokenRoute = new TokenRoutes(buildJobRepository,tokenRepo)
+    val allRoute = 
+      route match
+        case Some(r) => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes,r)
+        case _ => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes)
+      
     val serverBinding: Future[Http.ServerBinding] =
-      Http().newServerAt(host, port).bind(concat(routes.theUserRoutes,tokenRoute.theTokenRoutes))
+      Http().newServerAt(host, port).bind(allRoute)
     ctx.pipeToSelf(serverBinding) {
       case Success(binding) => Started(binding)
       case Failure(ex)      => StartFailed(ex)
@@ -101,10 +114,8 @@ object Server {
 
     starting(wasStopped = false)
   }
-}
-
 @main
 def launch(): Unit = {
-  val system: ActorSystem[Server.Message] =
+  val system: ActorSystem[Message] =
     ActorSystem(Server("localhost", 8080), "BuildUsersServer")
 }
