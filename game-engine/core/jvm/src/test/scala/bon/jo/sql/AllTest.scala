@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.sql.DriverManager
 
 import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.{ResultSetMapping, ConnectionTableService, PSMapping}
+import bon.jo.sql.Sql.{ResultSetMapping, BaseSqlRequest, PSMapping}
 import bon.jo.sql.Sql.Service
 import bon.jo.sql.Sql.executeUpdate
 import bon.jo.sql.Sql.execute
@@ -24,12 +24,12 @@ import scala.util.Failure
 import scala.util.Try
 import bon.jo.model.ScoreModel
 import bon.jo.service.SqlServiceScore
-import bon.jo.model.ScoreModel.Score
+import bon.jo.domain.Score
 import java.time.LocalDateTime
 class AllTest extends AnyFlatSpec with should.Matchers:
   Class.forName("org.sqlite.JDBC")
   given con: Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
-
+  given conn:( () => Connection) = () => con
   stmtDo() {
     stmt.execute("DROP TABLE if exists score; ")
   }
@@ -45,8 +45,7 @@ class AllTest extends AnyFlatSpec with should.Matchers:
   }
 
   "A service" should "read,upate delete insert" in {
-    given ConnectionTableService[Score] =
-      ConnectionTableService(ScoreModel.scoreTable, () => con)
+
     val service = SqlServiceScore()
     val score = service.create(Score(idGame  = 1,lvl= 1,idUser =  1, LocalDateTime.now(), 1200))
     val score2 = service.create(Score(idGame  = 1,lvl= 1,idUser =  2, LocalDateTime.now(), 1300))

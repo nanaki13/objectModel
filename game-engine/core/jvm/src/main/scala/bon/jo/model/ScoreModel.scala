@@ -10,8 +10,8 @@ import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
 import java.time.LocalDateTime
 object ScoreModel:
-  case class Score(idGame : Int,lvl : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
 
+  case class Score(idGame : Int,lvl : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
   val cIdGame = "id_game"
   val cLvl = "lvl"
   val cIdUser = "id_user"

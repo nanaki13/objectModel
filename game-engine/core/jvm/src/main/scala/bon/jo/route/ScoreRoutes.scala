@@ -24,6 +24,7 @@ import bon.jo.domain.ScoreInfo
 import bon.jo.domain.GameLevel
 import bon.jo.model.ScoreModel.Score
 import java.time.LocalDateTime
+import bon.jo.domain.UserScore
 
 class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
     ActorRef[TokenRepo.Command],
@@ -39,7 +40,9 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
   val scoreJson: JsonSupport[Score] = JsonSupport[Score]()
+  val scoreUserJson: JsonSupport[UserScore] = JsonSupport[UserScore]()
   import scoreJson.given
+  import scoreUserJson.given
   given t: Timeout = 3.seconds
 
   lazy val route: Route = corsHandler {
@@ -50,6 +53,7 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
             post {
               guard { calim =>
                 val user = calim.toUi
+                println(user)
                 entity(as[ScoreInfo]) { score =>
                   val operationPerformed: Future[ScoreRepo.Response] =
                     buildUserRepository.ask(
@@ -68,7 +72,7 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
                     case Response.OK =>
                       complete(StatusCodes.Created, "Score added")
                     case Response.KO(reason) =>
-                      complete(StatusCodes.InternalServerError -> reason)
+                      complete(StatusCodes.Conflict -> reason)
                   }
                 }
 
@@ -78,7 +82,7 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
             get {
               parameter("idGame".as[Int], "lvl".as[Int]) { (idGame, lvl) =>
                 rejectEmptyResponse {
-                  val maybeUser: Future[Seq[Score]] =
+                  val maybeUser: Future[Seq[UserScore]] =
                     buildUserRepository.ask(
                       Command.ReadScores(GameLevel(idGame, lvl), _)
                     )

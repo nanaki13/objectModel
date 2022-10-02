@@ -72,6 +72,11 @@ object Login:
   case class UserContext(user : UserInfo,token : String):
     def this(token : String) =
       this(userInfo(token),token)
+  object UserContext:
+    type ~[A] = UserContext ?=> A
+    inline def apply() :  ~[UserContext] = summon
+    inline def user : ~[UserInfo] = UserContext().user
+    inline def token : ~[String] = UserContext().token
   def log(): Future[UserContext] =
     val pro: Promise[UserContext] = Promise()
     val tokenOption = tokenKey.storageRead
@@ -119,7 +124,9 @@ object Login:
               .onComplete {
                 case Success(result) =>
                   title.textContent = "You can Login"
-                  ok.onclick = e => onClickForToken()
+                  ok.onclick = e => 
+                    e.preventDefault()
+                    onClickForToken()
                 case Failure(BadStatusException(value)) =>
                   bottom :+ <.span[HTMLElement](
                     text(value.toString()),

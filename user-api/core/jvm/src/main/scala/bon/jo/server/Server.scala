@@ -8,22 +8,24 @@ import akka.http.scaladsl.Http
 import scala.util.{ Success, Failure }
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.ActorContext
+import akka.http.scaladsl.server.Route
+
 import akka.http.scaladsl.server.Directives._
 import java.sql.Connection
 import java.sql.DriverManager
-import org.json4s.DefaultFormats
 import org.json4s.Formats
 import scala.concurrent.Future
 import akka.actor.typed.ActorSystem
 import bon.jo.user.UserRepo
 import bon.jo.user.UserModel
-import bon.jo.sql.Sql.doSql
+import bon.jo.sql.Sql.{doSql, stmtDo, stmt}
 import bon.jo.sql.Sql.execute
 import bon.jo.domain.User
 import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef
 import Message.*
-import akka.http.scaladsl.server.Route
+
 
 enum Message:
   case StartFailed(cause: Throwable)
@@ -32,43 +34,49 @@ enum Message:
 object Server extends Server{
 
   Class.forName("org.sqlite.JDBC")
-  given con : Connection = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+  val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+  given con : (() => Connection) = () => monoCon
  
 }
 
 trait Server:
-
-  given con : Connection 
-  println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
-  doSql("DROP TABLE if exists user "){
-    execute()  
-  }
+  given Formats = JsonSupport.format
+  given con : (() => Connection)
   
-
-  val service = SqlServiceUser(()=>con)
-  try 
-    doSql(UserModel.userTable.createSql){
+  val service = SqlServiceUser()
+  def init():Unit = 
+    given Connection = con()
+    println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
+   
+    doSql("DROP TABLE if exists user "){
       execute()  
     }
-  catch
-    case _ => 
-  try 
-    service.create(User(1,"nanaki","test"))
-  catch
-    case _ => 
-  def apply(host: String, port: Int,route : Option[Route] = None): Behavior[Message] = Behaviors.setup { ctx =>
+    def p[T](e : T):T =
+      println(e)
+      e
+    try 
+      stmtDo(){
+        UserModel.userTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
+      }
+    catch
+      case _ => 
+    try 
+      service.create(User(1,"nanaki","test"))
+    catch
+      case _ => 
+  type RouteMaker =    ActorRef[TokenRepo.Command] ?=>  ActorContext[Message] => Option[Route]
+  def apply(host: String, port: Int,route : RouteMaker = ctx => None): Behavior[Message] = Behaviors.setup { ctx =>
 
     given ActorSystem[_] = ctx.system
 
     val buildJobRepository = ctx.spawn(UserRepo(service,service.maxId()+1), "UserRepository")
     given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
    
-    given Formats = DefaultFormats
+    
     val routes = new UserRoutes(buildJobRepository)
-    //val routesAuth = new AuthRoutes(buildJobRepository)
     val tokenRoute = new TokenRoutes(buildJobRepository,tokenRepo)
     val allRoute = 
-      route match
+      route(ctx) match
         case Some(r) => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes,r)
         case _ => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes)
       

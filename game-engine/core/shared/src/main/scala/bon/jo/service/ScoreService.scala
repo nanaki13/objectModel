@@ -2,13 +2,14 @@ package bon.jo.service
 
 import scala.concurrent.Future
 import ScoreService.*
+import bon.jo.domain.ScoreInfo
+import bon.jo.domain.UserScore
 
 trait ScoreService :
-  def getScores() : Future[Seq[Score]]
-  def saveScore(s : Score) : Future[SaveResult]
-  def getScore(pseudo : String):Future[Option[Score]]
+  def getScores() : Future[Seq[UserScore]]
+  def saveScore(s : ScoreInfo) : Future[SaveResult]
+  def getScore(pseudo : String):Future[Option[ScoreInfo]]
 
 object ScoreService:
   enum SaveResult:
-    case New,Updated,NotUpdated
-  case class Score(value : Int,owner : String)
+    case Updated,NotUpdated

@@ -10,18 +10,18 @@ import bon.jo.user.SqlServiceUser.ServiceUser
 import pdi.jwt.{Jwt, JwtClaim}
 import org.json4s.native.Serialization
 import org.json4s.Formats
-import org.json4s.DefaultFormats
 import pdi.jwt.JwtAlgorithm
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import scala.util.Try
+import bon.jo.server.JsonSupport
 object TokenRepo {
 
   val key = scala.sys.env.getOrElse("bon.jo.secret","secret")
     // key: String = "secretKey"
   val algo = JwtAlgorithm.HS256
-  given Formats = DefaultFormats
+  given Formats = JsonSupport.format
 
   // Trait defining successful and failure responses
   enum Response:

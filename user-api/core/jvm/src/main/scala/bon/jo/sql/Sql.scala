@@ -6,8 +6,8 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import bon.jo.sql.Sql.PSMapping
 
-import bon.jo.sql.Sql.ConnectionTableService
-import ConnectionTableService.connectionTableService
+import bon.jo.sql.Sql.BaseSqlRequest
+import BaseSqlRequest.baseSqlRequest
 import java.sql.Statement
 object Sql {
   case class Builder(var value : Table,val id : ColumnsRef = ColumnsRef(),var indexs : Seq[Index] = Nil)
@@ -97,11 +97,20 @@ object Sql {
     rest
  
 
+  trait CountColumns[T]:
+    def count : Int
+  object CountColumns:
+    inline def apply[T](using CountColumns[T]) = summon
+    given [L](using JoinBaseSqlRequest[L,_]):CountColumns[L] = summon.leftTable
   trait ResultSetMapping[T]:
     def apply(from : Int,v : ResultSet):T
     inline def apply(v : ResultSet):T = this(1,v)
   object ResultSetMapping:
     inline def apply[T](using ResultSetMapping[T]) = summon
+    given [L,R](using ResultSetMapping[L],ResultSetMapping[R],CountColumns[L]): ResultSetMapping[(L,R)] with
+        def apply(from: Int, v: ResultSet): (L, R) = 
+          (ResultSetMapping[L](from,v) , ResultSetMapping[R](from+CountColumns[L].count,v))
+
   trait PSMapping[T]:
     def apply(from : Int,v : T)(using PreparedStatement):Int
   object PSMapping:
@@ -112,17 +121,20 @@ object Sql {
 
 
     
-  object ConnectionTableService:
-    inline def connectionTableService[T](using ConnectionTableService[T]) = summon
-    def apply[T](table : Table,c : ()=> Connection):ConnectionTableService[T] = Impl[T](table,c)
-    private case class Impl[T](table : Table,c : ()=> Connection) extends ConnectionTableService[T]:
-      def connection() : Connection = c()
-  trait ConnectionTableService[T] :
+  object BaseSqlRequest:
+    inline def baseSqlRequest[T](using BaseSqlRequest[T]) = summon
+    inline def table[T](using BaseSqlRequest[T]) : Table = baseSqlRequest.table
+    def apply[T](table : Table):BaseSqlRequest[T] = Impl[T](table)
+    private case class Impl[T](table : Table) extends BaseSqlRequest[T]
+  trait BaseSqlRequest[T] extends CountColumns[T] :
     val table : Table
-    def connection() : Connection
+    val count = table.columns.size
     def columnsString = table.columns.map(_.name).mkString(", ")
+    def aliasDotcolumnsString(alias : String) = table.columns.map(col => s"$alias.${col.name}").mkString(", ")
     def idsString = table.id.mkString(", ")
+    def aliasDotidsString(alias : String) = table.id.map(col => s"$alias.$col").mkString(", ")
     def idsConditionString = s" ${table.id.map(idCol => s"$idCol = ?").mkString(" AND ")} "
+    def aliasDotidsConditionString(alias : String) = s" ${table.id.map(idCol => s"$alias.$idCol = ?").mkString(" AND ")} "
     def columnsParamString = table.columns.map(_ => "?").mkString(", ")
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
     val sqlBaseSelect = s"""SELECT $columnsString FROM ${table.name}"""
@@ -133,16 +145,62 @@ object Sql {
     val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsConditionString}"""
     val updateByIdString = s"""UPDATE  ${table.name} SET ${updateSetString}  WHERE $idsConditionString"""
     val insertString = s"""INSERT INTO ${table.name} ( $columnsString) VALUES ( ${columnsParamString} )"""
-    def sql[A](sql : String)(f : PreparedStatement ?=> A):A = doSql(sql)(f)(using connection())
+  
+  class Alias:
+    import scala.collection.mutable
+    val givenAlias : mutable.Map[String,Int] = mutable.Map.empty
+    def apply(s : String): String = 
+      val pref = givenAlias.getOrElseUpdate(s,1)
+      givenAlias += s -> (pref+1)
+      s+"_"+(pref)
+  object Alias:
+    inline def alias : Alias?=>Alias = summon
 
+  object JoinBaseSqlRequest:
+    inline def joinRequest[L,R] : JoinBaseSqlRequest[L,R]?=>JoinBaseSqlRequest[L,R] = summon
+    
+  trait JoinBaseSqlRequest[L,R](using  BaseSqlRequest[L],BaseSqlRequest[R],Alias) :
+
+    import Alias.alias
+    import BaseSqlRequest.table
+    
+    inline def leftTable = BaseSqlRequest.baseSqlRequest[L]
+    inline def rightTable = BaseSqlRequest.baseSqlRequest[R]
+    val leftAlias = alias(table[L].name)
+    val rightAlias = alias(table[R].name)
+    val leftAliasedTable = table[L].name+" "+leftAlias
+    val rightAliasedTable = table[R].name+" "+rightAlias
+    def columns : String = leftTable.aliasDotcolumnsString(leftAlias)+", "+rightTable.aliasDotcolumnsString(rightAlias)
+    def select : String = s"SELECT $columns FROM $join"
+    def join : String = s"$leftAliasedTable JOIN $rightAliasedTable"
+
+  trait UsingCo(using ()=>Connection):
+    def connection : ()=>Connection = summon
+    def sql[A](sql : String)(f : PreparedStatement ?=> A):A = doSql(sql)(f)(using summon[()=>Connection]())
+  trait JoinService[L,R](using ()=>Connection,ResultSetMapping[L],ResultSetMapping[R],JoinBaseSqlRequest[L,R]) extends UsingCo:
+    import JoinBaseSqlRequest.joinRequest
+    lazy val joinCondition : String
+    lazy val sqlBaseSelect = joinRequest.select+" ON "+joinCondition
+    def findBys(fieldvalue : (String,Any) *):Seq[(L,R)] = 
+      val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
+      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"
+      println(sqlS)
+      sql(sqlS){
+        fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
+        
+        val r = executeQuery()
+        r.iterator.map( r => {
+        
+          ResultSetMapping[(L,R)](1,r)
+        }).toSeq
+      }  
 
       
-  trait Service[T,ID](using ResultSetMapping[ID],ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]):
-  
-    inline def service = connectionTableService
-
+  trait Service[T,ID](using ()=>Connection, ResultSetMapping[ID],ResultSetMapping[T],BaseSqlRequest[T],PSMapping[T],PSMapping[ID])extends UsingCo:
+     
+    inline def request = baseSqlRequest
     def findBy(field : String,value : Any):Option[T] = 
-       service.sql(service.sqlBaseSelect+s" WHERE $field = ?"){
+      sql(baseSqlRequest.sqlBaseSelect+s" WHERE $field = ?"){
         stmtSetObject(1,value)
         val r = executeQuery()
         if r.next() then
@@ -152,33 +210,33 @@ object Sql {
       } 
     def findBys(fieldvalue : (String,Any) *):Seq[T] = 
       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
-      service.sql(service.sqlBaseSelect+s" WHERE $paramsQ"){
+      sql(baseSqlRequest.sqlBaseSelect+s" WHERE $paramsQ"){
         fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
         
         val r = executeQuery()
         r.iterator.map( r => ResultSetMapping[T](r)).toSeq
       } 
     def contains(ids : ID):Boolean = 
-       service.sql(service.selectByIdString){
+       sql(baseSqlRequest.selectByIdString){
         PSMapping[ID](1,ids)
         val r = executeQuery()
         r.next()
       }
     def maxId():ID = 
-      service.sql[ID](s"SELECT MAX(${service.table.id.mkString(", ")}) FROM "+service.table.name){
+      sql[ID](s"SELECT MAX(${baseSqlRequest.table.id.mkString(", ")}) FROM "+baseSqlRequest.table.name){
         val r = executeQuery()
         r.next()
         ResultSetMapping[ID](r)
       }
     def read(ids :ID):T  = 
-      service.sql[T](service.selectByIdString){
+      sql[T](baseSqlRequest.selectByIdString){
         PSMapping[ID](1,ids)
         val r = executeQuery()
         r.next()
         ResultSetMapping[T](r)
       }
     def readOption(ids :ID):Option[T]  = 
-      service.sql(service.selectByIdString){
+      sql(baseSqlRequest.selectByIdString){
         PSMapping[ID](1,ids)
         val r = executeQuery()
         if r.next() then
@@ -186,25 +244,25 @@ object Sql {
         else 
           None
       }
-    def delete(ids :ID):Unit = service.sql(service.deleteByIdString){
+    def delete(ids :ID):Unit = sql(baseSqlRequest.deleteByIdString){
         PSMapping[ID](1,ids)
         executeUpdate()     
       }
     def update(id : ID,t : T):Unit= 
-      service.sql[T](service.updateByIdString){
+      sql[T](baseSqlRequest.updateByIdString){
         PSMapping[ID](PSMapping[T](1,t),id)
         executeUpdate()
         t
       } 
     def create(t :T):T= 
-      service.sql[T](service.insertString){
+      sql[T](baseSqlRequest.insertString){
         PSMapping[T](1,t)
         executeUpdate()
         t
       } 
 
   object Service:
-    class Impl[T,ID](using ResultSetMapping[ID], ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]) extends Service[T,ID]
-    def apply[T,ID](using ResultSetMapping[ID],ResultSetMapping[T],ConnectionTableService[T],PSMapping[T],PSMapping[ID]): Service[T,ID] = Impl()
+    class Impl[T,ID](using ()=>Connection, ResultSetMapping[ID], ResultSetMapping[T],BaseSqlRequest[T],PSMapping[T],PSMapping[ID]) extends Service[T,ID]
+    def apply[T,ID](using ()=>Connection, ResultSetMapping[ID],ResultSetMapping[T],BaseSqlRequest[T],PSMapping[T],PSMapping[ID]): Service[T,ID] = Impl()
   
 }

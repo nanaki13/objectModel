@@ -22,69 +22,80 @@ import bon.jo.domain.UserLogin
 import bon.jo.user.TokenRepo
 import bon.jo.user.TokenRepo.{toUserInfo as toUi}
 
-class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using   ActorRef[TokenRepo.Command],ActorSystem[_],Manifest[User],Manifest[Seq[User]],Formats) extends JsonSupport[User] with CORSHandler with TokenRouteGuard{
+class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
+    ActorRef[TokenRepo.Command],
+    ActorSystem[_],
+    Manifest[User],
+    Manifest[Seq[User]],
+    Formats
+) extends JsonSupport[User]
+    with CORSHandler
+    with TokenRouteGuard {
 
   import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
   import akka.actor.typed.scaladsl.AskPattern.Askable
   given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
-  val userInfoJson : JsonSupport[UserInfo] = JsonSupport[UserInfo]()
+  val userInfoJson: JsonSupport[UserInfo] = JsonSupport[UserInfo]()
   import userInfoJson.given
-   val userLoginJson : JsonSupport[UserLogin] = JsonSupport[UserLogin]()
+  val userLoginJson: JsonSupport[UserLogin] = JsonSupport[UserLogin]()
   import userLoginJson.given
-  given t:Timeout = 3.seconds
+  given t: Timeout = 3.seconds
 
   lazy val theUserRoutes: Route =
-    pathPrefix("users") {
-      concat(
-        pathEnd {
-          concat(
-            corsHandler(post {
-              entity(as[UserLogin]) { user =>
-                val operationPerformed: Future[UserRepo.Response] =
-                  buildUserRepository.ask(Command.AddUser(user, _))
-                onSuccess(operationPerformed) {
-                  case Response.OK         => complete("User added")
-                  case Response.KO(reason) => complete(StatusCodes.InternalServerError -> reason)
+    corsHandler {
+      pathPrefix("users") {
+        concat(
+          pathEnd {
+            concat(
+              post {
+                entity(as[UserLogin]) { user =>
+                  val operationPerformed: Future[UserRepo.Response] =
+                    buildUserRepository.ask(Command.AddUser(user, _))
+                  onSuccess(operationPerformed) {
+                    case Response.OK => complete("User added")
+                    case Response.KO(reason) =>
+                      complete(StatusCodes.InternalServerError -> reason)
+                  }
+                }
+              },
+              get {
+                parameter("name") { name =>
+                  rejectEmptyResponse {
+                    val maybeUser: Future[Option[User]] =
+                      buildUserRepository.ask(Command.FindUsers(name, _))
+                    complete(maybeUser.map(_.map(_.toUserInfo)))
+                  }
                 }
               }
-            }),
-            get {
-              parameter("name") {
-                name => 
-                rejectEmptyResponse {
-                  val maybeUser: Future[Option[User]] = buildUserRepository.ask(Command.FindUsers(name, _))
-                  complete(maybeUser.map(_.map(_.toUserInfo)))
-                }
-              }
-            }
-          )
-        },
-        (delete& path(LongNumber)) { id =>
-
-          guard {
-            claim => 
+            )
+          },
+          (delete & path(LongNumber)) { id =>
+            guard { claim =>
               val ui = claim.toUi
               ui.name match
-                case "Nanaki" =>       
-                  val operationPerformed: Future[Response] = buildUserRepository.ask(Command.ClearUsers(id,_))
+                case "Nanaki" =>
+                  val operationPerformed: Future[Response] =
+                    buildUserRepository.ask(Command.ClearUsers(id, _))
                   onSuccess(operationPerformed) {
-                    case Response.OK         => complete("Users cleared")
-                    case Response.KO(reason) => complete(StatusCodes.InternalServerError -> reason)
+                    case Response.OK => complete("Users cleared")
+                    case Response.KO(reason) =>
+                      complete(StatusCodes.InternalServerError -> reason)
                   }
                 case o => complete(StatusCodes.Forbidden)
+            }
+
+          },
+          (get & path(LongNumber)) { id =>
+            val maybeUser: Future[Option[User]] =
+              buildUserRepository.ask(Command.GetUserById(id, _))
+            rejectEmptyResponse {
+              complete(maybeUser)
+            }
           }
-        
-        },
-        
-        (get & path(LongNumber)) { id =>
-          val maybeUser: Future[Option[User]] =
-            buildUserRepository.ask(Command.GetUserById(id, _))
-          rejectEmptyResponse {
-            complete(maybeUser)
-          }
-        }
-      )
+        )
+      }
     }
+
 }

@@ -20,7 +20,11 @@ package predef:
     def apply(url : String,headers : Map[String,String]): Future[Response] = 
       m.send(url,None,headers ++ summon.headers)
 object HttpRequest :
- 
+  given [T](using cv : Conversion[js.Any,T]) : Conversion[js.Any,Seq[T]] = e =>  conv(cv)(e.asInstanceOf[js.Array[js.Any]])
+  def conv[T]( cv : Conversion[js.Any,T]) : Conversion[js.Array[js.Any],Seq[T]] = 
+    e => e.map{
+      f => cv(f)
+    }.toSeq
   enum Method:
     case GET,POST,PUT
   type Get = Method.GET.type
@@ -36,7 +40,11 @@ object HttpRequest :
   extension (t : String)
     inline def toEntity[T](using  Conversion[String,T]):T = summon(t)
   extension (response : Response)
+    def mapStatus[T](f : PartialFunction[Int,T]):T=
+      f.applyOrElse(response.status, s => throw BadStatusException[String](s"not valid : ${s}"))
+      
     def okWith[OK,KO](status : Int)(using  Conversion[String,OK],Conversion[String,KO]):OK = 
+
       if response.status == status then
         response.value.toString().toEntity[OK]
       else 
@@ -68,15 +76,23 @@ object HttpRequest :
   def request(method : Method,url : String,body : Option[String],headers : Map[String,String]) : Future[Response] = 
     val oReq = new XMLHttpRequest()
     val ret = Promise[Response]()
-    println((method : Method,url : String,body : Option[String],headers : Map[String,String]))
-    headers.foreach(oReq.setRequestHeader)
-    oReq.open(method.toString(), url, true);
+    println((method : Method,url : String,body : Option[String],headers : Map[String,String]) )
+    val sendOp =  Try{
+      oReq.open(method.toString(), url, true);
+      headers.foreach(oReq.setRequestHeader)
+      oReq.onload = e => {
+
+        ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
+      }
+      oReq.onerror= e => {
+
+        ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
+      }
+      oReq.send(body.getOrElse(null));
     
-    oReq.onload = e => {
-      ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
     }
-    oReq.onerror= e => {
-      ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
-    }
-    oReq.send(body.getOrElse(null));
-    ret.future
+    sendOp match
+      case Success(v) => ret.future
+      case Failure(v) => Future.failed(v)
+    
+    

@@ -77,7 +77,8 @@ trait TokenRouteGuard(using tokenRepo: ActorRef[TokenRepo.Command],s :ActorSyste
     def guard : Directive1[JwtClaim] = {
     optionalHeaderValueByName(Authorization.name).flatMap{
       case Some(auth ) => 
-        val tokenEx = "Bearer ([\\s]*)".r
+        println(auth)
+        val tokenEx = "Bearer ([^\\s]*)".r
         auth match 
           case tokenEx(token) => 
             onSuccess( tokenRepo.ask[Try[JwtClaim]](TokenRepo.Command.ParseToken(token,_))).flatMap{

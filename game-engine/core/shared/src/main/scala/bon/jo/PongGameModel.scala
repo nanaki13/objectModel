@@ -171,7 +171,14 @@ package pong :
       }.asInstanceOf)
 
   case class PongSystem(balls : Seq[Ball],player : List[Player] ,board : Board,rocks : List[Rock],gifts : Seq[Gift] )extends System:
-    def gameOver():Boolean = rocks.isEmpty || balls.isEmpty
+    def isGameOver():GameOver = if rocks.isEmpty then GameOver.Victory(player.map(_.score).sum) else if balls.isEmpty then GameOver.Loose(player.map(_.score).sum) else GameOver.No
+  enum GameOver:
+    case Victory(score : Int) extends GameOver with End
+    case Loose(score : Int) extends GameOver with End
+    case No
+  sealed trait End:
+    val score : Int
+
     //def elements: Seq[SystemElement] = balls ++ player ++ rocks
   //object PongSystem:
     //def apply( l : List[SystemElement],board : Board  ) : PongSystem= 
