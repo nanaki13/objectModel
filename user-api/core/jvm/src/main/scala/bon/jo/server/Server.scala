@@ -46,7 +46,7 @@ trait Server:
   val service = SqlServiceUser()
   def init():Unit = 
     given Connection = con()
-    println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"+UserModel.userTable.createSql)
+    println(UserModel.userTable.createSql)
    
     doSql("DROP TABLE if exists user "){
       execute()  
@@ -60,10 +60,7 @@ trait Server:
       }
     catch
       case _ => 
-    try 
-      service.create(User(1,"nanaki","test"))
-    catch
-      case _ => 
+  
   type RouteMaker =    ActorRef[TokenRepo.Command] ?=>  ActorContext[Message] => Option[Route]
   def apply(host: String, port: Int,route : RouteMaker = ctx => None): Behavior[Message] = Behaviors.setup { ctx =>
 

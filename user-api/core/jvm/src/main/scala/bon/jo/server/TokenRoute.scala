@@ -32,6 +32,7 @@ import scala.util.Failure
 import akka.http.scaladsl.server.StandardRoute.toDirective
 import akka.http.scaladsl.server.Directive
 import akka.http.scaladsl.server.AuthorizationFailedRejection
+import com.github.t3hnar.bcrypt._
 class TokenRoutes(userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorRef[TokenRepo.Command])(using   ActorSystem[_],Formats) extends  CORSHandler  {
 
 
@@ -53,7 +54,7 @@ class TokenRoutes(userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorRef[Token
               entity(as[UserLogin]) { user =>
                  val operationPerformed: Future[Option[String]] = userRepo.ask[Option[User]](UserRepo.Command.FindUsers(user.name,_)).flatMap{ e =>
                       e match
-                        case Some(u) if u.pwd == user.pwd => 
+                        case Some(u) if user.pwd.isBcryptedBounded(u.pwd) => 
                           tokenRepo.ask[String](TokenRepo.Command.GetToken(UserInfo(u.id,u.name),_)).map(e => Some(e))
                         case _ => Future(None)
                  }

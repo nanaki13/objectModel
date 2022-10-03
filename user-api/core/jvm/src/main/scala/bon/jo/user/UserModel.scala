@@ -13,15 +13,16 @@ object UserModel:
 
   extension (e : User)
     def toUserInfo = UserInfo(e.id,e.name)
-  val cId = "id"
-  val cName = "name"
-  val cPwd = "pwd"
+  object column:
+    val id = "id"
+    val name = "name"
+    val pwd = "pwd"
 
   val userTable = Table{
     tableName("user")
-      Column{columnName("id");_type("BIGINT");id} 
-      Column{columnName(cName);_type("VARCHAR(255)");unique} 
-      Column{columnName(cPwd);_type("VARCHAR(255)")} 
+      Column{columnName(column.id);_type("BIGINT");id} 
+      Column{columnName(column.name);_type("VARCHAR(255)");unique} 
+      Column{columnName(column.pwd);_type("VARCHAR(255)")}
 
 
     }

@@ -38,7 +38,7 @@ object TokenRepo {
   def apply(): Behavior[Command] = Behaviors.receiveMessage {
     case GetToken(user, replyTo) =>
 
-      val jwtClaim = JwtClaim.apply(content = Serialization.write(user),expiration = Some(ZonedDateTime.now().plusSeconds(30).toEpochSecond()))
+      val jwtClaim = JwtClaim.apply(content = Serialization.write(user),expiration = Some(ZonedDateTime.now().plusDays(7).toEpochSecond()))
       replyTo ! Jwt.encode(jwtClaim,key,algo)
       Behaviors.same
 

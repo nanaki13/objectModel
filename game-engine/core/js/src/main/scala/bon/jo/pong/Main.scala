@@ -271,13 +271,16 @@ object Main extends Drawer[CanvasRenderingContext2D]:
     val fact = 3
     // println(pseudo)
     given scoreService: ScoreService = ScoreServiceRest()
-
-    TopScoreView.view.onComplete {
-      case Success(e) =>
-        println(e)
-        document.body :+ e
-      case Failure(f) => f.printStackTrace()
-    }
+    val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog"))
+    def updateTopeScore() : Unit = 
+      topSCoreWrapper.children.foreach(topSCoreWrapper.removeChild)
+      TopScoreView.view.recover{
+        case e => 
+          e.printStackTrace()
+          println("Oups, problems with top score...")
+          <.div[HTMLElement](text("Oups, problems with top score..."))
+      }.foreach(topSCoreWrapper :+ _ )
+    updateTopeScore()
     given Debug = () => debugger()
 
     var u: PongSystem = createSys(fact)
@@ -294,10 +297,10 @@ object Main extends Drawer[CanvasRenderingContext2D]:
 
     val root = <.div[HTMLElement](
       childs(
-        Login.logoutButton(onLogOut()),
+        Login.logoutButton(onLogOut()),topSCoreWrapper,
         <.div[HTMLElement](childs(athDiv, canvas), _class("ath-game"))
       ),
-      style(_.width = "100%", _.marginTop = "4%")
+      _class("root")
     )
     var t = currentMillis
     given CanvasRenderingContext2D =
@@ -326,7 +329,7 @@ object Main extends Drawer[CanvasRenderingContext2D]:
     // u = u.copy(rocks = Nil)
 
     val accPlayer = Player.AccSpped(1.5)
-
+    val _10m = 1000*60*10
     def play(): Unit =
       u.draw()
       var count = 0
@@ -360,7 +363,8 @@ object Main extends Drawer[CanvasRenderingContext2D]:
             val m = s_t / 60
             val s = s_t % 60
             f"${m}%02dm${s}%02ds${ml}%03dms"
-          timeDiv.textContent = format(currentMillis - t)
+            
+          timeDiv.textContent = format(_10m - currentMillis + t)
           scoreDiv.textContent = u.player.head.score.toString()
           if count % 10 == 0 then
             count = 0
@@ -393,7 +397,9 @@ object Main extends Drawer[CanvasRenderingContext2D]:
         scoreService.saveScore(ScoreInfo(1, 1, e.score)).onComplete {
           case Success(v) =>
             val messageS = v match
-              case SaveResult.Updated    => "You update your Score !"
+              case SaveResult.Updated    => 
+                updateTopeScore() 
+                "You update your Score !"
               case SaveResult.NotUpdated => "Not your best score !"
             message({ u = createSys(fact); play() }, messageS, "Play again?")
 

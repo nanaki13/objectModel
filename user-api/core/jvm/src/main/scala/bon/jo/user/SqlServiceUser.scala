@@ -15,7 +15,7 @@ object SqlServiceUser {
   given BaseSqlRequest[User] = BaseSqlRequest[User](UserModel.userTable)
   given ResultSetMapping[User] with
     def apply(from : Int,r : ResultSet):User = 
-      User(r.getLong(from).asInstanceOf,r.getObject(from+1).asInstanceOf,r.getObject(from+2).asInstanceOf)
+      User(r.getLong(from),r.getString(from+1),r.getString(from+2))
   given ResultSetMapping[Long] with
     def apply(from : Int,r : ResultSet):Long = 
       r.getLong(from).asInstanceOf
@@ -36,5 +36,5 @@ object SqlServiceUser {
 trait SqlServiceUser:
   self :  Service[User,Long] =>
     def find(name : String) :Option[User] = 
-      self.findBy(UserModel.cName,name)
+      self.findBy(UserModel.column.name,name)
 

@@ -24,7 +24,7 @@ import scala.util.Failure
 import scala.util.Try
 import bon.jo.model.ScoreModel
 import bon.jo.service.SqlServiceScore
-import bon.jo.domain.Score
+import bon.jo.model.ScoreModel.Score
 import java.time.LocalDateTime
 class AllTest extends AnyFlatSpec with should.Matchers:
   Class.forName("org.sqlite.JDBC")

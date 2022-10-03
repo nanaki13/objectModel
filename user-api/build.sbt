@@ -16,7 +16,8 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
       libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided",
       libraryDependencies += "com.github.jwt-scala" %% "jwt-json4s-native" % "9.0.5",
       libraryDependencies += "org.json4s" %% "json4s-native" % "4.0.5",
-      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime,
+      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" ,
+      libraryDependencies += ("com.github.t3hnar" %% "scala-bcrypt" % "4.3.0").cross(CrossVersion.for3Use2_13),
       libraryDependencies ++= Seq(
       ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion).cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-stream" % AkkaVersion).cross(CrossVersion.for3Use2_13),

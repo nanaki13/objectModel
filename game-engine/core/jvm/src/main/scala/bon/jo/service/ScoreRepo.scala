@@ -39,7 +39,6 @@ object ScoreRepo {
         case ReadScores(gameLevel, replyTo) =>
           println(gameLevel)
           val score = scores.readScore(gameLevel.idGame,gameLevel.lvl)
-          println(score)
           replyTo ! score
 
         Behaviors.same

@@ -10,16 +10,16 @@ object TopScoreView:
 
   def view(using ser: ScoreService): Future[HTMLElement] =
     ser.getScores().map { scores =>
-      println(scores)
-      val trs = scores.map { score =>
+      val trs = scores.zipWithIndex.map { (score, i) =>
         val dateScore =  new Date(score.score.scoreDateTime)
         
         <.tr[HTMLElement](
           childs(
+            <.td[HTMLElement](text((i + 1).toString()),_class("table-top-score-value")),
             <.td[HTMLElement](text(score.user.name),_class("table-top-score-user")),
             <.td[HTMLElement](text(score.score.scoreValue.toString()),_class("table-top-score-value")),
             <.td[HTMLElement](
-              text(dateScore.toLocaleString()),_class("table-top-score-date")
+              text(dateScore.toLocaleDateString()),_class("table-top-score-date")
             )
           )
         )

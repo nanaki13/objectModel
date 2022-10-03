@@ -9,7 +9,12 @@ import bon.jo.sql.Sql.PSMapping
 import bon.jo.sql.Sql.BaseSqlRequest
 import BaseSqlRequest.baseSqlRequest
 import java.sql.Statement
+import Sql.Sort.sql
+import Sql.Sort
 object Sql {
+  case class Sort(column : String, dir : Dir)
+  enum Dir:
+    case ASC,DESC
   case class Builder(var value : Table,val id : ColumnsRef = ColumnsRef(),var indexs : Seq[Index] = Nil)
   case class BuilderCol(var value : Column)
   type ColumnInTable = Builder ?=> Column
@@ -177,13 +182,25 @@ object Sql {
   trait UsingCo(using ()=>Connection):
     def connection : ()=>Connection = summon
     def sql[A](sql : String)(f : PreparedStatement ?=> A):A = doSql(sql)(f)(using summon[()=>Connection]())
+
+  object Sort:
+    val asc : (column : String) => Sort = Sort(_,Dir.ASC)
+    val desc : (column : String) => Sort  = Sort(_,Dir.DESC)
+    extension (sorts: Seq[Sort])
+      def sql : String = 
+        if sorts.isEmpty then
+        ""
+        else
+          " ORDER BY "+sorts.map(e => e.column+" "+e.dir).mkString(",")
   trait JoinService[L,R](using ()=>Connection,ResultSetMapping[L],ResultSetMapping[R],JoinBaseSqlRequest[L,R]) extends UsingCo:
     import JoinBaseSqlRequest.joinRequest
+   
     lazy val joinCondition : String
     lazy val sqlBaseSelect = joinRequest.select+" ON "+joinCondition
-    def findBys(fieldvalue : (String,Any) *):Seq[(L,R)] = 
+    
+    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil):Seq[(L,R)] = 
       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
-      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"
+      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"+sorts.sql
       println(sqlS)
       sql(sqlS){
         fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
@@ -208,9 +225,9 @@ object Sql {
         else 
           None
       } 
-    def findBys(fieldvalue : (String,Any) *):Seq[T] = 
+    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil):Seq[T] = 
       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
-      sql(baseSqlRequest.sqlBaseSelect+s" WHERE $paramsQ"){
+      sql(baseSqlRequest.sqlBaseSelect+s" WHERE $paramsQ ${sorts.sql}"){
         fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
         
         val r = executeQuery()

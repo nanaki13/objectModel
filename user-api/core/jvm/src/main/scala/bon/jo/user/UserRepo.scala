@@ -8,6 +8,7 @@ import UserRepo.Response.*
 import bon.jo.sql.Sql
 import bon.jo.user.SqlServiceUser.ServiceUser
 import bon.jo.domain.UserLogin
+import com.github.t3hnar.bcrypt._
 object UserRepo {
 
 
@@ -30,7 +31,8 @@ object UserRepo {
       Behaviors.same */
     case AddUser(user, replyTo) =>
       replyTo ! OK
-      users.create(User(id,user.name,user.pwd))
+    
+      users.create(User(id,user.name,user.pwd.bcryptBounded(generateSalt)))
       UserRepo(users,id+1)
     case GetUserById(id, replyTo) =>
       replyTo ! users.readOption(id)
