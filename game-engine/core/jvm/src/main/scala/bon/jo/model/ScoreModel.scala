@@ -24,6 +24,6 @@ object ScoreModel:
       Column{columnName(cIdGame);_type("INT");id} 
       Column{columnName(cLvl);_type("INT");id} 
       Column{columnName(cIdUser);_type("BIGINT");id} 
-      Column{columnName(cScoreDate);_type("DATETIME")} 
+      Column{columnName(cScoreDate);_type("TIMESTAMP")} 
       Column{columnName(cScore);_type("BIGINT")} 
     }

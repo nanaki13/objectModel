@@ -21,13 +21,17 @@ import bon.jo.domain.UserScore
 import bon.jo.domain
 import bon.jo.model.ScoreModel.Score
 import bon.jo.user.UserModel.toUserInfo
+import java.time.ZoneId
 object SqlServiceScore {
 
   type ServiceScore = Service[Score, (Int, Int, Long)] with SqlServiceScore
   def toLocalDateTime(a: Any): LocalDateTime =
     a match
       case e: LocalDateTime => e
-      case o                => LocalDateTime.parse(o.toString())
+      case o:       java.sql.Timestamp => LocalDateTime.ofInstant( o.toInstant(),ZoneId.systemDefault())
+      case o                => 
+        println(o.getClass())
+        LocalDateTime.parse(o.toString())
 
   given ResultSetMapping[Score] =
     (from, r) =>

@@ -19,7 +19,7 @@ object UserModel:
     val pwd = "pwd"
 
   val userTable = Table{
-    tableName("user")
+    tableName("users")
       Column{columnName(column.id);_type("BIGINT");id} 
       Column{columnName(column.name);_type("VARCHAR(255)");unique} 
       Column{columnName(column.pwd);_type("VARCHAR(255)")}

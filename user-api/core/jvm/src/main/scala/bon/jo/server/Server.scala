@@ -48,7 +48,7 @@ trait Server:
     given Connection = con()
     println(UserModel.userTable.createSql)
    
-    doSql("DROP TABLE if exists user "){
+    doSql(s"DROP TABLE if exists ${UserModel.userTable.name} "){
       execute()  
     }
     def p[T](e : T):T =

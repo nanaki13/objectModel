@@ -16,9 +16,12 @@ import bon.jo.model.ScoreModel
 import bon.jo.sql.Sql.{stmtDo, stmt}
 import scala.util.Try
 object MainJvm extends Server:
-
-  Class.forName("org.sqlite.JDBC")
-  val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+//libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0"
+ // Class.forName("org.sqlite.JDBC")
+  //val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+  val monoCon = DriverManager.getConnection("jdbc:postgresql://localhost/postgres","postgres","docker")
+  println(monoCon.getMetaData().getCatalogSeparator())
+  println(monoCon.getMetaData().getIdentifierQuoteString())
   given con : (() => Connection) = () => monoCon
  /* stmtDo() {
     stmt.execute("DROP TABLE if exists score; ")
