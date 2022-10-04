@@ -40,7 +40,7 @@ class AllTest extends AnyFlatSpec with should.Matchers {
  
  
   stmtDo(){
-    stmt.execute("DROP TABLE if exists user; ")
+    stmt.execute("DROP TABLE if exists users; ")
   }
   stmtDo(){
     stmt.execute("DROP TABLE if exists score; ")

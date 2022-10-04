@@ -6,6 +6,7 @@ val commonSetting = Seq(scalaVersion := "3.1.2",libraryDependencies += "org.xeri
 val AkkaVersion = "2.6.8"
 val AkkaHttpVersion = "10.2.9"
 
+
 lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings(
   name := "user-core",
   version := "1.0.0-SNAPSHOT",
@@ -22,8 +23,9 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
       ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion).cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-stream" % AkkaVersion).cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion).cross(CrossVersion.for3Use2_13)
-      )
-  ).
+      ),
+
+  ).enablePlugins(JavaAppPackaging,DockerPlugin).
   jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",
     libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.0-SNAPSHOT",

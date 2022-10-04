@@ -19,7 +19,7 @@ object MainJvm extends Server:
 //libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0"
  // Class.forName("org.sqlite.JDBC")
   //val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
-  val monoCon = DriverManager.getConnection("jdbc:postgresql://localhost/postgres","postgres","docker")
+  val monoCon = DriverManager.getConnection("jdbc:postgresql://db/postgres","postgres","docker")
   println(monoCon.getMetaData().getCatalogSeparator())
   println(monoCon.getMetaData().getIdentifierQuoteString())
   given con : (() => Connection) = () => monoCon

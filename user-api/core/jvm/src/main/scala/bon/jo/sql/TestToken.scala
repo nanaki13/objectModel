@@ -64,7 +64,7 @@ object TestToken {
     // )
 }
 
-@main
+//@main
 def test() = TestToken.launchTest()
 
   

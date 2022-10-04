@@ -25,6 +25,7 @@ import bon.jo.domain.User
 import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef
 import Message.*
+import scala.util.Try
 
 
 enum Message:
@@ -34,7 +35,8 @@ enum Message:
 object Server extends Server{
 
   Class.forName("org.sqlite.JDBC")
-  val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
+  val dir = sys.env.get("HOME").orElse(sys.env.get("USERPROFILE")).get 
+  val monoCon = DriverManager.getConnection(s"jdbc:sqlite:${dir}/sample2.db")
   given con : (() => Connection) = () => monoCon
  
 }
@@ -43,7 +45,7 @@ trait Server:
   given Formats = JsonSupport.format
   given con : (() => Connection)
   
-  val service = SqlServiceUser()
+  lazy val service = SqlServiceUser()
   def init():Unit = 
     given Connection = con()
     println(UserModel.userTable.createSql)
@@ -65,8 +67,10 @@ trait Server:
   def apply(host: String, port: Int,route : RouteMaker = ctx => None): Behavior[Message] = Behaviors.setup { ctx =>
 
     given ActorSystem[_] = ctx.system
-
-    val buildJobRepository = ctx.spawn(UserRepo(service,service.maxId()+1), "UserRepository")
+    val initId = Try{
+      service.maxId()+1l
+    }.recover(_ => 1l).get
+    val buildJobRepository = ctx.spawn(UserRepo(service,initId), "UserRepository")
     given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
    
     
