@@ -16,10 +16,17 @@ import bon.jo.model.ScoreModel
 import bon.jo.sql.Sql.{stmtDo, stmt}
 import scala.util.Try
 object MainJvm extends Server:
-//libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0"
- // Class.forName("org.sqlite.JDBC")
-  //val monoCon = DriverManager.getConnection("jdbc:sqlite:sample2.db")
-  val monoCon = DriverManager.getConnection("jdbc:postgresql://db/postgres","postgres","docker")
+
+  extension (key : String)
+    def readEnv() : Option[String] = scala.sys.env.get(key)
+    def readEnvOrElse(defaultValue : => String) : String = readEnv().getOrElse(defaultValue)
+  val monoCon =(for{
+    url <- "BON_JO_GAME_ENGINE_DB_URL_JDBC".readEnv()
+    user <- "BON_JO_GAME_ENGINE_DB_USER".readEnv()
+    pass <- "BON_JO_GAME_ENGINE_DB_PASSWORD".readEnv()
+  } yield DriverManager.getConnection(url,user,pass)).getOrElse(DriverManager.getConnection("jdbc:sqlite:sample2.db"))
+  
+  
   println(monoCon.getMetaData().getCatalogSeparator())
   println(monoCon.getMetaData().getIdentifierQuoteString())
   given con : (() => Connection) = () => monoCon
@@ -54,7 +61,7 @@ object MainJvm extends Server:
       )
 
     val system: ActorSystem[Message] =
-      ActorSystem(MainJvm("localhost", 8080, route), "GameServer")
+      ActorSystem(MainJvm("0.0.0.0", 8080, route), "GameServer")
 
 @main
 def launch(): Unit =

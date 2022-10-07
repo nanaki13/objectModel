@@ -48,6 +48,7 @@ object HttpRequest :
       if response.status == status then
         response.value.toString().toEntity[OK]
       else 
+
         throw BadStatusException(response.value.toString().toEntity[KO])
       
     def okWithJs[OK,KO](status : Int)(using  Conversion[js.Any,OK],Conversion[String,KO]):OK = 
@@ -81,11 +82,9 @@ object HttpRequest :
       oReq.open(method.toString(), url, true);
       headers.foreach(oReq.setRequestHeader)
       oReq.onload = e => {
-
         ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
       }
       oReq.onerror= e => {
-
         ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
       }
       oReq.send(body.getOrElse(null));

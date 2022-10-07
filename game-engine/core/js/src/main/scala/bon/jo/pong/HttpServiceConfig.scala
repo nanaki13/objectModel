@@ -4,7 +4,8 @@ import bon.jo.request.HttpRequest.GlobalParam
 import Login.UserContext.*
 
 object HttpServiceConfig:
-  given GlobalParam = GlobalParam("http://localhost:8080", Map.empty)
+  val host = "http://82.64.146.186"
+  given GlobalParam = GlobalParam(host, Map.empty)
 
   object AuthParam:
-    given (using Login.UserContext) :  GlobalParam = GlobalParam("http://localhost:8080", Map("Authorization" -> s"Bearer $token"))   
+    given (using Login.UserContext) :  GlobalParam = GlobalParam(host, Map("Authorization" -> s"Bearer $token"))   

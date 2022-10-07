@@ -17,6 +17,8 @@ import scala.util.Success.apply
 import scala.util.Success
 import scala.util.Failure
 import bon.jo.request.BadStatusException
+import bon.jo.request.BadStatusExceptionValue
+import bon.jo.request.Value
 import javax.swing.text.html.HTML
 import org.scalajs.dom.HTMLAnchorElement
 import bon.jo.Validator.*
@@ -154,13 +156,21 @@ object Login:
                   token.storageWrite(tokenKey)
                   
                   pro.success(new UserContext(token))
-                case Failure(BadStatusException(value)) =>
+                case Failure(BadStatusExceptionValue[String](value)) =>
+               
+           
+                  
+                  
+                  val txt = if value.isEmpty then "Something wrong inside..." else value
                   bottom :+ <.span[HTMLElement](
-                    text(value.toString()),
+                    text(txt),
                     _class("login-warn")
                   )
-                case o =>
-                  removeWarn()
+                case Failure(e) =>
+                  bottom :+ <.span[HTMLElement](
+                    text(e.toString()),
+                    _class("login-warn")
+                  )
               }
           catch
             case ValidatorException(v ,message) => 
@@ -169,6 +179,11 @@ object Login:
               bottom :+ <.div[HTMLElement](
                 childs(childsL *),
                 _class("login-warn"))
+            case e =>
+                  bottom :+ <.span[HTMLElement](
+                    text(e.toString()),
+                    _class("login-warn")
+                  )
         }
 
         createAccount.onclick = e => {

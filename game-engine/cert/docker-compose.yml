@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  shell:
+    build: .
+    volumes:
+      - type: bind
+        source: ./
+        target: /opt/app/static
+    entrypoint: /bin/bash

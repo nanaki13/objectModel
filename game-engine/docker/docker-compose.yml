@@ -4,6 +4,10 @@ services:
     build: .
     ports:
       - "8080:8080"
+    environment:
+      - BON_JO_GAME_ENGINE_DB_URL_JDBC=jdbc:postgresql://db/postgres
+      - BON_JO_GAME_ENGINE_DB_PASSWORD=docker
+      - BON_JO_GAME_ENGINE_DB_USER=postgres
   db:
     image: postgres
     environment:
