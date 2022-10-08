@@ -73,6 +73,7 @@ trait Server:
     val buildJobRepository = ctx.spawn(UserRepo(service,initId), "UserRepository")
     given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
    
+
     
     val routes = new UserRoutes(buildJobRepository)
     val tokenRoute = new TokenRoutes(buildJobRepository,tokenRepo)
@@ -82,7 +83,7 @@ trait Server:
         case _ => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes)
       
     val serverBinding: Future[Http.ServerBinding] =
-      Http().newServerAt(host, port).bind(allRoute)
+      Http().newServerAt(host, port).enableHttps(HttpsConf()).bind(allRoute)
     ctx.pipeToSelf(serverBinding) {
       case Success(binding) => Started(binding)
       case Failure(ex)      => StartFailed(ex)

@@ -68,31 +68,6 @@ object TestToken {
 def test() = 
   TestToken.launchTest()
 
-  case class Truc[A](a : A)
-  given [B] : (Truc[B] => List[B]) = e => List(e.a)
-  given [B] : (Truc[B] => List[B]) = e => List(e.a)
-  given Monad[Truc] with 
-
-    override def pure[A](a: A): Truc[A] = Truc(a)
-    override def flatMap[A, B](me: Truc[A])(f: A => Truc[B]): Truc[B] = f(me.a)
-
-    override def flatten[A](me: Truc[Truc[A]]): Truc[A] = Truc(me.a.a)
-
-  val aa = Truc("1")
-  val bb = aa.map(_.toInt)
-  val cc = Truc(Truc("1"))
-  for{
-    i <- aa
-    ii <- bb
-    iii <- cc.flatten
-    ee <- Truc(List(1))
-  } yield Truc((i,ii,iii,ee))
-
-  List(Truc(1)).flatten
-
-  
-
-
 trait Monad[F[_]]:
   def pure[A](a : A) : F[A]
   def map[A,B](me : F[A])(f : A=> B) : F[B] = flatMap(me)(e => pure(f(e)))

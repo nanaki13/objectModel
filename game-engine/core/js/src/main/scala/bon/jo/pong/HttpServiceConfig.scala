@@ -4,7 +4,7 @@ import bon.jo.request.HttpRequest.GlobalParam
 import Login.UserContext.*
 
 object HttpServiceConfig:
-  val host = "http://82.64.146.186"
+  val host = "https://nanaki.hd.free.fr:80"
   given GlobalParam = GlobalParam(host, Map.empty)
 
   object AuthParam:

@@ -62,6 +62,7 @@ object Main extends Drawer[CanvasRenderingContext2D]:
       ctx.fill()
   // val ballImage = <.img[HTMLImageElement].>(_.src="https://img.lovepik.com/element/45007/2796.png_300.png")
 
+  
   extension (ball: Ball)
     def draw(): CanvasDraw[Unit] =
       val pos = ball.pos

@@ -15,7 +15,8 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
      libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided",
      libraryDependencies += "bon.jo" %% "user-core" % "1.0.0-SNAPSHOT",
      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3",
-     libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0" 
+     libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0",
+     dockerBaseImage := "openjdk:18" 
   ).enablePlugins(JavaAppPackaging,DockerPlugin).
   jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",
