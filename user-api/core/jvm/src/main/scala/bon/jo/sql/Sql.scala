@@ -144,7 +144,8 @@ object Sql {
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
     val sqlBaseSelect = s"""SELECT $columnsString FROM ${table.name}"""
     val selectByIdString = s"""SELECT $columnsString FROM ${table.name} WHERE $idsConditionString"""
-    val containsByIdString = s"""SELECT 1 FROM ${table.name} WHERE ${idsConditionString}"""
+    val containsString = s"""SELECT 1 FROM ${table.name}"""
+    val containsByIdString = s"""$containsString WHERE ${idsConditionString}"""
     val selectColumnIdIndex= table.id.zipWithIndex.toMap
     val columnIdIndex= table.columns.zipWithIndex.toMap
     val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsConditionString}"""
@@ -234,8 +235,15 @@ object Sql {
         r.iterator.map( r => ResultSetMapping[T](r)).toSeq
       } 
     def contains(ids : ID):Boolean = 
-       sql(baseSqlRequest.selectByIdString){
+       sql(baseSqlRequest.containsByIdString){
         PSMapping[ID](1,ids)
+        val r = executeQuery()
+        r.next()
+      }
+    def contains(fieldvalue : (String,Any) *):Boolean = 
+       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
+       sql(baseSqlRequest.containsString+s" WHERE $paramsQ"){
+        fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
         val r = executeQuery()
         r.next()
       }

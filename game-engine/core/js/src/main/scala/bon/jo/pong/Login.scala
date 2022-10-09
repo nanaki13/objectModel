@@ -18,7 +18,6 @@ import scala.util.Success
 import scala.util.Failure
 import bon.jo.request.BadStatusException
 import bon.jo.request.BadStatusExceptionValue
-import bon.jo.request.Value
 import javax.swing.text.html.HTML
 import org.scalajs.dom.HTMLAnchorElement
 import bon.jo.Validator.*
@@ -82,13 +81,16 @@ object Login:
   def log(): Future[UserContext] =
     val pro: Promise[UserContext] = Promise()
     val tokenOption = tokenKey.storageRead
+    val loginText = "Login"
+    val createText = "Create"
     tokenOption match
       case Some(token) => pro.success(new UserContext(token))
       case None =>
         val inp = <.input[HTMLInputElement].>(_.id = "name",_.name = "name")
         val inpwd = <.input[HTMLInputElement].>(_.`type` = "password",_.id = "pwd",_.name = "pwd")
-        val title = <.span[HTMLSpanElement](text("Login"))
-        val ok: HTMLButtonElement = <.button[HTMLButtonElement](text("OK")).>(_.`type`="submit")
+        val title = <.div[HTMLElement](text("Login"))
+        
+        val ok: HTMLButtonElement = <.button[HTMLButtonElement](text(loginText)).>(_.`type`="submit")
         val createAccount: HTMLElement = <.div[HTMLElement](
           childs(<.a[HTMLAnchorElement](text("Create Account")).>(_.href = "")),
           _class("create-account")
@@ -125,14 +127,18 @@ object Login:
               .createAccount(UserLogin(inp.value, inpwd.value).validate())
               .onComplete {
                 case Success(result) =>
-                  title.textContent = "You can Login"
+                  title.textContent = "User created"
+                  title.classList.add("ok")
+                  title :+ <.div[HTMLElement](text(s"You can login (click $loginText)"))
+                  ok.textContent = loginText
                   ok.onclick = e => 
                     e.preventDefault()
+                    
                     onClickForToken()
                 case Failure(BadStatusException(value)) =>
                   bottom :+ <.span[HTMLElement](
                     text(value.toString()),
-                    _class("login-warn")
+                    _class("login-warn ko")
                   )
                 case o =>
                   removeWarn()
@@ -143,7 +149,7 @@ object Login:
                 text(e)))
                 bottom :+ <.div[HTMLElement](
                   childs(childsL *),
-                  _class("login-warn"))
+                  _class("login-warn ko"))
         }
         def onClickForToken(): Unit = {
           removeWarn()
@@ -164,12 +170,12 @@ object Login:
                   val txt = if value.isEmpty then "Something wrong inside..." else value
                   bottom :+ <.span[HTMLElement](
                     text(txt),
-                    _class("login-warn")
+                    _class("login-warn ko")
                   )
                 case Failure(e) =>
                   bottom :+ <.span[HTMLElement](
                     text(e.toString()),
-                    _class("login-warn")
+                    _class("login-warn ko")
                   )
               }
           catch
@@ -178,11 +184,11 @@ object Login:
                 text(e)))
               bottom :+ <.div[HTMLElement](
                 childs(childsL *),
-                _class("login-warn"))
+                _class("login-warn ko"))
             case e =>
                   bottom :+ <.span[HTMLElement](
                     text(e.toString()),
-                    _class("login-warn")
+                    _class("login-warn ko")
                   )
         }
 
@@ -190,8 +196,9 @@ object Login:
           e.preventDefault()
           removeWarn()
           title.textContent = "Create Account"
+          ok.textContent = createText
           ok.onclick = e => 
-            e.preventDefault()
+            e.preventDefault()       
             onClickForCreateAccount()
           createAccount.parentNode.removeChild(createAccount)
         }

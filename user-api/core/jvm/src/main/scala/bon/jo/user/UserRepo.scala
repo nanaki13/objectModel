@@ -30,10 +30,13 @@ object UserRepo {
       replyTo ! KO("User already exists")
       Behaviors.same */
     case AddUser(user, replyTo) =>
-      replyTo ! OK
-    
-      users.create(User(id,user.name,user.pwd.bcryptBounded(generateSalt)))
-      UserRepo(users,id+1)
+      if users.containsName(user.name) then
+        replyTo ! KO("User already exists")
+        Behaviors.same  
+      else
+        users.create(User(id,user.name,user.pwd.bcryptBounded(generateSalt)))
+        replyTo ! OK
+        UserRepo(users,id+1)
     case GetUserById(id, replyTo) =>
       replyTo ! users.readOption(id)
       Behaviors.same

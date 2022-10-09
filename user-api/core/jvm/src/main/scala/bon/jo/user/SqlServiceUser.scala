@@ -37,4 +37,6 @@ trait SqlServiceUser:
   self :  Service[User,Long] =>
     def find(name : String) :Option[User] = 
       self.findBy(UserModel.column.name,name)
+    def containsName(name : String): Boolean = 
+      self.contains(UserModel.column.name -> name)
 

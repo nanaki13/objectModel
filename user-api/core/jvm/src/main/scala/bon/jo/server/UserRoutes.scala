@@ -56,7 +56,7 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
                   onSuccess(operationPerformed) {
                     case Response.OK => complete("User added")
                     case Response.KO(reason) =>
-                      complete(StatusCodes.InternalServerError -> reason)
+                      complete(StatusCodes.Conflict -> reason)
                   }
                 }
               },

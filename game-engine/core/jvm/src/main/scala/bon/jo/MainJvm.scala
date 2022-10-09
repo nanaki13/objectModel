@@ -15,6 +15,8 @@ import bon.jo.user.TokenRepo
 import bon.jo.model.ScoreModel
 import bon.jo.sql.Sql.{stmtDo, stmt}
 import scala.util.Try
+import bon.jo.route.StaticRoute
+import akka.http.scaladsl.server.Directives._
 object MainJvm extends Server:
 
   extension (key : String)
@@ -37,7 +39,7 @@ object MainJvm extends Server:
     println(e)
     e
   override def init(): Unit = 
-    super.init()
+    //super.init()
     given  Connection = con()
     Try{
           stmtDo() {
@@ -55,9 +57,9 @@ object MainJvm extends Server:
     def route : RouteMaker = ctx =>
       given ActorSystem[_] = ctx.system
       Some(
-        ScoreRoutes(
+        concat(ScoreRoutes(
           ctx.spawn(ScoreRepo(SqlServiceScore()), "ScoreRepo")
-        ).route
+        ).route , StaticRoute())
       )
 
     val system: ActorSystem[Message] =
