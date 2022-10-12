@@ -193,15 +193,24 @@ object Sql {
         ""
         else
           " ORDER BY "+sorts.map(e => e.column+" "+e.dir).mkString(",")
+  enum Limit:
+    case NoLimit
+    case Fixed(from : Long,size : Int)
+  extension (l : Limit)
+    def toSql : String = 
+      l match
+        case Limit.NoLimit =>  ""
+        case Limit.Fixed(from, size) => s"LIMIT ${size} OFFSET ${from}"
+      
   trait JoinService[L,R](using ()=>Connection,ResultSetMapping[L],ResultSetMapping[R],JoinBaseSqlRequest[L,R]) extends UsingCo:
     import JoinBaseSqlRequest.joinRequest
    
     lazy val joinCondition : String
     lazy val sqlBaseSelect = joinRequest.select+" ON "+joinCondition
     
-    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil):Seq[(L,R)] = 
+    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil,limit : Limit = Limit.NoLimit):Seq[(L,R)] = 
       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
-      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"+sorts.sql
+      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"+sorts.sql+" "+limit.toSql
       println(sqlS)
       sql(sqlS){
         fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))

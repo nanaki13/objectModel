@@ -9,7 +9,7 @@ val AkkaHttpVersion = "10.2.9"
 
 lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings(
   name := "user-core",
-  version := "1.0.0",
+  version := "1.1.0-SNAPSHOT",
   organization := "bon.jo"
 
 ).settings(commonSetting).

@@ -5,18 +5,24 @@ import bon.jo.pong.PongSystem
 import bon.jo.pong.Ball
 import bon.jo.Geom2D.Segment
 import bon.jo.Geom2D.ComputedPath
+import bon.jo.Geom2D.Path
+import bon.jo.common.typeutils.~
 
 trait DoDraw[C,P]:
   def apply(p : P): C ?=> Unit
-trait Drawer[C] {
+trait Ctx[C]:
+  inline def ctx : ~[C] = summon
+trait Drawer[C] extends  Ctx[C]{
     type CanvasDraw[A] = C ?=> A
     type _DoDraw[P] = DoDraw[C,P]
     type CustomizedDraw[P,A] = (C,_DoDraw[P] )?=>  A
     def clear(b : Board):CanvasDraw[Unit]
-    inline def ctx : CanvasDraw[C] = summon
+    
     inline def gdraw[P] : _DoDraw[P]?=>_DoDraw[P]= summon
     extension [T] (p : T)
       def draw() :CustomizedDraw[T,Unit] = gdraw(p)
+    extension (s: Path)
+      def fill(): CanvasDraw[Unit] 
    
 
     extension (p : PongSystem)(using _DoDraw[Rock],_DoDraw[Player],_DoDraw[Board],_DoDraw[Gift])

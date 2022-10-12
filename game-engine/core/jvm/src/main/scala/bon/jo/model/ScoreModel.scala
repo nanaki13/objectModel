@@ -19,7 +19,7 @@ object ScoreModel:
   val cScore = "score_value"
 
 
-  val scoreTable = Table{
+  val table = Table{
     tableName("score")    
       Column{columnName(cIdGame);_type("INT");id} 
       Column{columnName(cLvl);_type("INT");id} 

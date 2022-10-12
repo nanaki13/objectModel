@@ -62,12 +62,11 @@ object Login:
   
 
   val tokenKey = "token"
-  def logoutButton(onlogOut: => Unit): HTMLButtonElement =
+  def logoutButton(): HTMLButtonElement =
     <.button[HTMLButtonElement](text("Exit"), _class("top-right"))
       .>(_.onclick = e => {
        
         tokenKey.storageRemove
-        onlogOut
         window.location.reload(true)
       })
   case class UserContext(user : UserInfo,token : String):

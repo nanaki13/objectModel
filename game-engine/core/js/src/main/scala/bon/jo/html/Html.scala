@@ -4,7 +4,19 @@ import org.scalajs.dom.{Element,document}
 import scala.language.dynamics
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.CSSStyleDeclaration
+import org.scalajs.dom.HTMLButtonElement
+import org.scalajs.dom.HTMLAnchorElement
 object Html:
+  object PreDef:
+      def div(f: HTMLElement ?=> Unit*): HTMLElement = <.div[HTMLElement](f*)
+      def a(f: HTMLAnchorElement ?=> Unit*): HTMLAnchorElement = <.a[HTMLAnchorElement](f*)
+      def href(href : String): HTMLAnchorElement ?=> Unit = summon.href = href
+      def button(f: HTMLButtonElement ?=> Unit*): HTMLButtonElement =
+        <.button[HTMLButtonElement](f*)
+      def div: HTMLElement = <.div[HTMLElement]
+      def scrollMax =
+        document.documentElement.scrollHeight - document.documentElement.clientHeight
+  case class Ref[T](var value : T = null)
   extension [E <: Element](e : E)
     def >(ee : E => Unit *):E = 
       ee.foreach(_(e))
@@ -17,6 +29,8 @@ object Html:
       e
   def _class[T <: HTMLElement](c : String):T ?=> Unit = 
     summon.className = c
+  def bind[T <: HTMLElement](ref : Ref[T]):T ?=> Unit = 
+    ref.value = summon
   def text[T <: Element](tag : String):T ?=> Unit = 
     summon.textContent = tag
   def style[T <: HTMLElement](ee : CSSStyleDeclaration => Unit *):T ?=> Unit = 

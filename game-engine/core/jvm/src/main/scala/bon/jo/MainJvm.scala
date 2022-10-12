@@ -7,6 +7,7 @@ import java.sql.DriverManager
 import bon.jo.server.Message
 import java.sql.Connection
 import bon.jo.route.ScoreRoutes
+import bon.jo.route.PostRoutes
 import bon.jo.service.ScoreRepo
 import bon.jo.service.SqlServiceScore
 import akka.actor.typed.scaladsl.ActorContext
@@ -17,49 +18,77 @@ import bon.jo.sql.Sql.{stmtDo, stmt}
 import scala.util.Try
 import bon.jo.route.StaticRoute
 import akka.http.scaladsl.server.Directives._
+import bon.jo.model.PostModel
+import scala.util.Failure
+import scala.util.Success
+import bon.jo.service.PostRepo
+import bon.jo.service.SqlServicePost
 object MainJvm extends Server:
 
-  extension (key : String)
-    def readEnv() : Option[String] = scala.sys.env.get(key)
-    def readEnvOrElse(defaultValue : => String) : String = readEnv().getOrElse(defaultValue)
-  val monoCon =(for{
+  extension (key: String)
+    def readEnv(): Option[String] = scala.sys.env.get(key)
+    def readEnvOrElse(defaultValue: => String): String =
+      readEnv().getOrElse(defaultValue)
+  val monoCon = (for {
     url <- "BON_JO_GAME_ENGINE_DB_URL_JDBC".readEnv()
     user <- "BON_JO_GAME_ENGINE_DB_USER".readEnv()
     pass <- "BON_JO_GAME_ENGINE_DB_PASSWORD".readEnv()
-  } yield DriverManager.getConnection(url,user,pass)).getOrElse(DriverManager.getConnection("jdbc:sqlite:sample2.db"))
+  } yield DriverManager.getConnection(url, user, pass))
+    .getOrElse(DriverManager.getConnection("jdbc:sqlite:sample2.db"))
   
-  
+
   println(monoCon.getMetaData().getCatalogSeparator())
   println(monoCon.getMetaData().getIdentifierQuoteString())
-  given con : (() => Connection) = () => monoCon
- /* stmtDo() {
+  given con: (() => Connection) = () => monoCon
+  /* stmtDo() {
     stmt.execute("DROP TABLE if exists score; ")
   }*/
   def p[T](e: T): T =
     println(e)
     e
-  override def init(): Unit = 
-    //super.init()
-    given  Connection = con()
-    Try{
-          stmtDo() {
-        ScoreModel.scoreTable.createSql
+  override def init(): Unit =
+    // super.init()
+    given Connection = con()
+    
+    Try {
+      stmtDo() {
+        ScoreModel.table.createSql
           .split(";")
           .map(p)
           .map(stmt.executeUpdate)
           .foreach(println)
-    
-        }
-    }
+
+      }
+    } match
+      case Failure(exception) => println(exception)
+      case Success(value)     =>
+    Try {
+      stmtDo() {
+        PostModel.table.createSql
+          .split(";")
+          .map(p)
+          .map(stmt.executeUpdate)
+          .foreach(println)
+
+      }
+    } match
+      case Failure(exception) => println(exception)
+      case Success(value)     =>
 
   inline def launch(): Unit =
     init()
-    def route : RouteMaker = ctx =>
+    def route: RouteMaker = ctx =>
       given ActorSystem[_] = ctx.system
       Some(
-        concat(ScoreRoutes(
-          ctx.spawn(ScoreRepo(SqlServiceScore()), "ScoreRepo")
-        ).route , StaticRoute())
+        concat(
+          ScoreRoutes(
+            ctx.spawn(ScoreRepo(SqlServiceScore()), "ScoreRepo")
+          ).route,
+          PostRoutes(
+            ctx.spawn(PostRepo(SqlServicePost()), "PostRepo")
+          ).route,
+          StaticRoute()
+        )
       )
 
     val system: ActorSystem[Message] =

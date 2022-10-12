@@ -13,13 +13,7 @@ trait Debug:
 object Debug : 
    inline def apply(s  :String):Debug ?=>Unit = summon.debug(s)
    inline def apply():Debug ?=>Unit = summon.debug()
-object ProcessPong:
-   extension (r : Rock)
-      def giftRandom:Rock = 
-         val g  =if Math.random() > 0 then
-            Some(Gift.random(r.value.middle(),Vector(0,3)))
-         else None
-         r.copy(gift = g)
+
 
 class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 

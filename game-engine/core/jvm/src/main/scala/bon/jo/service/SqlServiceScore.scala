@@ -22,6 +22,7 @@ import bon.jo.domain
 import bon.jo.model.ScoreModel.Score
 import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
+import bon.jo.sql.Sql.Limit
 object SqlServiceScore {
 
   type ServiceScore = Service[Score, (Int, Int, Long)] with SqlServiceScore
@@ -44,7 +45,7 @@ object SqlServiceScore {
       )
   given ResultSetMapping[(Int, Int, Long)] = (from, r) =>
     (r.getInt(from), r.getInt(from + 1), r.getLong(from + 2))
-  given BaseSqlRequest[Score] = BaseSqlRequest[Score](ScoreModel.scoreTable)
+  given BaseSqlRequest[Score] = BaseSqlRequest[Score](ScoreModel.table)
   given PSMapping[Score] with
     def apply(from: Int, v: Score)(using PreparedStatement): Int =
       stmtSetObject(from, v.idGame)

@@ -6,7 +6,7 @@ import bon.jo.request.HttpRequest
 import bon.jo.request.HttpRequest.Method.{POST, GET}
 import bon.jo.pong.HttpServiceConfig.AuthParam.given
 import scala.concurrent.Future
-import bon.jo.service.ScoreService.SaveResult
+import bon.jo.service.SaveResult
 import bon.jo.domain.ScoreInfo
 import bon.jo.pong.Login.given
 import concurrent.ExecutionContext.Implicits.global
@@ -45,11 +45,7 @@ object ScoreServiceRest {
     class ScoreServiceImpl()(using UserContext) extends ScoreService with HttpRequest.Service :
 
       override def getScores(): Future[Seq[UserScore]] = 
-        GET.sendOn("?idGame=1&lvl=1").map{
-          e => 
-            println(e)
-            e
-        }.map(_.okWithJs[Seq[UserScore],String](200)) 
+        GET.sendOn("?idGame=1&lvl=1").map(_.okWithJs[Seq[UserScore],String](200)) 
 
       override def saveScore(s: ScoreInfo): Future[SaveResult] = 
         POST.sendJsEntity("", ScoreInfoJs(s)).map(_.mapStatus{
