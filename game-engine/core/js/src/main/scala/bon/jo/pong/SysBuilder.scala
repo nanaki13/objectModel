@@ -105,14 +105,15 @@ object SysBuilder:
     def point = Point(10 + r1, 50 + r2)
     val rocks =
       // for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
-      makeRocks(board, 7, 15).map(_.giftRandom)
+      //makeRocks(board, 7, 15).map(_.giftRandom)
+      makeRocks(board, 2, 2).map(_.giftRandom)
     PongSystem(
       Ball(
         DiscretCircle(3 * fact, Point(board.w / 2, board.h - 10 * 10), 8),
         Vector(5, -5),
         Seq()
       ) :: Nil,
-      Player(pathPlayer, Vector(0, 0), 0.2, 3 * fact, Vector(0, 0)) :: Nil,
+      Player(pathPlayer, Vector(0, 0), 0.2, 3 * fact, Vector(0, 0),0,0) :: Nil,
       board,
       rocks.toList,
       Seq.empty

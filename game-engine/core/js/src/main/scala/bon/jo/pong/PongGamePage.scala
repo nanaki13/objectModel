@@ -33,7 +33,12 @@ object PongGamePage :
 
   def currentMillis = System.currentTimeMillis()
   var currentInterval: Option[Int] = None
-
+  def format(milli: Long): String =
+    val ml = milli % 1000
+    val s_t = milli / 1000
+    val m = s_t / 60
+    val s = s_t % 60
+    f"${m}%02dm${s}%02ds${ml}%03dms"
   def go(using Login.UserContext): Unit =
     val fact = 3
     // println(pseudo)
@@ -121,14 +126,9 @@ object PongGamePage :
           // for(i <- 1 to 15)
           u = u.nextSystem()
           count += 1
-          def format(milli: Long): String =
-            val ml = milli % 1000
-            val s_t = milli / 1000
-            val m = s_t / 60
-            val s = s_t % 60
-            f"${m}%02dm${s}%02ds${ml}%03dms"
-            
-          timeDiv.textContent = format(_10m - currentMillis + t)
+
+          val timeLeft = _10m - currentMillis + t
+          timeDiv.textContent = format(timeLeft)
           scoreDiv.textContent = u.player.head.score.toString()
           if count % 10 == 0 then
             count = 0
@@ -145,7 +145,7 @@ object PongGamePage :
             }
             u = u.copy(balls = nBalls)
           // println(currentMillis - t)
-          u.isGameOver() match
+          u.isGameOver(timeLeft) match
             case e: pong.End      => end(e)
             case pong.GameOver.No =>
 
