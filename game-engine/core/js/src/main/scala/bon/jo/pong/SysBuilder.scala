@@ -106,7 +106,7 @@ object SysBuilder:
     val rocks =
       // for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
       //makeRocks(board, 7, 15).map(_.giftRandom)
-      makeRocks(board, 2, 2).map(_.giftRandom)
+      makeRocks(board, 10, 1).map(_.giftRandom)
     PongSystem(
       Ball(
         DiscretCircle(3 * fact, Point(board.w / 2, board.h - 10 * 10), 8),

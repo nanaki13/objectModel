@@ -51,8 +51,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       })
       
       val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
-      val points = rocksToRem.size * 50 + giftReachByPlayer.size * 75
-      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore(points)),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ giftsToAdd )
+      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore( rocksToRem.size,giftReachByPlayer.size)),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ giftsToAdd )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
 
    def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 

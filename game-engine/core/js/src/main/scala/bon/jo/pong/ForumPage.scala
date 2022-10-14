@@ -17,10 +17,12 @@ import org.scalajs.dom.window
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.HTMLCanvasElement
 import scalajs.js.special.debugger
+import scalajs.js
 import org.scalajs.dom.console
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 import org.scalajs.dom.HTMLButtonElement
+import org.scalajs.dom.Event
 object ForumPage:
   def div(f: HTMLElement ?=> Unit*): HTMLElement = <.div[HTMLElement](f*)
   def button(f: HTMLButtonElement ?=> Unit*): HTMLButtonElement =
@@ -28,7 +30,7 @@ object ForumPage:
   def div: HTMLElement = <.div[HTMLElement]
   def scrollMax =
     document.documentElement.scrollHeight - document.documentElement.clientHeight
-  def addPost()(using Login.UserContext, PostService,Component): HTMLElement =
+  def addPost()(using Login.UserContext, PostService, Component): HTMLElement =
     val buttonRef: Ref[HTMLButtonElement] = Ref()
     val contentPost: Ref[HTMLElement] = Ref()
     val newPostCont = div(
@@ -48,76 +50,93 @@ object ForumPage:
         }
       )
     )
-    buttonRef.value.onclick = e => 
-      postService.addPost(1,PostInfo(contentPost.value.innerHTML)).foreach{
-        postOK => 
-          target :+ postHtml(Login.UserContext().user.name,postOK.postDateTime,postOK.content)
-          contentPost.value.textContent=""
+    buttonRef.value.onclick = e =>
+      postService.addPost(1, PostInfo(contentPost.value.innerHTML)).foreach {
+        postOK =>
+          target :+ postHtml(
+            Login.UserContext().user.name,
+            postOK.postDateTime,
+            postOK.content
+          )
+          contentPost.value.textContent = ""
           window.scrollTo(
             0,
             scrollMax
           )
-     
+
       }
-        
-        
 
     newPostCont
-  def go(subjectTitle : String,from: Int, size: Int)(using Login.UserContext, PostService): Unit =
+  trait CountListne:
+    var count = 1
+    val listener: js.Function1[Event, ?]
+  def go(subjectTitle: String, from: Int, size: Int)(using
+      Login.UserContext,
+      PostService
+  ): Unit =
     val posts = div(_class("posts"))
 
-    given Component = Component( div(text(subjectTitle), _class("post-title")),posts)
+    given Component =
+      Component(div(text(subjectTitle), _class("post-title")), posts)
     document.body :+ target
     document.body :+ addPost()
-    goOn(from, size)
-   
-    var count = 1
-    document.addEventListener(
-      "scroll",
-      e => if (window.scrollY == 0) then 
-        goOn(from + size*count, size)
-        count +=1
-    )
-  def postHtml(user:  String, date : String, content : String) = 
+
+    lazy val cntLiten: CountListne = new CountListne:
+      val listener: js.Function1[Event, ?] =
+        e =>
+          if (window.scrollY == 0) then
+            goOn(from + size * count, size, cntLiten)
+            count += 1
+    goOn(from, size, cntLiten)
+
+  def postHtml(user: String, date: String, content: String) =
     div {
-          _class("post")
+      _class("post")
+      childs(
+        div(
           childs(
-            div( childs(div(text(s"$user"),_class("post-user")),div(text(s"$date"), _class("post-date")))),
-            
-            div(_class("post-content")).>(_.innerHTML=content)
+            div(text(s"$user"), _class("post-user")),
+            div(text(s"$date"), _class("post-date"))
           )
-        }
+        ),
+        div(_class("post-content")).>(_.innerHTML = content)
+      )
+    }
   inline def target: Component ?=> HTMLElement = compnent.target
-  case class Component(title : HTMLElement,target : HTMLElement)
+  case class Component(title: HTMLElement, target: HTMLElement)
   inline def compnent: ~[Component] = summon
-  def goOn(from: Int, size: Int)( using
+  def goOn(from: Int, size: Int, listener: CountListne)(using
       Login.UserContext,
-      PostService,Component
+      PostService,
+      Component
   ): Unit =
     postService.readPosts(1, from, size).foreach { e =>
-      val postHtmlEl = e.map { p=> postHtml(p.user.name,p.postDateTime,p.content)}.reverse
-      
+      if e.nonEmpty then 
+        document.addEventListener("scroll", listener.listener)
+        val postHtmlEl = e.map { p =>
+          postHtml(p.user.name, p.postDateTime, p.content)
+        }.reverse
+        if target.childNodes.length == 0 then
+          // target :+ compnent.title
+          target.:++(postHtmlEl*)
+          window.scrollTo(
+            0,
+            scrollMax
+          )
+        else
+          val deb = target.children(1).asInstanceOf[HTMLElement]
 
-      if target.childNodes.length == 0 then
-       // target :+ compnent.title
-        target.:++(postHtmlEl*)
-        window.scrollTo(
-          0,
-          scrollMax
-        )
-        
-      else
-        val deb = target.children(1).asInstanceOf[HTMLElement]
+          postHtmlEl.foreach(p => target.insertBefore(p, deb))
 
+          window.scrollTo(
+            0,
+            deb
+              .getBoundingClientRect()
+              .top
+              .toInt - target.children(0).asInstanceOf[HTMLElement].clientHeight
+          )
+      else 
+        document.removeEventListener( "scroll",listener.listener)
 
-        postHtmlEl.foreach(p => target.insertBefore(p, deb))
-
-        window.scrollTo(
-          0,
-          deb
-            .getBoundingClientRect()
-            .top
-            .toInt - target.children(0).asInstanceOf[HTMLElement].clientHeight
-        )
 
     }

@@ -1,6 +1,7 @@
 package bon.jo.pong
 
 import bon.jo.html.Html.*
+import bon.jo.html.Html.PreDef.*
 import bon.jo.Geom2D.*
 import bon.jo.Geom2D.Vector.*
 import bon.jo.service.ScoreService
@@ -24,7 +25,7 @@ object PongGamePage :
   import DrawerCanvas.given
   import SysBuilder.*
   
-
+  given PointCount = PointCount(pointsByRock = 50,pointsByGift = 75, pointsBySecond = 10)
   val upK = 38
   val downK = 40
   val leftK = 37
@@ -129,7 +130,7 @@ object PongGamePage :
 
           val timeLeft = _10m - currentMillis + t
           timeDiv.textContent = format(timeLeft)
-          scoreDiv.textContent = u.player.head.score.toString()
+          scoreDiv.textContent = u.player.head.baseScore.toString()
           if count % 10 == 0 then
             count = 0
 
@@ -154,62 +155,77 @@ object PongGamePage :
         },
         1000 / 20
       )
-
+      def replay():Unit = { u = createSys(fact); play() }
       def end(e: pong.End) =
         window.clearInterval(int)
         currentInterval = None
+        val (scoreDivDetails,efftcts) = DetailsScoreView(e)
+        val splash = htmlSplashMessage(replay())
+        splash.dialog :+ scoreDivDetails
+        scoreDiv.textContent = e.score.toString()
+        splash.show()
+        efftcts.start()
         scoreService.saveScore(ScoreInfo(1, 1, e.score)).onComplete {
           case Success(v) =>
             val messageS = v match
               case SaveResultSuccess(ok)   => 
                 updateTopeScore() 
-                "You update your Score !"
-              case _ => "Not your best score !"
-            message({ u = createSys(fact); play() }, messageS, "Play again?")
+                splash addText "You update your Score !"
+              case _ =>  splash addText "Not your best score !"
+            splash addText "Play again?"
+           
 
           case Failure(v) =>
             v match
               case BadStatusException(msg) =>
-                message({ u = createSys(fact); play() }, "Oups ...","Can't send best score","Play again?")
+                splash addText ("Oups ...","Can't send best score","Play again?")
 
         }
 
       currentInterval = Some(int)
 
     play()
-
-    def message(ok: => Unit, messages: String*): Unit =
-      lazy val cont: HTMLElement = <.div[HTMLElement] {
-        _class("splash")
-        childs(
-          <.div[HTMLElement] {
-            _class("flex-center")
-            childs(
-              <.div[HTMLElement] {
-                _class("dialog")
-                childs(
-                  <.div[HTMLElement] {
-                    childs(messages.map { str =>
-                      <.div[HTMLElement] {
-                        text(str)
+  case class HtmlSplashMessage(val root : HTMLElement,val dialog: HTMLElement):
+    def addText(strs : String *):Unit = dialog.:++ (strs.map(str =>div(text(str))) *)
+    def show():Unit =  document.body.appendChild(root)
+  def htmlSplashMessage(ok: => Unit): HtmlSplashMessage =
+    val dialogRef : Ref[HTMLElement] = Ref()
+    lazy val cont: HTMLElement = <.div[HTMLElement] {
+      _class("splash")
+      childs(
+        <.div[HTMLElement] {
+          _class("flex-center")
+          childs(
+            <.div[HTMLElement] {
+              _class("dialog")
+              childs(
+                <.div[HTMLElement](bind(dialogRef)),
+                <.div[HTMLElement] {
+                  childs(
+                    <.button[HTMLElement](text("yes")).>(
+                      _.onclick = _ => {
+                        ok
+                        document.body.removeChild(cont)
                       }
-                    }*)
-                  },
-                  <.div[HTMLElement] {
-                    childs(
-                      <.button[HTMLElement](text("yes")).>(
-                        _.onclick = _ => {
-                          ok
-                          document.body.removeChild(cont)
-                        }
-                      )
                     )
-                  }
-                )
-              }
-            )
-          }
-        )
-      }
+                  )
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+    HtmlSplashMessage(cont,dialogRef.value)
+    
+    
+  def message(ok: => Unit, messages: String*): HTMLElement =
+    val splash = htmlSplashMessage(ok)
+    messages.map { str =>
+                    <.div[HTMLElement] {
+                      text(str)
+                    }
+    }.foreach(splash.dialog.:+)
 
-      document.body.appendChild(cont)
+    document.body.appendChild(splash.root)
+    splash.root

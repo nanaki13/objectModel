@@ -160,7 +160,7 @@ package pong:
       effects: Seq[Effect[Player]] = Seq.empty
       
   ) extends Shape(path, speed)
-      with Effects[Player]:
+      with Effects[Player] with ScoreElements:
     inline def withPosAndSpeed(pos: Point, speed: Vector): Player =
       copy(path.copy(fromp = pos), speed)
     inline def withEffect(effs: Seq[Effect[Player]]): Player =
@@ -169,6 +169,7 @@ package pong:
       copy(rosckTouch = rosckTouch, giftTouch = giftTouch)
     inline def addToScore(rosckTouchp: Int, giftTouchp: Int): Player =
       withScore(rosckTouch + rosckTouchp, giftTouch + giftTouchp)
+
   object Player:
     class AccSpped(speedMul: Double) extends ConditionalEffect[Player]:
       def effect(t: Player): Player =
@@ -237,17 +238,19 @@ package pong:
       pointsBySecond: Int
   )
   inline def pointCount: ~[PointCount] = summon
-  sealed trait End:
+  sealed trait ScoreElements:
     val giftTouch: Int
     val rosckTouch: Int
+    def baseScore: PointCount ?=> Int = giftTouch * pointCount.pointsByGift + rosckTouch * pointCount.pointsByRock
 
+  sealed trait End extends ScoreElements:
     def score: PointCount ?=> Int =
       val timeScore = this match
         case GameOver.Victory(_, _, timeLeft) =>
-          timeLeft.toInt / 1000 * pointCount.pointsBySecond
+          (timeLeft / 1000d).round.toInt * pointCount.pointsBySecond
         case GameOver.Loose(_, _) => 0
 
-      giftTouch * pointCount.pointsByGift + rosckTouch * pointCount.pointsByRock + timeScore
+      baseScore + timeScore
 
     // def elements: Seq[SystemElement] = balls ++ player ++ rocks
   // object PongSystem:

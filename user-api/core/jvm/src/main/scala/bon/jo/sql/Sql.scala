@@ -15,7 +15,7 @@ object Sql {
   case class Sort(column : String, dir : Dir)
   enum Dir:
     case ASC,DESC
-  case class Builder(var value : Table,val id : ColumnsRef = ColumnsRef(),var indexs : Seq[Index] = Nil)
+  case class Builder(var value : Table,val id : ColumnsRef = ColumnsRef(),var indexs : Seq[Index] = Nil,var autoInc : Seq[String] = Nil)
   case class BuilderCol(var value : Column)
   type ColumnInTable = Builder ?=> Column
   type OnBuildColumnInTable = (Builder,BuilderCol) ?=> Unit
@@ -39,22 +39,36 @@ object Sql {
       summon.value = summon.value.copy(name)  
     def id: OnBuildColumnInTable = 
       tableid.values = tableid.values :+ columnBuilder.value.name   
+    def autoIncr: OnBuildColumnInTable = 
+      tableBuilder.autoInc = tableBuilder.autoInc :+ columnBuilder.value.name   
     def index: OnBuildColumnInTable = 
       tableBuilder.indexs = tableBuilder.indexs  :+ Index(columnBuilder.value.name :: Nil)
     def unique: OnBuildColumnInTable = 
       tableBuilder.indexs = tableBuilder.indexs  :+ Index(columnBuilder.value.name :: Nil, IndexType.Unique)
 
     def apply(f : OnBuild ):Table = 
-      given Builder = Builder(Table("",Nil , Nil, Nil))
+      given Builder = Builder(Table("",Nil , Nil, Nil, Set.empty))
       f
 
-      summon.value.copy(id = tableBuilder.id.values,indexs =  tableBuilder.indexs)
+      summon.value.copy(id = tableBuilder.id.values,indexs =  tableBuilder.indexs,autoIncr = tableBuilder.autoInc.toSet)
     def col(f : OnBuildCol ): OnBuild = 
       given BuilderCol = BuilderCol(Column("",""))
       f
       summon.value
-  case class Table(name : String,columns : Seq[Column],id:Seq[String],indexs:Seq[Index]):
+  case class Table(name : String,columns : Seq[Column],id:Seq[String],indexs:Seq[Index],autoIncr:Set[String]):
     def createSql : String = 
+      s"""CREATE TABLE $name(
+        ${columns.mkString(",\n        ")},
+        PRIMARY KEY(${id.mkString(",")}));
+        ${indexs.map{
+          index => 
+            val indexType = index.indexType match
+              case IndexType.Unique => "UNIQUE"
+              case _ => ""
+            
+            s"""CREATE $indexType INDEX ${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
+        }.mkString("\n")}"""
+    def createSql(using DBType) : String = 
       s"""CREATE TABLE $name(
         ${columns.mkString(",\n        ")},
         PRIMARY KEY(${id.mkString(",")}));
@@ -118,6 +132,7 @@ object Sql {
 
   trait PSMapping[T]:
     def apply(from : Int,v : T)(using PreparedStatement):Int
+    def fillCreate(from : Int,v : T)(using PreparedStatement):Int =apply(from,v)
   object PSMapping:
     inline def apply[T](using PSMapping[T]) = summon
 
@@ -135,12 +150,14 @@ object Sql {
     val table : Table
     val count = table.columns.size
     def columnsString = table.columns.map(_.name).mkString(", ")
+    def columnsStringWithoutAutoInc = table.columns.map(_.name).filter(cName => !table.autoIncr.contains(cName)).mkString(", ")
     def aliasDotcolumnsString(alias : String) = table.columns.map(col => s"$alias.${col.name}").mkString(", ")
     def idsString = table.id.mkString(", ")
     def aliasDotidsString(alias : String) = table.id.map(col => s"$alias.$col").mkString(", ")
     def idsConditionString = s" ${table.id.map(idCol => s"$idCol = ?").mkString(" AND ")} "
     def aliasDotidsConditionString(alias : String) = s" ${table.id.map(idCol => s"$alias.$idCol = ?").mkString(" AND ")} "
     def columnsParamString = table.columns.map(_ => "?").mkString(", ")
+    def columnsParamStringWithoutAutoInc = table.columns.filter(c => !table.autoIncr.contains(c.name)).map(_ => "?").mkString(", ")
     def updateSetString : String = table.columns.map(c => s"${c.name} = ?").mkString(", ")
     val sqlBaseSelect = s"""SELECT $columnsString FROM ${table.name}"""
     val selectByIdString = s"""SELECT $columnsString FROM ${table.name} WHERE $idsConditionString"""
@@ -150,7 +167,7 @@ object Sql {
     val columnIdIndex= table.columns.zipWithIndex.toMap
     val deleteByIdString = s"""DELETE FROM ${table.name} WHERE ${idsConditionString}"""
     val updateByIdString = s"""UPDATE  ${table.name} SET ${updateSetString}  WHERE $idsConditionString"""
-    val insertString = s"""INSERT INTO ${table.name} ( $columnsString) VALUES ( ${columnsParamString} )"""
+    val insertString = s"""INSERT INTO ${table.name} ( $columnsStringWithoutAutoInc) VALUES ( ${columnsParamStringWithoutAutoInc} )"""
   
   class Alias:
     import scala.collection.mutable
@@ -290,7 +307,7 @@ object Sql {
       } 
     def create(t :T):T= 
       sql[T](baseSqlRequest.insertString){
-        PSMapping[T](1,t)
+        PSMapping[T].fillCreate(1,t)
         executeUpdate()
         t
       } 
