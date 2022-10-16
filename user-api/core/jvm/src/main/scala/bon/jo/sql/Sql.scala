@@ -56,7 +56,7 @@ object Sql {
       f
       summon.value
   case class Table(name : String,columns : Seq[Column],id:Seq[String],indexs:Seq[Index],autoIncr:Set[String]):
-    def createSql : String = 
+    def createSql_ : String = 
       s"""CREATE TABLE $name(
         ${columns.mkString(",\n        ")},
         PRIMARY KEY(${id.mkString(",")}));
@@ -69,8 +69,9 @@ object Sql {
             s"""CREATE $indexType INDEX ${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
         }.mkString("\n")}"""
     def createSql(using DBType) : String = 
+      given Set[String] = autoIncr
       s"""CREATE TABLE $name(
-        ${columns.mkString(",\n        ")},
+        ${columns.map(_.sqlDef).mkString(",\n        ")},
         PRIMARY KEY(${id.mkString(",")}));
         ${indexs.map{
           index => 
@@ -78,10 +79,25 @@ object Sql {
               case IndexType.Unique => "UNIQUE"
               case _ => ""
             
-            s"""CREATE $indexType INDEX ${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
+            s"""CREATE $indexType INDEX ${name}_${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
         }.mkString("\n")}"""
   case class Column(name : String,dbType : String):
     override def toString() = s"$name $dbType"
+    inline def isAi(using ai :  Set[String]) = ai.contains(name)
+    def sqlDef(using ai :  Set[String], dbTypeOf : DBType):String = 
+      if isAi then 
+        dbTypeOf match
+          case DBType.Postgre => 
+            val aiType = dbType match
+              case "INT" => "SERIAL"
+              case "BIGINT" => "BIGSERIAL"
+            s"$name $aiType"
+            
+          case DBType.SQLite => s"$name INTEGER AUTO_INCREMENT"
+        
+      else
+        toString()
+
   object Column:
     def columnName(name : String): OnBuildCol = 
       summon.value = summon.value.copy(name)  

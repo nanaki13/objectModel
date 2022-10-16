@@ -12,6 +12,7 @@ import scala.concurrent.Future
 import akka.actor.typed.ActorRef
 import bon.jo.user.UserRepo
 import bon.jo.domain.User
+import bon.jo.domain.ImageSend
 import bon.jo.user.UserModel.toUserInfo
 import bon.jo.user.UserRepo.Command
 import bon.jo.user.UserRepo.Response
@@ -21,9 +22,12 @@ import bon.jo.domain.UserInfo
 import bon.jo.domain.UserLogin
 import bon.jo.user.TokenRepo
 import bon.jo.user.TokenRepo.{toUserInfo as toUi}
+import bon.jo.image.ImageRepo
+import bon.jo.domain.Image
 
 class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
     ActorRef[TokenRepo.Command],
+    ActorRef[ImageRepo.Command],
     ActorSystem[_],
     Manifest[User],
     Manifest[Seq[User]],
@@ -41,6 +45,7 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
   import userInfoJson.given
   val userLoginJson: JsonSupport[UserLogin] = JsonSupport[UserLogin]()
   import userLoginJson.given
+  inline def imageRepo = summon[ActorRef[ImageRepo.Command]]
   given t: Timeout = 3.seconds
 
   lazy val theUserRoutes: Route =
@@ -71,6 +76,31 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
               }
             )
           },
+         (post & path("avatar")){
+            (guard &  ImageRoutes. extractData("image")) { (claim,data) => 
+              val ui = claim.toUi
+              val imgName = s"${ui.name}_avatar"
+              val createInDb = imageRepo.ask(ImageRepo.Command.AddImage(ImageSend(imgName,data),_)).map(_ => imgName)
+
+              val ret : Future[Option[Image]] = for{
+                fName <- imageRepo.ask(ImageRepo.Command.AddImage(ImageSend(imgName,data),_)).map{
+                    case ImageRepo.Response.OK => imgName
+                    case ImageRepo.Response.KO(reason) =>
+                      throw IllegalStateException(reason)
+                  }
+                imgDb <- imageRepo.ask[Option[Image]](ImageRepo.Command.FindImages(fName,_))
+                userUpa <- buildUserRepository.ask
+              } yield imgDb
+              onSuccess(createInDb) {
+                    case ImageRepo.Response.OK => complete("Image created")
+                    case ImageRepo.Response.KO(reason) =>
+                      complete(StatusCodes.InternalServerError -> reason)
+                  }
+            }
+          
+            
+          }
+          ,
           (delete & path(LongNumber)) { id =>
             guard { claim =>
               val ui = claim.toUi

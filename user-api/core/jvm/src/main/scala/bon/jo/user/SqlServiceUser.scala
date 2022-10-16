@@ -15,7 +15,7 @@ object SqlServiceUser {
   given BaseSqlRequest[User] = BaseSqlRequest[User](UserModel.userTable)
   given ResultSetMapping[User] with
     def apply(from : Int,r : ResultSet):User = 
-      User(r.getLong(from),r.getString(from+1),r.getString(from+2))
+      User(r.getLong(from),r.getString(from+1),r.getString(from+2),Option(r.getLong(from+3)))
   given ResultSetMapping[Long] with
     def apply(from : Int,r : ResultSet):Long = 
       r.getLong(from).asInstanceOf
@@ -24,7 +24,13 @@ object SqlServiceUser {
       stmtSetObject(from,v.id)
       stmtSetObject(from+1,v.name)
       stmtSetObject(from+2,v.pwd)
-      from+3
+      v.avatarKey match
+        case Some(iKey) => 
+          stmtSetObject(from+3,iKey)
+        case _ => 
+          stmtSetObject(from+3,null)
+      
+      from+4
   given PSMapping[Long] with
      def apply(from : Int,v : Long)(using PreparedStatement):Int=
       stmtSetObject(from,v)

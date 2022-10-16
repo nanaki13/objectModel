@@ -20,6 +20,7 @@ object UserRepo {
   // Trait and its implementations representing all possible messages that can be sent to this Behavior
   enum Command:
     case  AddUser(user: UserLogin, replyTo: ActorRef[Response]) extends Command
+    case  UpdateUser(user: User, replyTo: ActorRef[Response]) extends Command
     case  GetUserById(id: Long, replyTo: ActorRef[Option[User]]) extends Command
     case  ClearUsers(id: Long,replyTo: ActorRef[Response]) extends Command
     case FindUsers(name : String, replyTo: ActorRef[Option[User]])
@@ -34,7 +35,7 @@ object UserRepo {
         replyTo ! KO("User already exists")
         Behaviors.same  
       else
-        users.create(User(id,user.name,user.pwd.bcryptBounded(generateSalt)))
+        users.create(User(id,user.name,user.pwd.bcryptBounded(generateSalt),None))
         replyTo ! OK
         UserRepo(users,id+1)
     case GetUserById(id, replyTo) =>
@@ -46,6 +47,10 @@ object UserRepo {
       Behaviors.same
     case FindUsers(name,replyTo) =>
       replyTo ! users.find(name)
+      Behaviors.same
+    case UpdateUser(user, replyTo) => 
+      users.update(user.id,user)
+      replyTo ! OK
       Behaviors.same
 
   }

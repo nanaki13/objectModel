@@ -5,24 +5,7 @@ import bon.jo.html.Html.PreDef.*
 import bon.jo.html.Html.*
 import bon.jo.html.TimeEffect
 object DetailsScoreView:
-  extension (s : Any)
-    def toDiv:HTMLElement = div(text(s.toString()))
-    def toDiv(f : HTMLElement ?=> Unit *):HTMLElement = 
-      given HTMLElement=  toDiv
-      f.foreach(ff => ff)
-      summon
-  extension (s : HTMLElement)
-    def wrapDiv:HTMLElement = div(childs(s))
-    def wrapDiv(f : HTMLElement ?=> Unit):HTMLElement = 
-      given HTMLElement=  wrapDiv
-      f
-      summon
-  extension (s : Seq[HTMLElement])
-    def wrapDiv:HTMLElement = div(childs(s *))
-    def wrapDiv(f : HTMLElement ?=> Unit):HTMLElement = 
-      given HTMLElement=  wrapDiv
-      f
-      summon
+
   def roundToSec(timeLeft : Long) =  (timeLeft/1000d).round.toInt
   class RockEffect(endp: End,calcul : HTMLElement,total : HTMLElement,totalScore : HTMLElement,ge : GiftEffect)(using PointCount) extends TimeEffect:
       var p =0

@@ -26,6 +26,7 @@ import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef
 import Message.*
 import scala.util.Try
+import bon.jo.image.ImageModel
 
 
 enum Message:
@@ -35,8 +36,8 @@ enum Message:
 object Server extends Server{
 
   Class.forName("org.sqlite.JDBC")
-  val dir = sys.env.get("HOME").orElse(sys.env.get("USERPROFILE")).get 
-  val monoCon = DriverManager.getConnection(s"jdbc:sqlite:${dir}/sample2.db")
+  //val dir = sys.env.get("HOME").orElse(sys.env.get("USERPROFILE")).get 
+  val monoCon = DriverManager.getConnection(s"jdbc:sqlite:sample2.db")
   given con : (() => Connection) = () => monoCon
  
 }
@@ -48,11 +49,12 @@ trait Server:
   lazy val service = SqlServiceUser()
   def init():Unit = 
     given Connection = con()
-    println(UserModel.userTable.createSql)
+    import bon.jo.sql.DBType.given
+    println(ImageModel.userTable.createSql)
    
-    doSql(s"DROP TABLE if exists ${UserModel.userTable.name} "){
+    /* doSql(s"DROP TABLE if exists ${UserModel.userTable.name} "){
       execute()  
-    }
+    }*/
     def p[T](e : T):T =
       println(e)
       e
@@ -61,7 +63,13 @@ trait Server:
         UserModel.userTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
       }
     catch
-      case _ => 
+      case e => println(e.getMessage())
+    try 
+      stmtDo(){
+        ImageModel.userTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
+      }
+    catch
+      case e => println(e.getMessage())
   
   type RouteMaker =    ActorRef[TokenRepo.Command] ?=>  ActorContext[Message] => Option[Route]
   def apply(host: String, port: Int,route : RouteMaker = ctx => None): Behavior[Message] = Behaviors.setup { ctx =>
@@ -127,5 +135,7 @@ trait Server:
 @main
 def launch(): Unit = {
   val system: ActorSystem[Message] =
-    ActorSystem(Server("localhost", 8080), "BuildUsersServer")
+    val servuer = Server("localhost", 8080)
+    Server.init()
+    ActorSystem(servuer, "BuildUsersServer")
 }
