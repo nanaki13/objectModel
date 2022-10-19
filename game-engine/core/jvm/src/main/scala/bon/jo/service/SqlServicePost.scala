@@ -23,6 +23,7 @@ import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
 import bon.jo.user.UserModel
 import bon.jo.sql.Sql.Limit
+import bon.jo.sql.Sql.JoinType
 object SqlServicePost {
 
   type ServicePost = Service[Post, (Int, Long, LocalDateTime)] with SqlServicePost
@@ -65,6 +66,7 @@ trait SqlServicePost:
   import self.given
   given (() => Connection) = connection
   given Alias = Alias()
+  given JoinType[Post,User] = JoinType.Default()
   given joinRequest: JoinBaseSqlRequest[Post, User] =
     new JoinBaseSqlRequest[Post, User]() {}
   val idUserAlias = s"${joinRequest.rightAlias}.${UserModel.column.id}"

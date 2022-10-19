@@ -8,17 +8,44 @@ import bon.jo.sql.Sql.Service
 import bon.jo.sql.Sql.BaseSqlRequest
 import bon.jo.sql.Sql.PSMapping
 import bon.jo.sql.Sql.stmtSetObject
+import bon.jo.sql.Sql.JoinBaseSqlRequest
+import bon.jo.sql.Sql.JoinService
+import bon.jo.sql.Sql.JoinType
 import java.sql.Connection
+import bon.jo.common.Convs
+import bon.jo.domain.ImageInfo
+import bon.jo.image.SqlServiceImage.given
+import bon.jo.sql.SqlMappings.given
+import JoinBaseSqlRequest.joinRequest
+import bon.jo.sql.Sql.Alias
+import bon.jo.image.ImageModel
 object SqlServiceUser {
   
+
+  given JoinType.Left[User,ImageInfo] = JoinType.Left()
+  given Alias = Alias()
+  
+  type UserWithImageService = JoinService[User,ImageInfo,JoinType.Left]
+  object JoinUserImageInfoRequest extends JoinBaseSqlRequest[User,ImageInfo,JoinType.Left]
+  given JoinBaseSqlRequest[User,ImageInfo,JoinType.Left] = JoinUserImageInfoRequest
+  object UserWithImageService:
+    inline def apply()( using ()=> Connection) :UserWithImageService = 
+      val test = new JoinService[User,ImageInfo,JoinType.Left]:
+        override lazy val joinCondition: String =
+          s"${joinRequest.leftAlias}.${UserModel.column.avatarKey} = ${joinRequest.rightAlias}.${ImageModel.column.id}"
+      type rr = test.Ret
+     
+      val tt : Seq[(User,Option[ImageInfo])] = test.findBys("zf"->"")()
+      test
+  
+  
+    
   type ServiceUser = Service[User,Long] with SqlServiceUser
   given BaseSqlRequest[User] = BaseSqlRequest[User](UserModel.userTable)
   given ResultSetMapping[User] with
     def apply(from : Int,r : ResultSet):User = 
-      User(r.getLong(from),r.getString(from+1),r.getString(from+2),Option(r.getLong(from+3)))
-  given ResultSetMapping[Long] with
-    def apply(from : Int,r : ResultSet):Long = 
-      r.getLong(from).asInstanceOf
+      User(r.getLong(from),r.getString(from+1),r.getString(from+2), Option(r.getObject(from+3)).map(Convs.conv))
+
   given PSMapping[User] with
      def apply(from : Int,v : User)(using PreparedStatement):Int=
       stmtSetObject(from,v.id)
@@ -31,10 +58,7 @@ object SqlServiceUser {
           stmtSetObject(from+3,null)
       
       from+4
-  given PSMapping[Long] with
-     def apply(from : Int,v : Long)(using PreparedStatement):Int=
-      stmtSetObject(from,v)
-      from+1
+
   inline def apply()( using ()=> Connection) : ServiceUser = new Service[User,Long] with SqlServiceUser
   
 

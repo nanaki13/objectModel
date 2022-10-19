@@ -1,5 +1,7 @@
 package bon.jo.pong
 import bon.jo.pong.Login.UserContext
+import bon.jo.pong.HttpServiceConfig.AuthParam.given
+import bon.jo.pong.AvatarView
 import concurrent.ExecutionContext.Implicits.global
 import org.scalajs.dom.document
 import scalajs.js.Date
@@ -7,6 +9,7 @@ import bon.jo.service.PostService
 import bon.jo.service.SaveResult
 import bon.jo.domain.*
 import bon.jo.domain.fake
+import bon.jo.common.Strings.FileExtension
 import bon.jo.html.Navigation.*
 import bon.jo.html.Navigation.given
 import scala.concurrent.Future
@@ -24,13 +27,15 @@ object Main:
   @main
   def launch(): Unit =
 
-    var posts = fake.PostSubject(15,"Forum",()=>  (Date()).toString )
+    var posts =
+       div.style
+       fake.PostSubject(15,"Forum",()=>  (Date()).toString )
     /*given PostService with
       def readPosts(subjectId : Int,from : Int,size : Int):Future[Seq[PostUser]] = 
         println((from : Int,size : Int))
         Future.successful( posts.posts.slice(from,from+size))
       def addPost(subjectId : Int,userId : Long,content : String):Future[SaveResult] = Future.successful(SaveResult.OK(Post(subjectId,userId,new Date().toDateString(),content)))*/
-    def testinput =
+    def testinput : UserContext ?=> Unit =
       val inuptRef = Ref[HTMLInputElement]()
       val buttonRef = Ref[HTMLButtonElement]() 
       div(childs(
@@ -47,21 +52,26 @@ object Main:
             document.body.appendChild(preview)
          }
       buttonRef.value.onclick = e => 
-        val request : RequestInit = scalajs.js.Dynamic.literal().asInstanceOf[RequestInit]
         val formData = new FormData();
-        formData.append("image", inuptRef.value.files(0));
-        request.body = formData
-        request.method = HttpMethod.POST
-        org.scalajs.dom.Fetch.fetch("https://localhost:8080/images",request).toFuture.foreach(e => console.log(e))
+        val name = inuptRef.value.files(0).name
+        name match
+          case FileExtension(_,ext) => formData.append("ext",ext)
+        
+
+        formData.append("image", inuptRef.value.files(0))
+        Login.userServicePrivate.sendAvatar(formData)
+    
+
       
 
     given SiteMap = Map(Page("game")-> PongGamePage.go,Page("forum")->{
       given PostService = PostServiceRest()
       ForumPage.go(posts.postSubjectTitle.title,0,10)
     },Page("test")-> testinput)
-    document.body :++ (MenuPage.menu(),Login.logoutButton())
+    document.body :+ MenuPage.menu()
     given DefaultPage = DefaultPage("game")
     Login.log().foreach(f => 
         given UserContext = f
+        document.body :+ div(_class("top-right"), childs(AvatarView.view,Login.logoutButton()))
         navigate()
       )

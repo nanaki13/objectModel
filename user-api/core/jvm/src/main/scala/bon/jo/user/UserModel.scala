@@ -9,10 +9,11 @@ import bon.jo.sql.Sql.Table.tableName
 import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
 import bon.jo.domain.{UserInfo , User}
+import bon.jo.domain.given
 object UserModel:
 
   extension (e : User)
-    def toUserInfo = UserInfo(e.id,e.name)
+    def toUserInfo = UserInfo(e.id,e.name,None)
   object column:
     val id = "id"
     val name = "name"
@@ -28,3 +29,4 @@ object UserModel:
 
 
     }
+  val userInfoTable = userTable.copy(columns = userTable.columns.filter(_.name != column.pwd))

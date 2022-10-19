@@ -29,13 +29,12 @@ import java.time.LocalDateTime
 class PostRoutes(buildUserRepository: ActorRef[PostRepo.Command])(using
     ActorRef[TokenRepo.Command],
     ActorSystem[_],
-    Formats
+    Formats,ExecutionContext,Timeout
 ) extends CORSHandler
     with TokenRouteGuard {
 
   import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
   import akka.actor.typed.scaladsl.AskPattern.Askable
-  given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
   val postJson: JsonSupport[Post] = JsonSupport[Post]()
@@ -44,7 +43,6 @@ class PostRoutes(buildUserRepository: ActorRef[PostRepo.Command])(using
   import postJson.given
   import postUserJson.given
   import postInfoJson.given
-  given t: Timeout = 3.seconds
 
   lazy val route: Route = corsHandler {
     pathPrefix("subjects") {

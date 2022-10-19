@@ -27,6 +27,11 @@ import akka.actor.typed.ActorRef
 import Message.*
 import scala.util.Try
 import bon.jo.image.ImageModel
+import bon.jo.image.ImageRepo
+import bon.jo.image.SqlServiceImage
+import scala.concurrent.ExecutionContext
+import concurrent.duration.DurationInt
+import akka.util.Timeout
 
 
 enum Message:
@@ -47,10 +52,11 @@ trait Server:
   given con : (() => Connection)
   
   lazy val service = SqlServiceUser()
+  val imageSerice = SqlServiceImage()
   def init():Unit = 
     given Connection = con()
     import bon.jo.sql.DBType.given
-    println(ImageModel.userTable.createSql)
+
    
     /* doSql(s"DROP TABLE if exists ${UserModel.userTable.name} "){
       execute()  
@@ -66,7 +72,7 @@ trait Server:
       case e => println(e.getMessage())
     try 
       stmtDo(){
-        ImageModel.userTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
+        ImageModel.imageTable.createSql.split(";").map(p).map(stmt.executeUpdate).foreach(println)
       }
     catch
       case e => println(e.getMessage())
@@ -78,17 +84,21 @@ trait Server:
     val initId = Try{
       service.maxId()+1l
     }.recover(_ => 1l).get
-    val buildJobRepository = ctx.spawn(UserRepo(service,initId), "UserRepository")
+    given buildJobRepository : ActorRef[UserRepo.Command]  = ctx.spawn(UserRepo(service,initId), "UserRepository")
     given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
+    given  imageRepo : ActorRef[ImageRepo.Command] = ctx.spawn(ImageRepo(imageSerice), "ImageRepository")
    
-
+    given ExecutionContext = ctx.system.executionContext
+    given Timeout = 3.seconds
     
     val routes = new UserRoutes(buildJobRepository)
-    val tokenRoute = new TokenRoutes(buildJobRepository,tokenRepo)
+    val tokenRoute = new TokenRoutes()
+    val imgRoute = new ImageRoutes(imageRepo)
+    val base = concat(routes.theUserRoutes,tokenRoute.theTokenRoutes,tokenRoute.theTokenRoutes,imgRoute.theImageRoutes)
     val allRoute = 
       route(ctx) match
-        case Some(r) => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes,r)
-        case _ => concat(routes.theUserRoutes,tokenRoute.theTokenRoutes)
+        case Some(r) => concat(base,r)
+        case _ => base
       
     val serverBinding: Future[Http.ServerBinding] =
       Http().newServerAt(host, port).enableHttps(HttpsConf()).bind(allRoute)

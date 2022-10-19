@@ -9,23 +9,30 @@ import org.json4s.Formats
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.format.DateTimeFormatter
 import org.json4s.CustomSerializer
+import org.json4s.native.Serialization
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.json4s.JString
 import org.json4s.JNull
+import org.json4s.JLong
+import org.json4s.JDouble
+import org.json4s.JDecimal
+import org.json4s.JInt
+import org.json4s.NoTypeHints
+import bon.jo.domain.Id
 
 object JsonSupport:
   given  [A](using  Materializer,Manifest[A],Manifest[Seq[A]],Formats) : JsonSupport[A] = new JsonSupport[A]{}
 
   def apply[A]()(using  JsonSupport[A]):JsonSupport[A] = summon
 
-  def format = org.json4s.DefaultFormats ++ CustomSerializers()
+  def format : Formats = Serialization.formats(NoTypeHints) ++ CustomSerializers()
   object CustomSerializers {
 
-    private val dateFormatter     = DateTimeFormatter.ofPattern("dd-MM-yyyy")
+    private val dateFormatter     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-    def apply() = Seq(LocalDateSerializer,LocalDateTimeSerializer)
+    def apply() = Seq(LocalDateSerializer,LocalDateTimeSerializer,IdSerializer)
     case object LocalDateSerializer extends CustomSerializer[LocalDate](format => ( {
       case JString(date) => LocalDate.parse(date, dateFormatter)
       case JNull         => null
@@ -39,6 +46,18 @@ object JsonSupport:
     }, {
       case dt: LocalDateTime => JString(dt.format(dateTimeFormatter))
     }))
+
+    case object IdSerializer extends CustomSerializer[Id](format => ( {
+      case JLong(int) => Id(int)
+      case JInt(int) => Id(int.toLong)
+      case JDecimal(int) => Id(int.toLong)
+      case JDouble(int) => Id(int.toLong)
+      case JNull       => null
+    }, {
+      case dt: Id => JLong(dt.id)
+    }))
+
+ 
 }
 
 trait JsonSupport[A](using Materializer,Manifest[A],Manifest[Seq[A]],Formats ) {

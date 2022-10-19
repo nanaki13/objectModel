@@ -14,12 +14,12 @@ import scalajs.js
 import bon.jo.domain.UserScore
 import bon.jo.pong.Login
 import bon.jo.domain.UserInfo
+import bon.jo.common.Anys.toSome
 import bon.jo.domain.Score
 import bon.jo.request.HttpRequest.given
 
 object ScoreServiceRest {
-    extension [T](t : T)
-      def toSome:Some[T] = Some(t)
+
     trait ScoreInfoJs extends js.Object:
       val idGame: Int
       val lvl: Int
@@ -33,7 +33,7 @@ object ScoreServiceRest {
       val score : ScoreJs
     object UserScoreJsParser:
       def unapply(u : UserScoreJs) : Some[UserScore] = 
-        UserScore(UserInfo(u.user.id.toLong,u.user.name),Score(u.score.idGame,u.score.lvl,u.score.idUser.toLong, u.score.scoreDateTime,u.score.scoreValue.toLong)).toSome
+        UserScore(Login.userInfo(u.user),Score(u.score.idGame,u.score.lvl,u.score.idUser.toLong, u.score.scoreDateTime,u.score.scoreValue.toLong)).toSome
     object ScoreInfoJs:
       def apply(score : ScoreInfo): ScoreInfoJs =
         js.Dynamic.literal(idGame = score.idGame, lvl = score.lvl, scoreValue = score.scoreValue.toDouble).asInstanceOf

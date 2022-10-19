@@ -39,6 +39,9 @@ object Html:
         <.button[HTMLButtonElement](f*)
       def div: HTMLElement = <.div[HTMLElement]
       def image: HTMLImageElement = <.img[HTMLImageElement]
+      def image(f: HTMLImageElement ?=> Unit*): HTMLImageElement = <.img[HTMLImageElement](f*)
+      def src(srcP : String): HTMLImageElement ?=> Unit = 
+        summon.src = srcP
       def scrollMax =
         document.documentElement.scrollHeight - document.documentElement.clientHeight
   case class Ref[T](var value : T = null)

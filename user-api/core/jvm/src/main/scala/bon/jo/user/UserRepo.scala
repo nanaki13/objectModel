@@ -4,7 +4,8 @@ import akka.actor.typed.{ ActorRef, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
 import bon.jo.domain.User
 import UserRepo.Command.*
-import UserRepo.Response.*
+import bon.jo.domain.Response
+import bon.jo.domain.Response.*
 import bon.jo.sql.Sql
 import bon.jo.user.SqlServiceUser.ServiceUser
 import bon.jo.domain.UserLogin
@@ -13,9 +14,7 @@ object UserRepo {
 
 
   // Trait defining successful and failure responses
-  enum Response:
-    case OK
-    case KO(reason: String)
+
 
   // Trait and its implementations representing all possible messages that can be sent to this Behavior
   enum Command:

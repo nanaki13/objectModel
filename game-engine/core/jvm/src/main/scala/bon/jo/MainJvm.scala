@@ -18,11 +18,14 @@ import bon.jo.sql.Sql.{stmtDo, stmt}
 import scala.util.Try
 import bon.jo.route.StaticRoute
 import akka.http.scaladsl.server.Directives._
+import akka.util.Timeout
 import bon.jo.model.PostModel
 import scala.util.Failure
 import scala.util.Success
+import scala.concurrent.ExecutionContext
 import bon.jo.service.PostRepo
 import bon.jo.service.SqlServicePost
+import concurrent.duration.DurationInt
 object MainJvm extends Server:
 
   extension (key: String)
@@ -75,10 +78,13 @@ object MainJvm extends Server:
       case Failure(exception) => println(exception)
       case Success(value)     =>
 
-  inline def launch(): Unit =
+  def launch(): Unit =
+    super.init()
     init()
     def route: RouteMaker = ctx =>
       given ActorSystem[_] = ctx.system
+      given ExecutionContext  = ctx.system.executionContext
+      given Timeout = 3.seconds
       Some(
         concat(
           ScoreRoutes(

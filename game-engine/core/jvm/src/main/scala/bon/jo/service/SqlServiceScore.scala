@@ -23,6 +23,7 @@ import bon.jo.model.ScoreModel.Score
 import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
 import bon.jo.sql.Sql.Limit
+import bon.jo.sql.Sql.JoinType
 object SqlServiceScore {
 
   type ServiceScore = Service[Score, (Int, Int, Long)] with SqlServiceScore
@@ -72,6 +73,7 @@ trait SqlServiceScore:
   import self.given
   given (() => Connection) = connection
   given Alias = Alias()
+  given JoinType[User,Score] = JoinType.Default()
   given joinRequest: JoinBaseSqlRequest[User, Score] =
     new JoinBaseSqlRequest[User, Score]() {}
   val idUserAlias = s"${joinRequest.leftAlias}.id"

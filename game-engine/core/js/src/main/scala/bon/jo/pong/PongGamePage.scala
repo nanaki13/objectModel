@@ -18,6 +18,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.CanvasRenderingContext2D
 import scalajs.js.special.debugger
 import scala.concurrent.ExecutionContext.Implicits.global
+import bon.jo.pong.HttpServiceConfig.AuthParam.given
 import scala.util.{Success, Failure}
 object PongGamePage :
 

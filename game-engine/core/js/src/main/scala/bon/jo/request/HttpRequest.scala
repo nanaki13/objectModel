@@ -1,20 +1,24 @@
 package bon.jo.request
 
-import org.scalajs.dom.XMLHttpRequest
+//import org.scalajs.dom.XMLHttpRequest
+import org.scalajs.dom
+import org.scalajs.dom.Fetch
 import scala.concurrent.Future
 import scala.concurrent.Promise
+import scala.concurrent.ExecutionContext.Implicits.global
 import scalajs.js
 import HttpRequest.*
 import scala.util.Success
 import scala.util.Failure
 import scala.util.Try
+import org.scalajs.dom.RequestInit
 package simple:
   extension (m : Method)
-    def apply(url : String,body : Option[String],headers : Map[String,String]): Future[Response] = 
+    def apply(url : String,body : Option[dom.BodyInit],headers : Map[String,String]): Future[Response] = 
       request(m,url,body,headers)
 package predef:
   extension (m : Method)(using GlobalParam)
-    def send(url : String,body : Option[String],headers : Map[String,String]): Future[Response] = 
+    def send(url : String,body : Option[dom.BodyInit],headers : Map[String,String]): Future[Response] = 
       request(m,baseUrl+url,body,headers ++globalHeaders)
   extension (m : Get)(using GlobalParam)
     def apply(url : String,headers : Map[String,String]): Future[Response] = 
@@ -30,6 +34,13 @@ object HttpRequest :
   type Get = Method.GET.type
   type Post = Method.POST.type
   type Put = Method.PUT.type
+  extension (m : Method)
+    def toJs():dom.HttpMethod = 
+      m match
+        case Method.GET => dom.HttpMethod.GET
+        case Method.POST => dom.HttpMethod.POST
+        case Method.PUT => dom.HttpMethod.PUT
+      
 
 
   extension (jsValue : js.Any)
@@ -58,7 +69,7 @@ object HttpRequest :
     val basePath : String
     import predef.*
     extension (m : Method)
-      def sendOn(url : String,body : Option[String] = None,headers : Map[String,String] = Map.empty): Future[Response] = 
+      def sendOn(url : String,body : Option[dom.BodyInit] = None,headers : Map[String,String] = Map.empty): Future[Response] = 
         m.send(basePath+url,body,headers ++ globalHeaders)
       def sendEntity[T](url : String,body : T = None,headers : Map[String,String] = Map.empty)(using Conversion[T,String]): Future[Response] = 
         m.send(basePath+url,Some(body.toStringBody),headers ++ globalHeaders)
@@ -74,24 +85,25 @@ object HttpRequest :
 
   def baseUrl(using GlobalParam): String = summon.baseUrl
   def globalHeaders(using GlobalParam): Map[String,String] = summon.headers
-  def request(method : Method,url : String,body : Option[String],headers : Map[String,String]) : Future[Response] = 
-    val oReq = new XMLHttpRequest()
-    val ret = Promise[Response]()
-    println((method : Method,url : String,body : Option[String],headers : Map[String,String]) )
-    val sendOp =  Try{
-      oReq.open(method.toString(), url, true);
-      headers.foreach(oReq.setRequestHeader)
-      oReq.onload = e => {
-        ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
+  private def baseReq : RequestInit = scalajs.js.Dynamic.literal().asInstanceOf[RequestInit]
+  private def baseHeadres : dom.Headers = scalajs.js.Dynamic.literal().asInstanceOf[dom.Headers]
+  private def req(method : Method,body : Option[dom.BodyInit],headers : Map[String,String]) : RequestInit = 
+    val base = scalajs.js.Dynamic.literal().asInstanceOf[RequestInit]
+    base.method = method.toJs()
+   
+    val toSet = dom.Headers()
+    headers.foreach((k,v)=> toSet.append(k,v))
+    base.headers= toSet
+    body foreach (base.body = _)
+    base
+  def request(method : Method,url : String,body : Option[dom.BodyInit],headers : Map[String,String]) : Future[Response] = 
+      val reqL = req(method,body,headers)
+      Fetch.fetch(url,reqL).toFuture.flatMap{
+        dResponse => 
+          dResponse.text().toFuture.map{
+            txt => Response(txt,dResponse.status,dResponse.statusText,dResponse.`type`)
+          }
       }
-      oReq.onerror= e => {
-        ret.success( Response(oReq.response,oReq.status,oReq.statusText,oReq.responseType))
-      }
-      oReq.send(body.getOrElse(null));
-    
-    }
-    sendOp match
-      case Success(v) => ret.future
-      case Failure(v) => Future.failed(v)
+
     
     

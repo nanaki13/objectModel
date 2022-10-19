@@ -37,7 +37,7 @@ class AllTest extends AnyFlatSpec with should.Matchers:
     println(e)
     e
   stmtDo() {
-    ScoreModel.scoreTable.createSql
+    ScoreModel.table.createSql
       .split(";")
       .map(p)
       .map(stmt.executeUpdate)

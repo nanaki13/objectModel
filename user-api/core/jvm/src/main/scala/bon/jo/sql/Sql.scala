@@ -5,7 +5,7 @@ import bon.jo.sql.StringWriter.*
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import bon.jo.sql.Sql.PSMapping
-
+import bon.jo.common.typeutils.~
 import bon.jo.sql.Sql.BaseSqlRequest
 import BaseSqlRequest.baseSqlRequest
 import java.sql.Statement
@@ -68,11 +68,17 @@ object Sql {
             
             s"""CREATE $indexType INDEX ${index.values.mkString("_")}_idx ON $name(${index.values.mkString(",")});"""
         }.mkString("\n")}"""
-    def createSql(using DBType) : String = 
+    def createSql(using dbTypeOf: DBType) : String = 
       given Set[String] = autoIncr
       s"""CREATE TABLE $name(
-        ${columns.map(_.sqlDef).mkString(",\n        ")},
-        PRIMARY KEY(${id.mkString(",")}));
+        ${columns.map(_.sqlDef).mkString(",\n        ")}
+        ${
+          if  dbTypeOf == DBType.SQLite && autoIncr.nonEmpty then
+            ""
+          else
+            s""",PRIMARY KEY(${id.mkString(",")})"""
+        }
+        );
         ${indexs.map{
           index => 
             val indexType = index.indexType match
@@ -93,7 +99,7 @@ object Sql {
               case "BIGINT" => "BIGSERIAL"
             s"$name $aiType"
             
-          case DBType.SQLite => s"$name INTEGER AUTO_INCREMENT"
+          case DBType.SQLite => s"$name INTEGER PRIMARY KEY AUTOINCREMENT"
         
       else
         toString()
@@ -136,7 +142,7 @@ object Sql {
     def count : Int
   object CountColumns:
     inline def apply[T](using CountColumns[T]) = summon
-    given [L](using JoinBaseSqlRequest[L,_]):CountColumns[L] = summon.leftTable
+    given [L](using JoinBaseSqlRequest[L,_,_]):CountColumns[L] = summon.leftTable
   trait ResultSetMapping[T]:
     def apply(from : Int,v : ResultSet):T
     inline def apply(v : ResultSet):T = this(1,v)
@@ -145,6 +151,15 @@ object Sql {
     given [L,R](using ResultSetMapping[L],ResultSetMapping[R],CountColumns[L]): ResultSetMapping[(L,R)] with
         def apply(from: Int, v: ResultSet): (L, R) = 
           (ResultSetMapping[L](from,v) , ResultSetMapping[R](from+CountColumns[L].count,v))
+    given [L,R](using ResultSetMapping[L],ResultSetMapping[R],CountColumns[L]): ResultSetMapping[(L,Option[R])] with
+        def apply(from: Int, v: ResultSet): (L, Option[R]) = 
+          val opt = Option(v.getObject(from+CountColumns[L].count)).map{
+            _ =>  ResultSetMapping[R](from+CountColumns[L].count,v)
+          }
+          (ResultSetMapping[L](from,v) ,opt)
+    given [T1, T2, T3](using ResultSetMapping[T1],ResultSetMapping[T2],ResultSetMapping[T3],CountColumns[T1],CountColumns[T2]): ResultSetMapping[(T1, T2, T3)] with
+        def apply(from: Int, v: ResultSet): (T1, T2, T3) = 
+          (ResultSetMapping[T1](from,v) , ResultSetMapping[T2](from+CountColumns[T1].count,v), ResultSetMapping[T3](from+CountColumns[T2].count,v))
 
   trait PSMapping[T]:
     def apply(from : Int,v : T)(using PreparedStatement):Int
@@ -196,13 +211,77 @@ object Sql {
     inline def alias : Alias?=>Alias = summon
 
   object JoinBaseSqlRequest:
-    inline def joinRequest[L,R] : JoinBaseSqlRequest[L,R]?=>JoinBaseSqlRequest[L,R] = summon
+    inline def joinRequest[L,R,T[_,_] <: JoinType[_,_]] : JoinBaseSqlRequest[L,R,T]?=>JoinBaseSqlRequest[L,R,T] = summon
+    inline def joinRequest3[T1,T2,T3] : ~[T1JoinT2JoinT3Request[T1,T2,T3]] = summon
+
+  enum JoinType[L,R]:
+    case Default()
+    case Left()
+    case Right()
+    def sql : String = 
+      this match
+        case JoinType.Default() => ""
+        case JoinType.Left() => "LEFT"
+        case JoinType.Right() => "RIGHT"
+  case class JoinDef[L,R]( joinType : JoinType[L,R], on : String)
+  object JoinDef:
+    def on[L,R]: JoinDef[L,R] ?=>  String = summon.on
+  object JoinType:
+    def joinType[L,R]: JoinType[L,R] ?=>  String = summon.sql
+    given [L,R](using JoinDef[L,R]): JoinType[L,R] = summon.joinType
+      
+  trait T1JoinT2JoinT3Request[T1,T2,T3](using  BaseSqlRequest[T1],BaseSqlRequest[T2],BaseSqlRequest[T3],JoinDef[T1,T2],JoinDef[T2,T3],Alias):
+    import Alias.alias
+    import BaseSqlRequest.table
+    import JoinType.joinType
+    import JoinDef.on
     
-  trait JoinBaseSqlRequest[L,R](using  BaseSqlRequest[L],BaseSqlRequest[R],Alias) :
+    inline def t1Table = BaseSqlRequest.baseSqlRequest[T1]
+    inline def t2Table = BaseSqlRequest.baseSqlRequest[T2]
+    inline def t3Table = BaseSqlRequest.baseSqlRequest[T3]
+    given CountColumns[T1] = t1Table
+    given CountColumns[T2] = t2Table
+    val t1Alias = alias(table[T1].name)
+    val t2Alias = alias(table[T2].name)
+    val t3Alias = alias(table[T3].name)
+    val t1AliasedTable = table[T1].name+" "+t1Alias
+    val t2AliasedTable = table[T2].name+" "+t2Alias
+    val t3AliasedTable = table[T3].name+" "+t3Alias
+    def columns : String = t1Table.aliasDotcolumnsString(t1Alias)+", "+t2Table.aliasDotcolumnsString(t2Alias)+", "+t3Table.aliasDotcolumnsString(t3Alias)
+    def select : String = s"SELECT $columns FROM $t1AliasedTable $join12 ON ${on[T1,T2]} $join23 ON ${on[T2,T3]} "
+    def join12 : String = s"${joinType[T1,T2]} JOIN $t2AliasedTable"
+    def join23 : String = s"${joinType[T2,T3]} JOIN $t3AliasedTable"
+
+  trait T1JoinT2JoinT3Service[T1,T2,T3](using ()=>Connection,ResultSetMapping[T1],ResultSetMapping[T2],ResultSetMapping[T3], T1JoinT2JoinT3Request[T1,T2,T3]) extends UsingCo:
+    import JoinBaseSqlRequest.joinRequest3
+    val request = JoinBaseSqlRequest.joinRequest3
+    import request.given
+
+    lazy val sqlBaseSelect = joinRequest3.select
+    
+    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil,limit : Limit = Limit.NoLimit):Seq[(T1,T2,T3)] = 
+      val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
+      val sqlS = sqlBaseSelect+s" WHERE $paramsQ"+sorts.sql+" "+limit.toSql
+      println(sqlS)
+      sql(sqlS){
+        fieldvalue.map(_._2).zipWithIndex.foreach((e,i) => stmtSetObject(i+1,e))
+        
+        val r = executeQuery()
+        r.iterator.map( r => {
+        
+          ResultSetMapping[(T1,T2,T3)](1,r)
+        }).toSeq
+      }  
+
+  trait JoinBaseSqlRequest[L,R,T[_,_] <: JoinType[_,_] ](using  BaseSqlRequest[L],BaseSqlRequest[R],T[L,R],Alias) :
 
     import Alias.alias
     import BaseSqlRequest.table
-    
+    import JoinType.joinType
+    type Ret = T[L,R] match 
+      case JoinType.Default[L,R] => (L,R)
+      case JoinType.Left[L,R] => (L,Option[R])
+      case JoinType.Right[L,R] => (Option[L],R)
     inline def leftTable = BaseSqlRequest.baseSqlRequest[L]
     inline def rightTable = BaseSqlRequest.baseSqlRequest[R]
     val leftAlias = alias(table[L].name)
@@ -211,7 +290,7 @@ object Sql {
     val rightAliasedTable = table[R].name+" "+rightAlias
     def columns : String = leftTable.aliasDotcolumnsString(leftAlias)+", "+rightTable.aliasDotcolumnsString(rightAlias)
     def select : String = s"SELECT $columns FROM $join"
-    def join : String = s"$leftAliasedTable JOIN $rightAliasedTable"
+    def join : String = s"$leftAliasedTable $joinType JOIN $rightAliasedTable"
 
   trait UsingCo(using ()=>Connection):
     def connection : ()=>Connection = summon
@@ -235,13 +314,14 @@ object Sql {
         case Limit.NoLimit =>  ""
         case Limit.Fixed(from, size) => s"LIMIT ${size} OFFSET ${from}"
       
-  trait JoinService[L,R](using ()=>Connection,ResultSetMapping[L],ResultSetMapping[R],JoinBaseSqlRequest[L,R]) extends UsingCo:
+  trait JoinService[L,R,T[_,_] <: JoinType[_,_]](using ()=>Connection,ResultSetMapping[L],ResultSetMapping[R],JoinBaseSqlRequest[L,R,T]) extends UsingCo:
     import JoinBaseSqlRequest.joinRequest
-   
+    val req =  JoinBaseSqlRequest.joinRequest
+    type Ret = req.Ret
     lazy val joinCondition : String
     lazy val sqlBaseSelect = joinRequest.select+" ON "+joinCondition
     
-    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil,limit : Limit = Limit.NoLimit):Seq[(L,R)] = 
+    def findBys(fieldvalue : (String,Any) *)(sorts : Seq[Sort] = Nil,limit : Limit = Limit.NoLimit): ResultSetMapping[Ret] ?=> Seq[Ret] = 
       val paramsQ = fieldvalue.map(_._1).map(f => s" $f = ?").mkString(" AND ")
       val sqlS = sqlBaseSelect+s" WHERE $paramsQ"+sorts.sql+" "+limit.toSql
       println(sqlS)
@@ -250,8 +330,8 @@ object Sql {
         
         val r = executeQuery()
         r.iterator.map( r => {
-        
-          ResultSetMapping[(L,R)](1,r)
+         
+          ResultSetMapping[Ret](1,r)
         }).toSeq
       }  
 
@@ -295,6 +375,7 @@ object Sql {
         r.next()
         ResultSetMapping[ID](r)
       }
+
     def read(ids :ID):T  = 
       sql[T](baseSqlRequest.selectByIdString){
         PSMapping[ID](1,ids)

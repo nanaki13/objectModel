@@ -1,6 +1,6 @@
 package bon.jo.user
 
-import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.typed.{ ActorRef, Behavior,ActorSystem }
 import akka.actor.typed.scaladsl.Behaviors
 import bon.jo.domain.UserInfo
 import TokenRepo.Command.*
@@ -15,7 +15,14 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import scala.util.Try
+import akka.actor.typed.scaladsl.AskPattern.Askable
+import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
 import bon.jo.server.JsonSupport
+import scala.concurrent.Future
+import akka.util.Timeout
+
+import bon.jo.domain.User
+import scala.concurrent.ExecutionContext
 object TokenRepo {
 
   val key = scala.sys.env.getOrElse("bon.jo.secret","secret")
@@ -50,5 +57,8 @@ object TokenRepo {
 
   extension (c : JwtClaim)
     def toUserInfo : UserInfo = Serialization.read(c.content)
+    def userFromDb(using users : ActorRef[UserRepo.Command]): (Timeout,ActorSystem[_],ExecutionContext) ?=> Future[User] = 
+      val ui = toUserInfo
+      users.ask[Option[User]](UserRepo.Command.GetUserById(ui.id,_ )).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.id}")))
 
 }

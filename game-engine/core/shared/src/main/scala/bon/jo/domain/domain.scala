@@ -22,6 +22,6 @@ package domain:
       domain.PostSubject(PostSubjectTitle(0,title),{
         for{
           i <- 0 until n
-          post = PostUser(0,UserInfo(i,"user"+i),date(),("contesnt"+i+" ") * 35)
+          post = PostUser(0,UserInfo(i,"user"+i,None),date(),("contesnt"+i+" ") * 35)
         } yield post
       })

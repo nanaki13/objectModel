@@ -24,26 +24,25 @@ import bon.jo.domain.ScoreInfo
 import bon.jo.domain.GameLevel
 import bon.jo.model.ScoreModel.Score
 import java.time.LocalDateTime
+import akka.util.Timeout
 import bon.jo.domain.UserScore
 
 class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
     ActorRef[TokenRepo.Command],
     ActorSystem[_],
-    Formats
+    Formats,Timeout,ExecutionContext
 ) extends JsonSupport[ScoreInfo]
     with CORSHandler
     with TokenRouteGuard {
 
   import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
   import akka.actor.typed.scaladsl.AskPattern.Askable
-  given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
   val scoreJson: JsonSupport[Score] = JsonSupport[Score]()
   val scoreUserJson: JsonSupport[UserScore] = JsonSupport[UserScore]()
   import scoreJson.given
   import scoreUserJson.given
-  given t: Timeout = 3.seconds
 
   lazy val route: Route = corsHandler {
     pathPrefix("scores") {

@@ -17,7 +17,7 @@ object ImageModel:
     val name = "name"
     val data = "data"
 
-  val userTable = Table{
+  val imageTable = Table{
     tableName("image")
       Column{columnName(column.id);_type("BIGINT");id;autoIncr} 
       Column{columnName(column.name);_type("VARCHAR(255)");unique} 
@@ -25,3 +25,4 @@ object ImageModel:
 
 
     }
+  val imageInfoTable = imageTable.copy(columns = imageTable.columns.filter(_.name != column.data))

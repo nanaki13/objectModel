@@ -35,7 +35,7 @@ object PostServiceRest {
       val postDateTime: String
     object PostUserJsParser:
       def unapply(u : PostUserJs) : Some[PostUser] = 
-        PostUser(u.idSubject, UserInfo(u.user.id.toLong,u.user.name),u.postDateTime,u.content).toSome
+        PostUser(u.idSubject, Login.userInfo(u.user),u.postDateTime,u.content).toSome
     object PostJsParser:
       def unapply(u : PostJs) : Some[Post] = 
         Post(u.idSubject, u.idUser.toLong,u.postDateTime,u.content).toSome

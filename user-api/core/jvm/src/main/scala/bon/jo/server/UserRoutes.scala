@@ -15,7 +15,8 @@ import bon.jo.domain.User
 import bon.jo.domain.ImageSend
 import bon.jo.user.UserModel.toUserInfo
 import bon.jo.user.UserRepo.Command
-import bon.jo.user.UserRepo.Response
+import bon.jo.domain.Response
+import bon.jo.domain.Response.*
 import org.json4s.Formats
 import scala.concurrent.ExecutionContext
 import bon.jo.domain.UserInfo
@@ -29,16 +30,16 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
     ActorRef[TokenRepo.Command],
     ActorRef[ImageRepo.Command],
     ActorSystem[_],
-    Manifest[User],
-    Manifest[Seq[User]],
-    Formats
+    Formats,
+    Timeout,
+    ExecutionContext
 ) extends JsonSupport[User]
     with CORSHandler
     with TokenRouteGuard {
 
   import akka.actor.typed.scaladsl.AskPattern.schedulerFromActorSystem
   import akka.actor.typed.scaladsl.AskPattern.Askable
-  given ec: ExecutionContext = summon[ActorSystem[_]].executionContext
+
   // asking someone requires a timeout and a scheduler, if the timeout hits without response
   // the ask is failed with a TimeoutException
   val userInfoJson: JsonSupport[UserInfo] = JsonSupport[UserInfo]()
@@ -46,7 +47,7 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
   val userLoginJson: JsonSupport[UserLogin] = JsonSupport[UserLogin]()
   import userLoginJson.given
   inline def imageRepo = summon[ActorRef[ImageRepo.Command]]
-  given t: Timeout = 3.seconds
+
 
   lazy val theUserRoutes: Route =
     corsHandler {
@@ -56,7 +57,7 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
             concat(
               post {
                 entity(as[UserLogin]) { user =>
-                  val operationPerformed: Future[UserRepo.Response] =
+                  val operationPerformed: Future[Response] =
                     buildUserRepository.ask(Command.AddUser(user, _))
                   onSuccess(operationPerformed) {
                     case Response.OK => complete("User added")
@@ -77,25 +78,36 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
             )
           },
          (post & path("avatar")){
-            (guard &  ImageRoutes. extractData("image")) { (claim,data) => 
+            (guard &  ImageRoutes.extractData("image")) { (claim,contentType,data) => 
               val ui = claim.toUi
-              val imgName = s"${ui.name}_avatar"
-              val createInDb = imageRepo.ask(ImageRepo.Command.AddImage(ImageSend(imgName,data),_)).map(_ => imgName)
+              val imgName = s"${ui.name}_avatar.$contentType"
+              def createInDb(user : User):Future[Response] = 
+                user.avatarKey match
+                  case None =>       
+                    imageRepo.ask(ImageRepo.Command.AddImage(ImageSend(imgName,data),_)).flatMap{
+                      case Response.OK => imageRepo.ask[Option[Image]](ImageRepo.Command.FindImages(imgName,_)).map(_.getOrElse(throw new IllegalStateException(s"no image $imgName")))  
+                      case Response.KO(reason) =>
+                        throw IllegalStateException(reason) 
+                    }.map(_.id).flatMap{ imgId => 
+                         buildUserRepository.ask[Response](Command.UpdateUser(user.copy(avatarKey = Some(imgId)),_))
+                    }
+              
+                  case Some(value) => 
+                    imageRepo.ask[Response](ImageRepo.Command.UpdateImage(Image(value,imgName,data),_))
 
-              val ret : Future[Option[Image]] = for{
-                fName <- imageRepo.ask(ImageRepo.Command.AddImage(ImageSend(imgName,data),_)).map{
-                    case ImageRepo.Response.OK => imgName
-                    case ImageRepo.Response.KO(reason) =>
-                      throw IllegalStateException(reason)
-                  }
-                imgDb <- imageRepo.ask[Option[Image]](ImageRepo.Command.FindImages(fName,_))
-                userUpa <- buildUserRepository.ask
-              } yield imgDb
-              onSuccess(createInDb) {
-                    case ImageRepo.Response.OK => complete("Image created")
-                    case ImageRepo.Response.KO(reason) =>
+
+              val ret : Future[Response] = (for{
+                userTuoUp <- buildUserRepository.ask[Option[User]](Command.FindUsers(ui.name, _)).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.name}")))
+                update <- createInDb(userTuoUp)
+                
+              } yield (update))
+              onSuccess(ret) {
+                    case Response.OK => complete("Avatar Updated")
+                    case Response.KO(reason) =>
                       complete(StatusCodes.InternalServerError -> reason)
                   }
+           
+              
             }
           
             
