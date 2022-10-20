@@ -52,7 +52,9 @@ trait Server:
   given con : (() => Connection)
   
   lazy val service = SqlServiceUser()
+  
   val imageSerice = SqlServiceImage()
+  val userImageService = SqlServiceUser.UserWithImageService()
   def init():Unit = 
     given Connection = con()
     import bon.jo.sql.DBType.given
@@ -84,7 +86,7 @@ trait Server:
     val initId = Try{
       service.maxId()+1l
     }.recover(_ => 1l).get
-    given buildJobRepository : ActorRef[UserRepo.Command]  = ctx.spawn(UserRepo(service,initId), "UserRepository")
+    given buildJobRepository : ActorRef[UserRepo.Command]  = ctx.spawn(UserRepo(service,userImageService,initId), "UserRepository")
     given  tokenRepo : ActorRef[TokenRepo.Command] = ctx.spawn(TokenRepo(), "TokenRepository")
     given  imageRepo : ActorRef[ImageRepo.Command] = ctx.spawn(ImageRepo(imageSerice), "ImageRepository")
    

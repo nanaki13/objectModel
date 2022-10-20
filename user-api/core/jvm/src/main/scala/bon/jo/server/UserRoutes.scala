@@ -12,6 +12,7 @@ import scala.concurrent.Future
 import akka.actor.typed.ActorRef
 import bon.jo.user.UserRepo
 import bon.jo.domain.User
+import bon.jo.domain.UserAvatar
 import bon.jo.domain.ImageSend
 import bon.jo.user.UserModel.toUserInfo
 import bon.jo.user.UserRepo.Command
@@ -69,7 +70,7 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
               get {
                 parameter("name") { name =>
                   rejectEmptyResponse {
-                    val maybeUser: Future[Option[User]] =
+                    val maybeUser: Future[Option[UserAvatar]] =
                       buildUserRepository.ask(Command.FindUsers(name, _))
                     complete(maybeUser.map(_.map(_.toUserInfo)))
                   }
@@ -97,8 +98,8 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
 
 
               val ret : Future[Response] = (for{
-                userTuoUp <- buildUserRepository.ask[Option[User]](Command.FindUsers(ui.name, _)).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.name}")))
-                update <- createInDb(userTuoUp)
+                userTuoUp <- buildUserRepository.ask[Option[UserAvatar]](Command.FindUsers(ui.name, _)).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.name}")))
+                update <- createInDb(userTuoUp.user)
                 
               } yield (update))
               onSuccess(ret) {
@@ -130,10 +131,10 @@ class UserRoutes(buildUserRepository: ActorRef[UserRepo.Command])(using
 
           },
           (get & path(LongNumber)) { id =>
-            val maybeUser: Future[Option[User]] =
+            val maybeUser: Future[Option[UserAvatar]] =
               buildUserRepository.ask(Command.GetUserById(id, _))
             rejectEmptyResponse {
-              complete(maybeUser)
+              complete(maybeUser.map(_.map(_.toUserInfo)))
             }
           }
         )

@@ -8,7 +8,7 @@ import bon.jo.domain.UserInfo
 object AvatarView {
   def view(using  UserContext, GlobalParam):HTMLElement =
     println(UserContext.user)
-    UserContext.user.avatarKey match
+    UserContext.user.avatar match
       case None =>  div(text("+")) //DefineAvatarView()
       case Some(_) => view(Login.myAvatarUrl)
     

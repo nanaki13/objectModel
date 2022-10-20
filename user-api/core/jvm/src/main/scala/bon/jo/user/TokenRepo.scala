@@ -21,7 +21,7 @@ import bon.jo.server.JsonSupport
 import scala.concurrent.Future
 import akka.util.Timeout
 
-import bon.jo.domain.User
+import bon.jo.domain.{User, UserAvatar}
 import scala.concurrent.ExecutionContext
 object TokenRepo {
 
@@ -57,8 +57,8 @@ object TokenRepo {
 
   extension (c : JwtClaim)
     def toUserInfo : UserInfo = Serialization.read(c.content)
-    def userFromDb(using users : ActorRef[UserRepo.Command]): (Timeout,ActorSystem[_],ExecutionContext) ?=> Future[User] = 
+    def userFromDb(using users : ActorRef[UserRepo.Command]): (Timeout,ActorSystem[_],ExecutionContext) ?=> Future[UserAvatar] = 
       val ui = toUserInfo
-      users.ask[Option[User]](UserRepo.Command.GetUserById(ui.id,_ )).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.id}")))
+      users.ask[Option[UserAvatar]](UserRepo.Command.GetUserById(ui.id,_ )).map(_.getOrElse(throw new IllegalStateException(s"no user ${ui.id}")))
 
 }

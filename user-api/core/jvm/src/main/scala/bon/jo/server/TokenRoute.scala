@@ -15,6 +15,7 @@ import scala.concurrent.Future
 import akka.actor.typed.ActorRef
 import bon.jo.user.UserRepo
 import bon.jo.domain.User
+import bon.jo.domain.UserAvatar
 import bon.jo.domain.UserInfo
 import bon.jo.user.UserRepo.Command
 import bon.jo.domain.Response
@@ -51,9 +52,9 @@ class TokenRoutes()(using userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorR
           concat(
             post {
               entity(as[UserLogin]) { user =>
-                 val operationPerformed: Future[Option[String]] = userRepo.ask[Option[User]](UserRepo.Command.FindUsers(user.name,_)).flatMap{ e =>
+                 val operationPerformed: Future[Option[String]] = userRepo.ask[Option[UserAvatar]](UserRepo.Command.FindUsers(user.name,_)).flatMap{ e =>
                       e match
-                        case Some(u) if user.pwd.isBcryptedBounded(u.pwd) => 
+                        case Some(u) if user.pwd.isBcryptedBounded(u.user.pwd) => 
                           tokenRepo.ask[String](TokenRepo.Command.GetToken(u.toUserInfo,_)).map(e => Some(e))
                         case _ => Future(None)
                  }
@@ -69,7 +70,7 @@ class TokenRoutes()(using userRepo: ActorRef[UserRepo.Command],tokenRepo: ActorR
         },
         (get & guard & path("refresh")){
           claim => 
-            val f : Future[User] = claim.userFromDb
+            val f : Future[UserAvatar] = claim.userFromDb
             val getToken = f.flatMap{
               user => tokenRepo.ask[String](TokenRepo.Command.GetToken(user.toUserInfo,_))
             }

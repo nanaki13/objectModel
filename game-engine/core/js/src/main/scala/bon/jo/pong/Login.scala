@@ -33,6 +33,7 @@ import org.scalajs.dom.FormData
 import bon.jo.request.HttpRequest.GlobalParam
 import bon.jo.pong.HttpServiceConfig.AuthParam.given
 import bon.jo.domain.Id
+import bon.jo.domain.ImageInfo
 
 object Login:
 
@@ -44,13 +45,19 @@ object Login:
         else ValidationResult.Success(u)
       )
   }
+  trait ImageInfoJs extends js.Object:
+    val id : Double
+    val name: String
+  object ImageInfoJs:
+    def unapply(e : ImageInfoJs):ImageInfo = ImageInfo(e.id.toLong,e.name)
+   
   trait UserLoginJs extends js.Object:
     val name: String
     val pwd: String
   trait UserInfoJs extends js.Object:
     val id: Double
     val name: String
-    val avatarKey: js.UndefOr[Double]
+    val avatar: js.UndefOr[ImageInfoJs]
   object UserLoginJs:
     def apply(userLogin: UserLogin): UserLoginJs =
       js.Dynamic
@@ -88,14 +95,14 @@ object Login:
   def myAvatarUrl(using c: UserContext, g: GlobalParam): String =
     avatartUrl(c.user)
   def avatartUrl(user: UserInfo)(using g: GlobalParam) =
-    g.baseUrl + s"/images/${user.name}_avatar.jpg"
+    g.baseUrl + s"/images/${user.avatar.map(_.name).getOrElse("no_avatar.jpg")}"
   inline def userServicePrivate: ~[UserServicePrivate] = summon
   inline def tokenServicePrivate: ~[TokenServicePrivate] = summon
   def userInfo(jsObj: UserInfoJs): UserInfo =
     UserInfo(
       id = jsObj.id.toLong,
       name = jsObj.name,
-      avatarKey = jsObj.avatarKey.toOption.map(e => Id(e.toLong))
+      avatar = jsObj.avatar.toOption.map(ImageInfoJs.unapply)
     )
   def userInfo(token: String): UserInfo = userInfo(
     js.JSON

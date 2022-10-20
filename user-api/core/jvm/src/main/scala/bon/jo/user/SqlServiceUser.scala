@@ -2,7 +2,7 @@ package bon.jo.user
 
 import bon.jo.sql.Sql.ResultSetMapping
 import java.sql.ResultSet
-import bon.jo.domain.User
+import bon.jo.domain.{User, UserAvatar, UserInfo}
 import java.sql.PreparedStatement
 import bon.jo.sql.Sql.Service
 import bon.jo.sql.Sql.BaseSqlRequest
@@ -25,18 +25,22 @@ object SqlServiceUser {
   given JoinType.Left[User,ImageInfo] = JoinType.Left()
   given Alias = Alias()
   
-  type UserWithImageService = JoinService[User,ImageInfo,JoinType.Left]
+  trait UserWithImageService:
+    self :  JoinService[User,ImageInfo,JoinType.Left] => 
+      def findByName(name : String):Option[UserAvatar] = findBys(joinRequest.leftAlias+"."+UserModel.column.name ->name).map{
+        (o) => UserAvatar(o._1,o._2)
+      }
+      def findById(id : Long):Option[UserAvatar] = findBys(joinRequest.leftAlias+"."+UserModel.column.id ->id).map{
+        (o) => UserAvatar(o._1,o._2)
+      }
   object JoinUserImageInfoRequest extends JoinBaseSqlRequest[User,ImageInfo,JoinType.Left]
   given JoinBaseSqlRequest[User,ImageInfo,JoinType.Left] = JoinUserImageInfoRequest
   object UserWithImageService:
     inline def apply()( using ()=> Connection) :UserWithImageService = 
-      val test = new JoinService[User,ImageInfo,JoinType.Left]:
+      new JoinService[User,ImageInfo,JoinType.Left] with UserWithImageService:
         override lazy val joinCondition: String =
           s"${joinRequest.leftAlias}.${UserModel.column.avatarKey} = ${joinRequest.rightAlias}.${ImageModel.column.id}"
-      type rr = test.Ret
-     
-      val tt : Seq[(User,Option[ImageInfo])] = test.findBys("zf"->"")()
-      test
+      
   
   
     
@@ -45,6 +49,9 @@ object SqlServiceUser {
   given ResultSetMapping[User] with
     def apply(from : Int,r : ResultSet):User = 
       User(r.getLong(from),r.getString(from+1),r.getString(from+2), Option(r.getObject(from+3)).map(Convs.conv))
+  given ResultSetMapping[UserInfo] with
+    def apply(from : Int,r : ResultSet):UserInfo = 
+      UserInfo(r.getLong(from),r.getString(from+1), None)
 
   given PSMapping[User] with
      def apply(from : Int,v : User)(using PreparedStatement):Int=

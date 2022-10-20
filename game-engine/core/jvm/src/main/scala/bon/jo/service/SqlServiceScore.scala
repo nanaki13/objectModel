@@ -24,6 +24,14 @@ import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
 import bon.jo.sql.Sql.Limit
 import bon.jo.sql.Sql.JoinType
+import bon.jo.sql.Sql.JoinDef
+import bon.jo.domain.UserInfo
+import bon.jo.user.UserModel
+import bon.jo.domain.ImageInfo
+import bon.jo.image.ImageModel
+import bon.jo.sql.Sql.T1JoinT2JoinT3Request
+import bon.jo.sql.Sql.T1JoinT2JoinT3Service
+import bon.jo.sql.SqlMappings.given
 object SqlServiceScore {
 
   type ServiceScore = Service[Score, (Int, Int, Long)] with SqlServiceScore
@@ -71,23 +79,26 @@ trait SqlServiceScore:
   import bon.jo.user.SqlServiceUser.given
   import SqlServiceScore.given
   import self.given
+  import bon.jo.service.SqlServicePost.given
+  import bon.jo.image.SqlServiceImage.given
   given (() => Connection) = connection
   given Alias = Alias()
-  given JoinType[User,Score] = JoinType.Default()
-  given joinRequest: JoinBaseSqlRequest[User, Score] =
-    new JoinBaseSqlRequest[User, Score]() {}
-  val idUserAlias = s"${joinRequest.leftAlias}.id"
-  val lvlAlias = s"${joinRequest.rightAlias}.${ScoreModel.cLvl}"
-  val gameIdAlias = s"${joinRequest.rightAlias}.${ScoreModel.cIdGame}"
-  object joinService extends JoinService[User, Score]:
-    override lazy val joinCondition: String =
-      s"${joinRequest.leftAlias}.id = ${joinRequest.rightAlias}.id_user"
+  given JoinDef[Score,UserInfo] = JoinDef(JoinType.Default(), (l,r) => s"$l.${ScoreModel.cIdUser} = $r.${UserModel.column.id} ") 
+  given JoinDef[UserInfo,ImageInfo] = JoinDef(JoinType.Left(), (l,r) => s"$l.${UserModel.column.avatarKey} = $r.${ImageModel.column.id} ") 
+  given joinRequest: T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left] =
+    new T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]() {}
 
+  val joinService = T1JoinT2JoinT3Service[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
+
+
+  val idUserAlias = s"${joinService.request.t2Alias}.${UserModel.column.id}"
+  val lvlAlias = s"${joinService.request.t1Alias}.${ScoreModel.cLvl}"
+  val gameIdAlias = s"${joinService.request.t1Alias}.${ScoreModel.cIdGame}"
   def readScore(gameId: Int, level: Int): Seq[UserScore] = joinService
-    .findBys((gameIdAlias, gameId), (lvlAlias, level))(Seq(Sort.desc(ScoreModel.cScore),Sort.asc(ScoreModel.cScoreDate)))
-    .map((u, s) =>
+    .findAllBys((gameIdAlias, gameId), (lvlAlias, level))(Seq(Sort.desc(ScoreModel.cScore),Sort.asc(ScoreModel.cScoreDate)))
+    .map{case (s, u, i) =>  
       UserScore(
-        u.toUserInfo,
+        u.copy(avatar = i),
         domain.Score(
           s.idGame,
           s.lvl,
@@ -96,7 +107,7 @@ trait SqlServiceScore:
           s.scoreValue
         )
       )
-    )
+    }
   def readScore(gameId: Int, level: Int, userId: Long): Option[Score] =
     readOption(gameId, level, userId)
   inline def readScore(score: Score): Option[Score] =

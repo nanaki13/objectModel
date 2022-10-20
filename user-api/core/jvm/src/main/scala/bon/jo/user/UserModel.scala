@@ -8,12 +8,12 @@ import bon.jo.sql.Sql.Table.unique
 import bon.jo.sql.Sql.Table.tableName
 import bon.jo.sql.Sql.Column.columnName
 import bon.jo.sql.Sql.Column._type
-import bon.jo.domain.{UserInfo , User}
+import bon.jo.domain.{UserInfo , User, UserAvatar}
 import bon.jo.domain.given
 object UserModel:
 
-  extension (e : User)
-    def toUserInfo = UserInfo(e.id,e.name,None)
+  extension (e : UserAvatar)
+    def toUserInfo = UserInfo(e.user.id,e.user.name,e.avatar)
   object column:
     val id = "id"
     val name = "name"
