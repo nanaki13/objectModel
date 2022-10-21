@@ -23,55 +23,42 @@ import org.scalajs.dom.FormData
 import org.scalajs.dom.HttpMethod
 import org.scalajs.dom.console
 import org.scalajs.dom.URL
+import org.scalajs.dom.HTMLElement
+import bon.jo.common.SideEffect.Serveur
+object avatarServeur extends Serveur[String]
 object Main:
   @main
   def launch(): Unit =
 
-    var posts =
-       div.style
-       fake.PostSubject(15,"Forum",()=>  (Date()).toString )
-    /*given PostService with
-      def readPosts(subjectId : Int,from : Int,size : Int):Future[Seq[PostUser]] = 
-        println((from : Int,size : Int))
-        Future.successful( posts.posts.slice(from,from+size))
-      def addPost(subjectId : Int,userId : Long,content : String):Future[SaveResult] = Future.successful(SaveResult.OK(Post(subjectId,userId,new Date().toDateString(),content)))*/
-    def testinput : UserContext ?=> Unit =
-      val inuptRef = Ref[HTMLInputElement]()
-      val buttonRef = Ref[HTMLButtonElement]() 
-      div(childs(
-        div(childs( input("file")(inuptRef.bindMe()))),
-        div(childs( button(text("send"),buttonRef.bindMe())))
-      ),style(_.marginLeft="5em")).>(document.body.appendChild)
-  
-      inuptRef.value.onchange =event => 
-         if(inuptRef.value.files.length > 0) then{
-            val src = URL.createObjectURL(inuptRef.value.files(0));
-            val preview = image
-            preview.src = src;
-            preview.style.display = "block";
-            document.body.appendChild(preview)
-         }
-      buttonRef.value.onclick = e => 
-        val formData = new FormData();
-        val name = inuptRef.value.files(0).name
-        name match
-          case FileExtension(_,ext) => formData.append("ext",ext)
-        
-
-        formData.append("image", inuptRef.value.files(0))
-        Login.userServicePrivate.sendAvatar(formData)
+    println("Starting...")
     
-
-      
-
-    given SiteMap = Map(Page("game")-> PongGamePage.go,Page("forum")->{
-      given PostService = PostServiceRest()
-      ForumPage.go(posts.postSubjectTitle.title,0,10)
-    },Page("test")-> testinput)
+    println("Starting... 1 ")
+   
+    given Serveur[String] = avatarServeur
+    given SiteMap = 
+      println("creating site map"+avatarServeur)
+      val m = Map[Page,UserContext ?=> Unit](Page("game")-> {
+        println("game page")
+        PongGamePage.go},
+        
+        Page("forum")->{
+        println("forum page")
+        given PostService = PostServiceRest()
+        ForumPage.go("Forum",0,10)
+      })
+    
+      println("end creating site map")
+      m
+    
+    
+    println("Starting 2...")
     document.body :+ MenuPage.menu()
+    println("Starting 3...")
     given DefaultPage = DefaultPage("game")
+    println("log-1")
     Login.log().foreach(f => 
         given UserContext = f
-        document.body :+ div(_class("top-right"), childs(AvatarView.view,Login.logoutButton()))
+        val avatarViewRef = Ref[HTMLElement]()
+        document.body :+ div(_class("top-right d-flex"), childs(div(childs(AvatarView.view(avatarViewRef)),bind(avatarViewRef)),Login.logoutButton()))
         navigate()
       )

@@ -11,23 +11,8 @@ import bon.jo.Geom2D.Boundary.corner
 import Geom2D.Boundary.*
 object Geom2D:
 
-  //@main 
-  def test() : Unit = 
-    var s1 = Point(0,0) to Point(1,1)
-    var s2 = Point(0,0) to Point(1,1)
-    println( Equation(s1).solve(Equation(s2)))
-    s1 = Point(0,0) to Point(3,3)
-    s2 = Point(0,2) to Point(1,2)
-    println( Equation(s1))
-    println( Equation(s2))
-    println( Equation(s1).solve(Equation(s2)))
-    println( Equation(s2).cross(s1))
-    s1 = Point(0,0) to Point(1,1)
-    s2 = Point(0,2) to Point(1,3)
-    println( Equation(s1))
-    println( Equation(s2))
-    println( Equation(s1).solve(Equation(s2)))
-    println( Equation(s1).cross(s2))
+
+
   enum Solution:
     case Droite(equation : Equation)
     case SegmentSolution(segment : Segment)

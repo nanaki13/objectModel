@@ -8,6 +8,7 @@ import org.scalajs.dom.HTMLButtonElement
 import org.scalajs.dom.HTMLAnchorElement
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.HTMLImageElement
+import org.scalajs.dom.MouseEvent
 object Html:
   object PreDef:
       extension (s : Any)
@@ -37,6 +38,8 @@ object Html:
         ret
       def button(f: HTMLButtonElement ?=> Unit*): HTMLButtonElement =
         <.button[HTMLButtonElement](f*)
+      def click[T <: HTMLElement](f: MouseEvent => Unit): HTMLElement ?=> Unit =
+        summon.addEventListener("click",f)
       def div: HTMLElement = <.div[HTMLElement]
       def image: HTMLImageElement = <.img[HTMLImageElement]
       def image(f: HTMLImageElement ?=> Unit*): HTMLImageElement = <.img[HTMLImageElement](f*)
@@ -44,12 +47,18 @@ object Html:
         summon.src = srcP
       def scrollMax =
         document.documentElement.scrollHeight - document.documentElement.clientHeight
-  case class Ref[T](var value : T = null)
+  case class Ref[T](private [html] var _value : T = null):
+    def value : T = _value
   extension [T <:HTMLElement] (e : Ref[T])
     inline def bindMe() : T ?=> Unit = bind(e)
   extension [E <: Element](e : E)
+    def clear():Unit = e.children.foreach(_.remove())
     def >(ee : E => Unit *):E = 
       ee.foreach(_(e))
+      e
+    def >>(ee : E ?=> Unit *):E = 
+      given E = e
+      ee.foreach(f => f)
       e
     def :+(ee : Element):E = 
       e.appendChild(ee)
@@ -60,7 +69,7 @@ object Html:
   def _class[T <: HTMLElement](c : String):T ?=> Unit = 
     summon.className = c
   def bind[T <: HTMLElement](ref : Ref[T]):T ?=> Unit = 
-    ref.value = summon
+    ref._value = summon
   def text[T <: Element](tag : String):T ?=> Unit = 
     summon.textContent = tag
   def style[T <: HTMLElement](ee : CSSStyleDeclaration => Unit *):T ?=> Unit = 

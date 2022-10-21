@@ -21,8 +21,9 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
      dockerBaseImage := "openjdk:18" 
   ).enablePlugins(JavaAppPackaging,DockerPlugin).
   jsSettings(
-    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.3.0",
     libraryDependencies += "bon.jo" %%% "user-core" % "1.1.0-SNAPSHOT",
+    
     // Add JS-specific settings here
     scalaJSUseMainModuleInitializer := true
   ).settings(
@@ -53,6 +54,7 @@ copyStaticToRessources := {
       println(e)
       sbt.io.IO.copyFile(e.toFile(),targetJs.resolve(e.getFileName()).toFile())
     })
+  sbt.io.IO.copyDirectory(file("assets"),targetRes.resolve("assets").toFile())
   sbt.io.IO.copyFile(file("index.html"),targetRes.resolve("index.html").toFile())
   "ok"
 }
@@ -71,6 +73,16 @@ copyDockerCompose := {
       println(e)
       sbt.io.IO.copyFile(e.toFile(),targetRes.resolve(e.getFileName()).toFile())
     })
+
+  "ok"
+}
+
+lazy val finalBuild = taskKey[String]("final build")
+finalBuild := {
+  //println((core.js / Compile / fullOptJS).value)
+  println(copyStaticToRessources.value)
+  println((Compile / compile).value)
+  println(copyDockerCompose.value)
 
   "ok"
 }

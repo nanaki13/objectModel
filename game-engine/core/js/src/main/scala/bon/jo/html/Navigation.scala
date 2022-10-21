@@ -4,8 +4,9 @@ import org.scalajs.dom.window.location
 import bon.jo.pong.Login.UserContext
 import bon.jo.common.typeutils.~
 object Navigation:
-
-  case class Page(name : String)
+  println("Navigation : ")
+  case class Page(name : String):
+    println("page : "+name)
   case class DefaultPage(name : String)
   given URLSearchParams = URLSearchParams(location.search)
   type SiteMap = Map[Page,UserContext ?=> Unit]

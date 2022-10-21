@@ -45,6 +45,8 @@ object Login:
         else ValidationResult.Success(u)
       )
   }
+  given Conversion[js.Any,UserInfo] = 
+      e => userInfo(e.asInstanceOf[UserInfoJs])
   trait ImageInfoJs extends js.Object:
     val id : Double
     val name: String
@@ -90,6 +92,8 @@ object Login:
     val basePath: String = "/users"
     def sendAvatar(data: FormData) =
       POST.sendOn("/avatar", Some(data))
+    def me():Future[UserInfo] = 
+      GET.sendOn(s"/${UserContext.user.id}").map(_.okWithJs[UserInfo,String](200)) 
   given (using UserContext): UserServicePrivate = UserServicePrivate()
   given (using UserContext): TokenServicePrivate = TokenServicePrivate()
   def myAvatarUrl(using c: UserContext, g: GlobalParam): String =
@@ -124,10 +128,11 @@ object Login:
     def this(token: String) =
       this(userInfo(token), token)
   object UserContext:
-    type ~[A] = UserContext ?=> A
-    inline def apply(): ~[UserContext] = summon
-    inline def user: ~[UserInfo] = UserContext().user
-    inline def token: ~[String] = UserContext().token
+    println("initi UserContext ")
+    type Ctx[A] = UserContext ?=> A
+    inline def apply(): Ctx[UserContext] = summon
+    inline def user: Ctx[UserInfo] = UserContext().user
+    inline def token: Ctx[String] = UserContext().token
 
   def refreshToken(): UserContext ?=> Future[UserContext] =
     tokenServicePrivate.refresh().map { token =>

@@ -10,9 +10,11 @@ import scala.concurrent.Future
 import concurrent.ExecutionContext.Implicits.global
 import org.scalajs.dom.HTMLImageElement
 import bon.jo.request.HttpRequest.GlobalParam
+import bon.jo.common.SideEffect.Serveur
+import bon.jo.pong.Login.UserContext
 object TopScoreView:
 
-  def view(using ser: ScoreService,p : GlobalParam): Future[HTMLElement] =
+  def view(using ser: ScoreService,p : GlobalParam): ( Serveur[String],UserContext) ?=> Future[HTMLElement] =
     ser.getScores().map { scores =>
       val trs = scores.zipWithIndex.map { (score, i) =>
         val dateScore =  new Date(score.score.scoreDateTime)

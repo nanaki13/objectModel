@@ -17,7 +17,6 @@ object SqlMappings:
 
   given  [A] (using rB : ResultSetMapping[A] ) : ResultSetMapping[Option[A]] with
     def apply(from : Int,r : ResultSet):Option[A] = 
-      println("-->  "+r.getObject(from))
       Option(r.getObject(from)).map{
         _ => rB.apply(from,r)
       }

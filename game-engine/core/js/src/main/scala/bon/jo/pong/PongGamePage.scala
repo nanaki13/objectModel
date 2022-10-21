@@ -20,6 +20,10 @@ import scalajs.js.special.debugger
 import scala.concurrent.ExecutionContext.Implicits.global
 import bon.jo.pong.HttpServiceConfig.AuthParam.given
 import scala.util.{Success, Failure}
+import bon.jo.html.HtmlSplashMessage
+import bon.jo.common.SideEffect.Serveur
+import org.scalajs.dom.AudioNode
+import org.scalajs.dom.HTMLAudioElement
 object PongGamePage :
 
   import DrawerCanvas.*
@@ -41,7 +45,14 @@ object PongGamePage :
     val m = s_t / 60
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
-  def go(using Login.UserContext): Unit =
+  def go(using Login.UserContext, Serveur[String]): Unit =
+    HtmlSplashMessage(tex = "Play",goAfter).show()
+  def goAfter(using Login.UserContext, Serveur[String]): Unit =
+    
+    val audio = <.audio[HTMLAudioElement]
+    audio.src = "./assets/sound/lunarosa.wav"
+    audio.load();   
+    audio.play();   
     val fact = 3
     // println(pseudo)
     given scoreService: ScoreService = ScoreServiceRest()
@@ -58,8 +69,8 @@ object PongGamePage :
 
     var u: PongSystem = createSys(fact)
     val board = u.board
-    val canvas = <.canvas[HTMLCanvasElement] > (_.height =
-      (board.h).toInt, _.width = board.w.toInt)
+    val canvas = <.canvas[HTMLCanvasElement](_class("canvas-g")) > (_.height =
+      (board.h).toInt, _.width = board.w.toInt )
     val timeDiv = <.div[HTMLElement] { text("0s") }
     val scoreDiv = <.div[HTMLElement](text("0"), _class("score"))
     val athDiv = <.div[HTMLElement] {
@@ -161,7 +172,7 @@ object PongGamePage :
         window.clearInterval(int)
         currentInterval = None
         val (scoreDivDetails,efftcts) = DetailsScoreView(e)
-        val splash = htmlSplashMessage(replay())
+        val splash = HtmlSplashMessage(replay(),"yes")
         splash.dialog :+ scoreDivDetails
         scoreDiv.textContent = e.score.toString()
         splash.show()
@@ -186,42 +197,10 @@ object PongGamePage :
       currentInterval = Some(int)
 
     play()
-  case class HtmlSplashMessage(val root : HTMLElement,val dialog: HTMLElement):
-    def addText(strs : String *):Unit = dialog.:++ (strs.map(str =>div(text(str))) *)
-    def show():Unit =  document.body.appendChild(root)
-  def htmlSplashMessage(ok: => Unit): HtmlSplashMessage =
-    val dialogRef : Ref[HTMLElement] = Ref()
-    lazy val cont: HTMLElement = <.div[HTMLElement] {
-      _class("splash")
-      childs(
-        <.div[HTMLElement] {
-          _class("flex-center")
-          childs(
-            <.div[HTMLElement] {
-              _class("dialog")
-              childs(
-                <.div[HTMLElement](bind(dialogRef)),
-                <.div[HTMLElement] {
-                  childs(
-                    <.button[HTMLElement](text("yes")).>(
-                      _.onclick = _ => {
-                        ok
-                        document.body.removeChild(cont)
-                      }
-                    )
-                  )
-                }
-              )
-            }
-          )
-        }
-      )
-    }
-    HtmlSplashMessage(cont,dialogRef.value)
-    
+ 
     
   def message(ok: => Unit, messages: String*): HTMLElement =
-    val splash = htmlSplashMessage(ok)
+    val splash = HtmlSplashMessage(ok, "ok")
     messages.map { str =>
                     <.div[HTMLElement] {
                       text(str)

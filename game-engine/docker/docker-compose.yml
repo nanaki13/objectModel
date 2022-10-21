@@ -11,9 +11,26 @@ services:
       - BON_JO_GAME_ENGINE_DB_PASSWORD=docker
       - BON_JO_GAME_ENGINE_DB_USER=postgres
       - KS_PASS=dVcEscW3Hk
+  web-test:
+    build: .
+    depends_on:
+      - db-test
+    ports:
+      - "8082:8080"
+    environment:
+      - BON_JO_GAME_ENGINE_DB_URL_JDBC=jdbc:postgresql://db-test/postgres
+      - BON_JO_GAME_ENGINE_DB_PASSWORD=docker
+      - BON_JO_GAME_ENGINE_DB_USER=postgres
+      - KS_PASS=dVcEscW3Hk
   db:
     image: postgres
     environment:
       - POSTGRES_PASSWORD=docker
     ports:
       - "8001:5432"
+  db-test:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=docker
+    ports:
+      - "5432"
