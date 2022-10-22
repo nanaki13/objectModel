@@ -19,13 +19,21 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
    type PongSys[A] = Sys[PongSystem,(Ball,Set[Rock])]
    
- 
+   def checkInBoard(s : PongSystem)(p : Player):Player = 
+       val xmp = p.pos.x + p.path.w
+       var pos : Point = if xmp > s.board.maxX 
+       then p.pos.copy(x = p.pos.x - ( xmp - s.board.maxX)) 
+       else if p.pos.x < s.board.minX then p.pos.copy(x = s.board.minX)
+       else p.pos
+       if pos != p.pos then p.withPos(pos).asInstanceOf[Player] else p
+       
 
    def next(): SystemFlow[PongSystem] = 
       var sys = System()
       val balls = sys.balls
       val board : Board = sys.board
-      var nPlayer = sys.player.map(_.move[Player]()).map(_.applyEffect())
+      var nPlayer = sys.player.map(_.move()).map(checkInBoard(sys)).map(_.applyEffect())
+      
       sys = sys.copy(player = nPlayer)
       val ballsRocks =  balls.map(process(sys))
       val ballsMod = ballsRocks.map(_._1)
@@ -50,7 +58,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
            (agg._1,agg._2:+el._1) 
       })
       
-      val giftsUpdate : Seq[Gift] = other.map(_.move[Gift]())
+      val giftsUpdate : Seq[Gift] = other.map(_.move())
       sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore( rocksToRem.size,giftReachByPlayer.size)),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ giftsToAdd )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
 
@@ -95,18 +103,29 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       yield
          rSet = el match
                case r : Rock => rSet + r
-               case o => rSet 
+               case _ => rSet 
+
       
       if poinImageSources.nonEmpty then
          val somme = poinImageSources.map(_._1.toVector()).head//.head//.reduce(_ + _)
-         
-         val nv = 
+         val unitaire = somme.unitary()
+         given ord : Ordering[Vector] = Ordering.by(_.length)
+         val (nv,bb) = poinImageSources.map(_._2).flatMap{
+            case p : Player => Some(p)
+            case _ => None
+         }.map(_.speed).maxOption(using ord).map{
+            speddPlayer => 
+               val spBall = b.speed.length
+               val speedx = 1.7*speddPlayer
+               (speedN *1.1 * unitaire) + speedx -> b.addEffect(PosSpeed.DownToMySpeedEffect(spBall,_ - 5))
+         }.getOrElse{
             if somme != Point(0,0) then
-               speedN * somme.unitary()
+               speedN * unitaire -> b
             else
-
-               b.speed
-         (b.withPosAndSpeed(b.pos + nv,nv),rSet)
+               b.speed -> b
+         }
+        
+         (bb.withPosAndSpeed(b.pos + nv,nv),rSet)
       else
          (b.withPosAndSpeed( b.pos + b.speed, b.speed),rSet)  
       

@@ -55,11 +55,9 @@ object HttpRequest :
       f.applyOrElse(response.status, s => throw BadStatusException[String](s"not valid : ${s}"))
       
     def okWith[OK,KO](status : Int)(using  Conversion[String,OK],Conversion[String,KO]):OK = 
-
       if response.status == status then
         response.value.toString().toEntity[OK]
       else 
-
         throw BadStatusException(response.value.toString().toEntity[KO])
       
     def okWithJs[OK,KO](status : Int)(using  Conversion[js.Any,OK],Conversion[String,KO]):OK = 
@@ -98,12 +96,17 @@ object HttpRequest :
     base
   def request(method : Method,url : String,body : Option[dom.BodyInit],headers : Map[String,String]) : Future[Response] = 
       val reqL = req(method,body,headers)
-      Fetch.fetch(url,reqL).toFuture.flatMap{
-        dResponse => 
-          dResponse.text().toFuture.map{
-            txt => Response(txt,dResponse.status,dResponse.statusText,dResponse.`type`)
-          }
+      try
+        Fetch.fetch(url,reqL).toFuture.recover(e => Response("ko",500,"500","")).flatMap{
+          case dResponse : dom.Response => 
+            dResponse.text().toFuture.map{
+              txt => Response(txt,dResponse.status,dResponse.statusText,dResponse.`type`)
+            }
+          case dResponse : Response => Future.successful(dResponse)
       }
+      catch 
+        case e => Future.failed(new IllegalStateException(e))
+
 
     
     

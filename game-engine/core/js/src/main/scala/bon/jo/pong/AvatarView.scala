@@ -23,8 +23,8 @@ import org.scalajs.dom.HTMLImageElement
 object AvatarView {
 
   type AvatarSplashUpdate = HtmlSplashMessage with CustomizeHtmlSplashMessage
-  trait CustomizeHtmlSplashMessage(avatarViewRef : Ref[HTMLElement])(using  UserContext, GlobalParam,Serveur[String]):
-    ui:HtmlSplashMessage => 
+  class CustomizeHtmlSplashMessage(avatarViewRef : Ref[HTMLElement])(ok: => Unit,confirmText : String)(using  UserContext, GlobalParam,Serveur[String]) extends HtmlSplashMessage.Impl(ok,confirmText):
+ 
   //    var _init = false
     //  def isInit(): Boolean = _init
    //   def init():Unit = 
@@ -35,7 +35,7 @@ object AvatarView {
       val buttonSend = button(text("send"))
       var url : String = ""
       given AvatarSplashUpdate = this
-      ui.dialog :+
+      dialog :+
       div(childs(
         div(text("Choose your Avatar! (max 1Mo)")),
         div(childs( input("file")(inuptRef.bindMe()).>(_.accept="""image/*"""))),
@@ -55,7 +55,7 @@ object AvatarView {
               imgTarget.value.appendChild(preview)
             else
               Try(buttonRefTarget.value.removeChild(buttonSend))
-              HtmlSplashMessage("File is too big!",()).show()
+              HtmlSplashMessage("File is too big!",(),"OK").show()
           }
       buttonSend.onclick = e => 
         val formData = new FormData();
@@ -70,7 +70,6 @@ object AvatarView {
           r => 
             service.me().foreach{
               ui => 
-                println(s"emit : $url")
                 serveur.emit(url)
                 avatarViewRef.value.clear()
                 avatarViewRef.value :+ (preveiewTarget.value >> click(_ => avatarSendView(avatarViewRef)))
@@ -82,10 +81,8 @@ object AvatarView {
 
   
   def view(avatarViewRef : Ref[HTMLElement])(using  UserContext, GlobalParam,Serveur[String]):HTMLElement =
-    println("zadqdqzd")
     given AvatarSplashUpdate=  
-      println("instance splash")
-      new HtmlSplashMessage(HtmlSplashMessage((),"close")) with CustomizeHtmlSplashMessage(avatarViewRef)
+      new CustomizeHtmlSplashMessage(avatarViewRef)((),"Close")
     UserContext.user.avatar match
       case None =>  div(childs(button(text("+"),click{
        _ => avatarSendView(avatarViewRef)
@@ -98,12 +95,9 @@ object AvatarView {
   def view(u : UserInfo)(using GlobalParam,UserContext,Serveur[String]):HTMLElement =
 
     val (v,img ) = viewAndImg(Login.avatartUrl(u)) 
-    println( (u.id, UserContext().user.id ))
     if u.id == UserContext().user.id then
-      println("register client")
       SideEffect.serveur.register{
         nSrc => 
-          println(s"recoit $nSrc")
           img.src = nSrc
       }
     v

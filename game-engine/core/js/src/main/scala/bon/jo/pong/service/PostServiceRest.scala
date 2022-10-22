@@ -60,7 +60,6 @@ object PostServiceRest {
 
       override val basePath: String = "/subjects"
     def apply()(using UserContext) :  PostService = 
-      println("creating post service")
       PostServiceImpl()  
 }
 

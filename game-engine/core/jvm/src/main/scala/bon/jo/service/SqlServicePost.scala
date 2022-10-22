@@ -38,7 +38,6 @@ object SqlServicePost {
       case e: LocalDateTime => e
       case o:       java.sql.Timestamp => LocalDateTime.ofInstant( o.toInstant(),ZoneId.systemDefault())
       case o                => 
-        println(o.getClass())
         LocalDateTime.parse(o.toString())
 
   given ResultSetMapping[Post] =
@@ -60,7 +59,6 @@ object SqlServicePost {
       stmtSetObject(from, v._1)
       stmtSetObject(from + 1, v._2)
       stmtSetObject(from + 2, v._3)
-      println(stmt)
       from + 3
   inline def apply()(using() => Connection): ServicePost =
     new Service[Post, (Int, Long, LocalDateTime)] with SqlServicePost

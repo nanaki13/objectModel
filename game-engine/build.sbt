@@ -79,10 +79,10 @@ copyDockerCompose := {
 
 lazy val finalBuild = taskKey[String]("final build")
 finalBuild := {
-  //println((core.js / Compile / fullOptJS).value)
-  println(copyStaticToRessources.value)
-  println((Compile / compile).value)
-  println(copyDockerCompose.value)
+   Def.sequential(((core.js / Compile / fullOptJS)),
+    (copyStaticToRessources),
 
-  "ok"
+  ((core.jvm / Docker / stage)),
+  (copyDockerCompose)).value
+
 }

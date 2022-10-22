@@ -11,5 +11,4 @@ object MenuPage:
       a(text(page.name), href(s"?page=${page.name}"))
     }
   def menu(): SiteMap ?=> HTMLElement =
-    println("MENU")
     div(childs(pagesLink().map(e => div(childs(e))) *), _class("menu"))

@@ -37,7 +37,7 @@ trait DoDraws extends Ctx[CanvasRenderingContext2D] :
         ctx.fill()
         ctx.fillStyle = o
         s.drawDef()
-    def gradient(ctx: CanvasRenderingContext2D, r: Shape): Unit =
+    def gradient(ctx: CanvasRenderingContext2D, r: Shape[_]): Unit =
       val gr = ctx.createLinearGradient(
         r.pos.x,
         r.pos.y,

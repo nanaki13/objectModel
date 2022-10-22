@@ -23,6 +23,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
 import org.scalajs.dom.HTMLButtonElement
 import org.scalajs.dom.Event
+import bon.jo.domain.UserInfo
+import bon.jo.request.HttpRequest.GlobalParam
+import bon.jo.pong.Login.UserContext
+import bon.jo.common.SideEffect.Serveur
 object ForumPage:
   def div(f: HTMLElement ?=> Unit*): HTMLElement = <.div[HTMLElement](f*)
   def button(f: HTMLButtonElement ?=> Unit*): HTMLButtonElement =
@@ -30,7 +34,7 @@ object ForumPage:
   def div: HTMLElement = <.div[HTMLElement]
   def scrollMax =
     document.documentElement.scrollHeight - document.documentElement.clientHeight
-  def addPost()(using Login.UserContext, PostService, Component): HTMLElement =
+  def addPost()(using Login.UserContext, PostService, Component,GlobalParam,Serveur[String]): HTMLElement =
     val buttonRef: Ref[HTMLButtonElement] = Ref()
     val contentPost: Ref[HTMLElement] = Ref()
     val newPostCont = div(
@@ -54,7 +58,7 @@ object ForumPage:
       postService.addPost(1, PostInfo(contentPost.value.innerHTML)).foreach {
         postOK =>
           target :+ postHtml(
-            Login.UserContext().user.name,
+            Login.UserContext().user,
             postOK.postDateTime,
             postOK.content
           )
@@ -72,7 +76,7 @@ object ForumPage:
     val listener: js.Function1[Event, ?]
   def go(subjectTitle: String, from: Int, size: Int)(using
       Login.UserContext,
-      PostService
+      PostService,GlobalParam,Serveur[String]
   ): Unit =
     val posts = div(_class("posts"))
 
@@ -89,13 +93,14 @@ object ForumPage:
             count += 1
     goOn(from, size, cntLiten)
 
-  def postHtml(user: String, date: String, content: String) =
+  def postHtml(user: UserInfo, date: String, content: String) : (GlobalParam,UserContext,Serveur[String])?=> HTMLElement =
     div {
       _class("post")
       childs(
         div(
           childs(
-            div(text(s"$user"), _class("post-user")),
+            AvatarView.view(user),
+            div(text(s"${user.name}"), _class("post-user")),
             div(text(s"$date"), _class("post-date"))
           )
         ),
@@ -108,13 +113,13 @@ object ForumPage:
   def goOn(from: Int, size: Int, listener: CountListne)(using
       Login.UserContext,
       PostService,
-      Component
+      Component,GlobalParam,Serveur[String]
   ): Unit =
     postService.readPosts(1, from, size).foreach { e =>
       if e.nonEmpty then 
         document.addEventListener("scroll", listener.listener)
         val postHtmlEl = e.map { p =>
-          postHtml(p.user.name, p.postDateTime, p.content)
+          postHtml(p.user, p.postDateTime, p.content)
         }.reverse
         if target.childNodes.length == 0 then
           // target :+ compnent.title

@@ -1,7 +1,7 @@
 package bon.jo.sql
 import java.sql.Connection
 enum DBType:
-  case SQLite,Postgre
+  case SQLite,PostgreSQL
 
 object DBType:
   given (using c : Connection): DBType =

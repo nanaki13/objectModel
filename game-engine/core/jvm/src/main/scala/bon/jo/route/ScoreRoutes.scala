@@ -52,7 +52,6 @@ class ScoreRoutes(buildUserRepository: ActorRef[ScoreRepo.Command])(using
             post {
               guard { calim =>
                 val user = calim.toUi
-                println(user)
                 entity(as[ScoreInfo]) { score =>
                   val operationPerformed: Future[ScoreRepo.Response] =
                     buildUserRepository.ask(

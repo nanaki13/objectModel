@@ -30,7 +30,6 @@ object SqlServiceSubject {
       case e: LocalDateTime => e
       case o:       java.sql.Timestamp => LocalDateTime.ofInstant( o.toInstant(),ZoneId.systemDefault())
       case o                => 
-        println(o.getClass())
         LocalDateTime.parse(o.toString())
 
   given ResultSetMapping[Subject] =

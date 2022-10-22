@@ -30,14 +30,12 @@ object ScoreRepo {
     m => 
       m match
         case AddScore(score, replyTo) =>
-          println(score)
           if scores.updateScore(score) then
             replyTo ! Response.OK
           else
             replyTo ! Response.KO("Not the best")
           
         case ReadScores(gameLevel, replyTo) =>
-          println(gameLevel)
           val score = scores.readScore(gameLevel.idGame,gameLevel.lvl)
           replyTo ! score
 

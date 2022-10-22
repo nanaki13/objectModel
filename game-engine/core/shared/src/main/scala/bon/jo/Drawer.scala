@@ -40,7 +40,7 @@ trait Drawer[C] extends  Ctx[C]{
         cp.segments.foreach{ s =>
           s.draw()
         }
-    extension (cp : Shape)
+    extension (cp : Shape[_])
       def drawDef() :CanvasDraw[Unit] = 
         cp.valuep.segments.foreach{ s =>
           s.draw()

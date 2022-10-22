@@ -10,8 +10,3 @@ object Strings {
         (s.substring(0,dotindex),s.substring(dotindex+1)).toSome
       else None
 }
-
-@main def test():Unit = 
-  "toto.jpk" match
-    case FileExtension(name,ext) => println(name -> ext)
-  

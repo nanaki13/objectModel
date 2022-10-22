@@ -30,32 +30,22 @@ object Main:
   @main
   def launch(): Unit =
 
-    println("Starting...")
-    
-    println("Starting... 1 ")
+
    
     given Serveur[String] = avatarServeur
     given SiteMap = 
-      println("creating site map"+avatarServeur)
-      val m = Map[Page,UserContext ?=> Unit](Page("game")-> {
-        println("game page")
+      Map[Page,UserContext ?=> Unit](Page("game")-> {
         PongGamePage.go},
         
         Page("forum")->{
-        println("forum page")
         given PostService = PostServiceRest()
         ForumPage.go("Forum",0,10)
       })
+      
     
-      println("end creating site map")
-      m
-    
-    
-    println("Starting 2...")
+
     document.body :+ MenuPage.menu()
-    println("Starting 3...")
     given DefaultPage = DefaultPage("game")
-    println("log-1")
     Login.log().foreach(f => 
         given UserContext = f
         val avatarViewRef = Ref[HTMLElement]()

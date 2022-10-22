@@ -1,0 +1,347 @@
+@import url("https://fonts.googleapis.com/css2?family=DotGothic16&display=swap");
+
+.root{
+  display: flex;
+  justify-content: center;
+}
+.table-top-score-user{
+  font-size: larger;
+  font-weight: bold;
+}
+.table-top-score-value{
+  font-weight: bold;
+  font-size: x-large;
+  color: darkmagenta;
+}
+.table-top-score-date{
+  font-style: italic;
+  font-size: smaller;
+}
+
+.score{
+  font-size: 1.5em;
+  margin: 0.1em !important;
+}
+.top-right{
+  position: fixed;
+  right: 0;
+  top:0;
+  z-index: 1000;
+}
+.top-right:hover{
+
+  background-color: grey;
+}
+.ath-game{
+ 
+  width: fit-content;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+.ath-game > .dialog{
+  width: 98%;
+}
+.p-relative{
+  position: relative;
+}
+.login-warn{
+  font-size: 0.8em;
+  display: inline-flex;
+  flex-direction: column;
+  width: 50%;
+  margin-left: 0.7em;
+}
+.create-account{
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 0.6em;
+}
+.dialog{
+  border: solid;
+  background: white;
+  border: 0.2em black solid;
+  border-radius: 0.5em;
+  width: fit-content;
+  
+}
+.dialog > *{
+  /* display: flex; */
+
+  margin: 0.8em;
+}
+.dialog > div > input{
+  float: right;
+  margin-left: 0.5em;
+}
+body {
+  font-family: "DotGothic16", sans-serif;
+ 
+}
+.splash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-wrapper{
+  width: 3em;
+  height: 3em;
+  overflow: hidden;
+  border: 0.1em solid;
+  border-radius: 50%;
+  display: flex;
+}
+.avatar-img{
+  width: 3em;
+}
+
+.t-right {
+  text-align: right;
+}
+.d-flex {
+  display: flex;
+}
+.fl-gr-1{
+  flex-grow: 1;
+}
+.fl-gr-2{
+  flex-grow: 2;
+}
+.fl-gr-3{
+  flex-grow: 3;
+}
+.fl-gr-4{
+  flex-grow: 4;
+}
+.fl-gr-5{
+  flex-grow: 5;
+}
+.fl-gr-6{
+  flex-grow: 6;
+}
+.fl-ba-1{
+  flex-basis: 1em;
+}
+.fl-ba-1 > *{
+  flex-basis: 1em;
+}
+.w-15{
+  width: 15em;
+}
+.ma-le-1{
+  margin-left: 1em;
+}
+.ma-ri-1{
+  margin-right: 1em;
+}
+.te-al-end{
+  text-align: end;
+}
+.menu {
+  width: fit-content;
+  padding-right: 0.5em;
+  background-color: #6668ec;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-items: center;
+  place-content: center;
+  height: 100%;
+}
+html,
+body {
+  margin: 0;
+}
+.menu-out {
+  flex-grow: 8;
+  padding-left: 0.5em;
+  background-color: #eaf5ff;
+}
+.j-c-end {
+  justify-content: end;
+}
+.j-c-center {
+  justify-content: center;
+}
+body {
+  background-color: #eaf5ff;
+}
+.graph-params-user-input {
+  display: flex;
+}
+.border {
+  border: #1488ef;
+  border-style: solid;
+  border-radius: 12px;
+  padding: 0.5em;
+}
+.graph-user-input {
+  width: fit-content;
+}
+.small-input {
+  max-width: 4em;
+}
+.canvas-g{
+  background-image: url("../img/city.jpg");
+}
+.erreur {
+  color: red;
+}
+.formule {
+  font-size: 1.5em;
+  display: inline-block;
+  min-width: 1.1em;
+}
+.point {
+  position: absolute;
+
+  height: 2px;
+  width: 2px;
+  background-color: transparent;
+}
+.point:hover {
+  height: 4px;
+  width: 4px;
+  background-color: red;
+}
+
+.active {
+  border: solid 2px;
+}
+.top {
+  padding-top: 3em;
+}
+.color-till {
+  width: 30px;
+  height: 30px;
+}
+.color-saved {
+  display: flex;
+  flex-wrap: wrap;
+  width: 120px;
+}
+.container {
+  width: fit-content;
+  max-width: 70%;
+  min-width: 20%;
+}
+.parent-c {
+  position: relative;
+}
+.select-rect {
+  position: absolute;
+  border: solid 1px black;
+  pointer-events: none;
+}
+.sheet-rect.focus {
+  border: dashed 3px rgb(241, 75, 14);
+}
+.sheet-rect {
+  position: absolute;
+  border: dashed 1px rgb(241, 75, 14);
+  pointer-events: none;
+}
+.relative-inline-block {
+  position: relative;
+  display: inline-block;
+}
+.cursor-div {
+  background-color: lightgray;
+  height: 4px;
+}
+.debug {
+  display: none;
+}
+.tool-select {
+  background-color: #6668ec;
+  border: 1px solid;
+}
+.row {
+  display: flex;
+}
+.cursor {
+  position: absolute;
+  left: 0px;
+  background-color: white;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  top: -3px;
+}
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 3em;
+  height: 3em;
+  text-align: center;
+  vertical-align: baseline;
+  text-justify: kashida;
+}
+.ok{
+  color: rgb(107, 224, 107);
+  font-weight: bold;
+}
+.ko{
+  color: rgb(200, 62, 85);
+  font-weight: bold;
+}
+.posts{
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  margin: auto;
+ 
+}
+.post{
+  border: #0bc9b2 solid 0.2em;
+  border-radius: 0.5em;
+  background: white;
+  width: fit-content;
+  margin: 0.5em ;
+  padding: 0.5em;
+}
+
+.post-user{
+  display: inline-block;
+  font-size: larger;
+ 
+  font-weight: bold;
+}
+.post-date{
+  margin-left: 2em;
+  font-size: smaller;
+  display: inline-block;
+  font-style: italic;
+}
+.post-content{
+
+
+  padding: 1em;
+}
+.post-title{
+  position: fixed;
+  padding: 0 1em 0 1em;
+  top: 0;
+  left: 50%;
+  /* width: 100%; */
+  height: 2em;
+  background-color: white;
+}
+.menu{
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  /* width: 100%; */
+
+  background-color: white;
+}

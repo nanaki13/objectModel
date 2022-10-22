@@ -46,7 +46,7 @@ object PongGamePage :
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
   def go(using Login.UserContext, Serveur[String]): Unit =
-    HtmlSplashMessage(tex = "Play",goAfter).show()
+    HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
   def goAfter(using Login.UserContext, Serveur[String]): Unit =
     
     val audio = <.audio[HTMLAudioElement]
@@ -54,7 +54,6 @@ object PongGamePage :
     audio.load();   
     audio.play();   
     val fact = 3
-    // println(pseudo)
     given scoreService: ScoreService = ScoreServiceRest()
     val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog"))
     def updateTopeScore() : Unit = 
@@ -121,10 +120,9 @@ object PongGamePage :
           startMove match
             case Start(dirPlayer) =>
               startMove = AddedEffect
-              println("Start move")
               u = u.copy(player = u.player.map(_.copy(dir = dirPlayer)))
               u = u.copy(player = u.player.map { p =>
-                p.withEffect(p.effects :+ accPlayer)
+                p.addEffect(accPlayer)
               })
             case End =>
               u = u.copy(player = u.player.map { p =>
@@ -157,7 +155,6 @@ object PongGamePage :
 
             }
             u = u.copy(balls = nBalls)
-          // println(currentMillis - t)
           u.isGameOver(timeLeft) match
             case e: pong.End      => end(e)
             case pong.GameOver.No =>

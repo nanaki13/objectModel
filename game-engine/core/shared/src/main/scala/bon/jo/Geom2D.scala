@@ -1,6 +1,7 @@
 package bon.jo
 
 import scala.annotation.tailrec
+import bon.jo.common.Anys.*
 import Geom2D.Vector.*
 import Geom2D.Transform.*
 import bon.jo.pong.Drawer
@@ -11,6 +12,9 @@ import bon.jo.Geom2D.Boundary.corner
 import Geom2D.Boundary.*
 object Geom2D:
 
+  extension (d : Double)
+    def doNotOver(min : Double,max : Double):Option[Double] = 
+      if d < min then min.toSome else if d > max then max.toSome else None
 
 
   enum Solution:
@@ -38,8 +42,6 @@ object Geom2D:
             o match
               case XConstant(x1) => Solution.One(Point(x1,a1*x1+b1))
               case AxPlusB(a2 ,b2) if a2 - a1 != 0 =>
-                // ys = a1*xs+b1 // ys = a2*xs+b2 -->   
-                // xs = (b1 - b2)/(a2 - a1)
                 val xs = (b1 - b2)/(a2 - a1)
                 val ys = f(xs)
                 Solution.One(Point(xs,ys))

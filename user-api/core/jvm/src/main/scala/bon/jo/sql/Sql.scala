@@ -118,16 +118,19 @@ object Sql {
     override def toString() = s"$name $dbType"
     inline def isAi(using ai: Set[String]) = ai.contains(name)
     def sqlDef(using ai: Set[String], dbTypeOf: DBType): String =
-      if isAi then
-        dbTypeOf match
-          case DBType.Postgre =>
+
+      val dBDependType =   dbTypeOf match
+          case DBType.PostgreSQL if isAi =>
             val aiType = dbType match
               case "INT"    => "SERIAL"
               case "BIGINT" => "BIGSERIAL"
-            s"$name $aiType"
+            s"$aiType"
 
-          case DBType.SQLite => s"$name INTEGER PRIMARY KEY AUTOINCREMENT"
-      else toString()
+          case DBType.SQLite if isAi  => "INTEGER PRIMARY KEY AUTOINCREMENT"
+          case  DBType.PostgreSQL if dbType == "BLOB" => "bytea"
+          case _ => dbType
+      s"$name $dBDependType"
+     
 
   object Column:
     def columnName(name: String): OnBuildCol =

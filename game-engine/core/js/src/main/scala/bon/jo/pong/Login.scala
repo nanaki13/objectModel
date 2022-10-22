@@ -99,7 +99,7 @@ object Login:
   def myAvatarUrl(using c: UserContext, g: GlobalParam): String =
     avatartUrl(c.user)
   def avatartUrl(user: UserInfo)(using g: GlobalParam) =
-    g.baseUrl + s"/images/${user.avatar.map(_.name).getOrElse("no_avatar.jpg")}"
+    s"${user.avatar.map(name => s"${g.baseUrl}/images/${name.name}").getOrElse("./assets/img/no-avatar.webp")}"
   inline def userServicePrivate: ~[UserServicePrivate] = summon
   inline def tokenServicePrivate: ~[TokenServicePrivate] = summon
   def userInfo(jsObj: UserInfoJs): UserInfo =
@@ -128,7 +128,6 @@ object Login:
     def this(token: String) =
       this(userInfo(token), token)
   object UserContext:
-    println("initi UserContext ")
     type Ctx[A] = UserContext ?=> A
     inline def apply(): Ctx[UserContext] = summon
     inline def user: Ctx[UserInfo] = UserContext().user
@@ -149,8 +148,15 @@ object Login:
       case Some(token) =>
         given UserContext = new UserContext(token)
         try
-          refreshToken().foreach { noken =>
+          refreshToken().map { noken =>
             pro.success(noken)
+          } .onComplete{
+            
+              case Failure(exception) => 
+                exception.printStackTrace()
+                logOut()
+              case Success(value) =>
+            
           }
         catch
           case e =>

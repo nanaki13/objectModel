@@ -13,6 +13,7 @@ package pong:
     val effects: Seq[Effect[T]]
     type EffOnMe = Effect[T]
     def withEffect(effs: Seq[EffOnMe]): T with Effects[T]
+    def addEffect(e : EffOnMe): T with Effects[T] = withEffect(effects :+ e)
     def applyEffect(): T =
       if this.effects.nonEmpty then
         val res: (T with Effects[T], Seq[EffOnMe]) =
@@ -52,11 +53,11 @@ package pong:
   enum Input:
     case Up, Down, Left, Right, No
   enum Gift(corner: Point, speed: Vector)
-      extends Shape(
+      extends Shape[Gift](
         ComputedPath(List(5 * up, 5 * right, 5 * down, 5 * left), corner),
         speed: Vector
       ):
-    def withPosAndSpeed(pos: Point, speed: Vector): PosSpeed =
+    def withPosAndSpeed(pos: Point, speed: Vector): Gift =
       this match
         case NewBall(_, _)       => NewBall(pos, speed)
         case GreaterPlayer(_, _) => GreaterPlayer(pos, speed)
@@ -103,7 +104,7 @@ package pong:
       // GreaterPlayer(pos,speed)
 
   case class Board(paths: List[ComputedPath])
-      extends Shape(paths.head, Vector(0, 0))
+      extends Shape[Board](paths.head, Vector(0, 0))
       with SystemElement:
     val seg = paths.flatMap(_.segments)
     val minY = seg.map(s => Math.min(s.p1.y, s.p2.y)).min
@@ -112,7 +113,7 @@ package pong:
     val maxX = seg.map(s => Math.max(s.p1.x, s.p2.x)).max
     val h = maxY - minY
     val w = maxX - minX
-    def withPosAndSpeed(pos: Point, speed: Vector): PosSpeed = copy(
+    def withPosAndSpeed(pos: Point, speed: Vector): Board = copy(
       paths.map(_.copy(fromp = pos))
     )
 
@@ -120,7 +121,7 @@ package pong:
       shape: DiscretCircle,
       speed: Vector,
       effects: Seq[Effect[Ball]]
-  ) extends PosSpeed
+  ) extends PosSpeed[Ball]
       with Effects[Ball]:
 
     def withEffect(effs: Seq[Effect[Ball]]): Ball = copy(effects = effs)
@@ -128,14 +129,16 @@ package pong:
       copy(shape = shape.copy(center = pos), speed = speed, effects = effects)
     def pos: Point = shape.center
   object Ball:
+
+
     def multSizeEffect(count: Int, fact: Double): Effect[Ball] =
       Effect.countEffect(
         count,
         me => me.copy(shape = me.shape.copy(r = me.shape.r * fact))
       )
 
-  abstract class Shape(val valuep: ComputedPath, val speed: Vector)
-      extends PosSpeed:
+  abstract class Shape[T <: PosSpeed[T]](val valuep: ComputedPath, val speed: Vector)
+      extends PosSpeed[T]:
 
     def cross[C](s: Segment): (Debug, Drawer[C], C) ?=> Seq[Point] =
       valuep.segments.flatMap(_.cross(s))
@@ -146,7 +149,7 @@ package pong:
       override val speed: Vector = Vector(0, 0),
       color: String,
       gift: Option[Gift]
-  ) extends Shape(value, speed):
+  ) extends Shape[Rock](value, speed):
     def withPosAndSpeed(pos: Point, speed: Vector): Rock =
       Rock(value.copy(fromp = pos), speed, color, gift)
   case class Player(
@@ -159,7 +162,7 @@ package pong:
       giftTouch: Int,
       effects: Seq[Effect[Player]] = Seq.empty
       
-  ) extends Shape(path, speed)
+  ) extends Shape[Player](path, speed)
       with Effects[Player] with ScoreElements:
     inline def withPosAndSpeed(pos: Point, speed: Vector): Player =
       copy(path.copy(fromp = pos), speed)
@@ -191,16 +194,29 @@ package pong:
         }
       )
 
-  trait PosSpeed extends SystemElement:
+  trait PosSpeed[T <: PosSpeed[T]] extends SystemElement:
     def pos: Point
     def speed: Vector
-    def withPosAndSpeed(pos: Point, speed: Vector): PosSpeed
-    def withPos(pos: Point): PosSpeed = withPosAndSpeed(pos, speed)
-    def withSpeed(speed: Vector): PosSpeed = withPosAndSpeed(pos, speed)
-    def move[T <: PosSpeed](): T =
-      withPos(pos + speed).asInstanceOf[T]
+    def withPosAndSpeed(pos: Point, speed: Vector): T
+    def withPos(pos: Point): T = withPosAndSpeed(pos, speed)
+    def withSpeed(speed: Vector): T = withPosAndSpeed(pos, speed)
+    def move(): T =
+      withPos(pos + speed)
   object PosSpeed:
-    def multSpeedEffect[U <: PosSpeed with Effects[U]](
+    class DownToMySpeedEffect[T <: PosSpeed[T] & Effects[T]](speed : Double,f : Double => Double) extends ConditionalEffect[T]:
+    
+      override def effect(t: T): T & Effects[T] = 
+        val cSpeed =  t.speed.length 
+        if cSpeed< speed then
+          t.withSpeed(speed = speed * t.speed.unitary() )
+        else 
+          var nSpeed = f(cSpeed)
+          nSpeed = if nSpeed > speed then nSpeed else speed
+          t.withSpeed(speed = nSpeed * t.speed.unitary() )
+
+
+      override def isFinish(t: T): Boolean = t.speed.length <= speed
+    def multSpeedEffect[U <: PosSpeed[U] with Effects[U]](
         count: Int,
         fact: Double
     ): Effect[U] =
@@ -208,7 +224,6 @@ package pong:
         count,
         me =>
           {
-            println(me.speed)
             me.withPosAndSpeed(pos = me.pos, speed = fact * me.speed)
           }.asInstanceOf
       )
