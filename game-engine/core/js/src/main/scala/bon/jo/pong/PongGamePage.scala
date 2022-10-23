@@ -24,6 +24,7 @@ import bon.jo.html.HtmlSplashMessage
 import bon.jo.common.SideEffect.Serveur
 import org.scalajs.dom.AudioNode
 import org.scalajs.dom.HTMLAudioElement
+import org.scalajs.dom.TouchEvent
 object PongGamePage :
 
   import DrawerCanvas.*
@@ -45,17 +46,17 @@ object PongGamePage :
     val m = s_t / 60
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
-  def go(using Login.UserContext, Serveur[String]): Unit =
+  def go(using Login.UserContext,ScoreService, Serveur[String]): Unit =
     HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
-  def goAfter(using Login.UserContext, Serveur[String]): Unit =
+  def goAfter(using Login.UserContext,ScoreService, Serveur[String]): Unit =
     
     val audio = <.audio[HTMLAudioElement]
     audio.src = "./assets/sound/lunarosa.wav"
     audio.load();   
     audio.play();   
     val fact = 3
-    given scoreService: ScoreService = ScoreServiceRest()
-    val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog"))
+
+    val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog height-main"))
     def updateTopeScore() : Unit = 
       topSCoreWrapper.children.foreach(topSCoreWrapper.removeChild)
       TopScoreView.view.recover{
@@ -74,12 +75,17 @@ object PongGamePage :
     val scoreDiv = <.div[HTMLElement](text("0"), _class("score"))
     val athDiv = <.div[HTMLElement] {
       childs(timeDiv, scoreDiv); _class("dialog")
-    }
-
-
+    }  
+    val leftPad : Ref[HTMLElement] = Ref()
+    val rightPad:  Ref[HTMLElement] = Ref()
+    val pad = div(_class("pad"),childs(
+        div(_class("dir-pad  x-sym"),childs(image(src("./assets/img/right_arrow.svg"))),bind(leftPad)),
+        div(_class("dir-pad"),childs(image(src("./assets/img/right_arrow.svg"))),bind(rightPad))
+      ))
+    
     val root = <.div[HTMLElement](
       childs(topSCoreWrapper,
-        <.div[HTMLElement](childs(athDiv, canvas), _class("ath-game"))
+        <.div[HTMLElement](childs(athDiv, canvas,pad), _class("ath-game"))
       ),
       _class("root")
     )
@@ -98,6 +104,36 @@ object PongGamePage :
     document.body :+ root
 
     var startMove = End
+    
+    leftPad.value.addEventListener[TouchEvent]("touchstart", e => {
+      e.preventDefault() 
+      leftPad.value.classList.add("dir-pad-press")
+      startMove = Start(left) 
+    });
+    rightPad.value.addEventListener[TouchEvent]("touchstart", e => {
+      e.preventDefault() 
+      rightPad.value.classList.add("dir-pad-press")
+      startMove = Start(right) 
+    });
+
+    pad.addEventListener[TouchEvent]("touchend", e => {
+      e.preventDefault()
+      rightPad.value.classList.remove("dir-pad-press")
+      leftPad.value.classList.remove("dir-pad-press")
+      startMove = End 
+    });
+    pad.addEventListener[TouchEvent]("touchcancel", e => {
+      e.preventDefault()
+      rightPad.value.classList.remove("dir-pad-press")
+      leftPad.value.classList.remove("dir-pad-press")
+      startMove = End 
+    });
+    pad.addEventListener[TouchEvent]("touchmove", e => {
+      e.preventDefault()
+    });
+    //someElement.addEventListener('touchmove', process_touchmove, false);
+    //someElement.addEventListener('touchcancel', process_touchcancel, false);
+    //someElement.addEventListener('touchend', process_touchend, false);
 
     document.body.onkeydown = e => {
       if startMove == End then
@@ -174,7 +210,7 @@ object PongGamePage :
         scoreDiv.textContent = e.score.toString()
         splash.show()
         efftcts.start()
-        scoreService.saveScore(ScoreInfo(1, 1, e.score)).onComplete {
+        summon[ScoreService].saveScore(ScoreInfo(1, 1, e.score)).onComplete {
           case Success(v) =>
             val messageS = v match
               case SaveResultSuccess(ok)   => 

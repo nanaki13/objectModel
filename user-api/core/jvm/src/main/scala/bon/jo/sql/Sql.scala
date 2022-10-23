@@ -461,7 +461,6 @@ object Sql {
       ): ResultSetMapping[Ret] ?=> Seq[Ret] =
 
         val sqlS = select(fieldvalue) + sorts.sql + " " + limit.toSql
-        println(sqlS)
         sql(sqlS) {
           bindToStmt(fieldvalue)
           val r = executeQuery()

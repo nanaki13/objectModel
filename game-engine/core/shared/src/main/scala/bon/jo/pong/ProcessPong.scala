@@ -107,7 +107,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
 
       
       if poinImageSources.nonEmpty then
-         val somme = poinImageSources.map(_._1.toVector()).head//.head//.reduce(_ + _)
+         val somme = poinImageSources.map(_._1.toVector()).reduce(_ + _)
          val unitaire = somme.unitary()
          given ord : Ordering[Vector] = Ordering.by(_.length)
          val (nv,bb) = poinImageSources.map(_._2).flatMap{
@@ -116,8 +116,8 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
          }.map(_.speed).maxOption(using ord).map{
             speddPlayer => 
                val spBall = b.speed.length
-               val speedx = 1.7*speddPlayer
-               (speedN *1.1 * unitaire) + speedx -> b.addEffect(PosSpeed.DownToMySpeedEffect(spBall,_ - 5))
+               val speedx = 1.1*speddPlayer
+               (speedN  * 1.1* unitaire) + speedx -> b.addEffect(PosSpeed.DownToMySpeedEffect(spBall,_  -2))
          }.getOrElse{
             if somme != Point(0,0) then
                speedN * unitaire -> b

@@ -9,7 +9,7 @@ object DetailsScoreView:
   def roundToSec(timeLeft : Long) =  (timeLeft/1000d).round.toInt
   class RockEffect(endp: End,calcul : HTMLElement,total : HTMLElement,totalScore : HTMLElement,ge : GiftEffect)(using PointCount) extends TimeEffect:
       var p =0
-      val interval: Int = 200
+      val interval: Int = 20
 
       override def onStop(): Option[TimeEffect] = 
         ge.initial = endp.rosckTouch * pointCount.pointsByRock
@@ -23,7 +23,7 @@ object DetailsScoreView:
   class GiftEffect(endp: End,calcul : HTMLElement,total : HTMLElement,totalScore : HTMLElement,geOpt : Option[TimeCEffect])(using PointCount) extends TimeEffect:
       var p =0
       var initial = 0
-      val interval: Int = 200
+      val interval: Int = 20
       override def haveToStop(): Boolean =  p == endp.giftTouch
       override def onStop(): Option[TimeEffect] = geOpt.map{
         ge => 

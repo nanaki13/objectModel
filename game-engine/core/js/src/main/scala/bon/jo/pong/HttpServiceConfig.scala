@@ -3,10 +3,16 @@ package bon.jo.pong
 import bon.jo.request.HttpRequest.GlobalParam
 import Login.UserContext.*
 
+import scalajs.js
+import scala.scalajs.js.annotation.JSGlobalScope
 object HttpServiceConfig:
-  //val host = "https://nanaki.hd.free.fr"
-  val host = "https://localhost:8080"
-  given GlobalParam = GlobalParam(host, Map.empty)
+  @js.native
+  @JSGlobalScope
+  object Globals extends js.Object {
+    val host: String = js.native
+  }
+
+  given GlobalParam = GlobalParam(Globals.host, Map.empty)
 
   object AuthParam:
-    given (using Login.UserContext) :  GlobalParam = GlobalParam(host, Map("Authorization" -> s"Bearer $token"))   
+    given (using Login.UserContext) :  GlobalParam = GlobalParam(Globals.host, Map("Authorization" -> s"Bearer $token"))   

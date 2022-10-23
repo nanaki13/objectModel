@@ -11,7 +11,7 @@ val commonSetting = {
 lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings(
   name := "game-engine",
   organization  := "bon.jo",
-  version := "1.0.0"
+  version := "1.1.0-SNAPSHOT"
 ).settings(commonSetting).
   jvmSettings(
      libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided",
@@ -55,7 +55,8 @@ copyStaticToRessources := {
       sbt.io.IO.copyFile(e.toFile(),targetJs.resolve(e.getFileName()).toFile())
     })
   sbt.io.IO.copyDirectory(file("assets"),targetRes.resolve("assets").toFile())
-  sbt.io.IO.copyFile(file("index.html"),targetRes.resolve("index.html").toFile())
+  sbt.io.IO.copyFile(file("index-prod.html"),targetRes.resolve("index.html").toFile())
+  sbt.io.IO.copyFile(file("config-prod.js"),targetRes.resolve("assets/js/config.js").toFile())
   "ok"
 }
 lazy val copyDockerCompose = taskKey[String]("docker compose to stage")
@@ -79,9 +80,9 @@ copyDockerCompose := {
 
 lazy val finalBuild = taskKey[String]("final build")
 finalBuild := {
-   Def.sequential(((core.js / Compile / fullOptJS)),
+   Def.sequential(core.jvm  / clean,core.js  / clean, ((core.js / Compile / fullOptJS)),
     (copyStaticToRessources),
-
+ ((core.jvm / Compile / compile)),
   ((core.jvm / Docker / stage)),
   (copyDockerCompose)).value
 

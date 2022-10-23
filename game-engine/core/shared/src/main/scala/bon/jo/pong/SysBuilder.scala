@@ -86,17 +86,17 @@ object SysBuilder:
     )
     val teta = Math.PI / 8
     val path = for {
-      i <- 1 until 8
+      i <- 1 until 16
       d = i * teta
 
     } yield 4 * fact * (down rotate d)
 
     // ++ List(25* fact * right,5* fact * down,25* fact * left,5* fact * up)
     val base =
-      3 * fact * down +: path.map(v => Vector(v.x, v.y / 2)) :+ 3 * fact * up
-    val tot = base.reduce(_ + _)
+       path.map(v => Vector(v.x, v.y / 2)) 
+  //  val tot = base.reduce(_ + _)
     val pathPlayer = ComputedPath(
-      base :+ (-tot),
+      base,
       Point(75 * fact, 203 * fact)
     ) // .biso(2* fact)
 

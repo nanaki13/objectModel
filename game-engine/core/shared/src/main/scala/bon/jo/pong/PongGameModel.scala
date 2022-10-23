@@ -54,7 +54,7 @@ package pong:
     case Up, Down, Left, Right, No
   enum Gift(corner: Point, speed: Vector)
       extends Shape[Gift](
-        ComputedPath(List(5 * up, 5 * right, 5 * down, 5 * left), corner),
+        ComputedPath(List(10 * up, 10 * right, 10 * down, 10 * left), corner),
         speed: Vector
       ):
     def withPosAndSpeed(pos: Point, speed: Vector): Gift =

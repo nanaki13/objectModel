@@ -39,27 +39,25 @@ object DrawerCanvas extends Drawer[CanvasRenderingContext2D] with DoDraws:
   
   extension (ball: Ball)
     def draw(): CanvasDraw[Unit] =
-      val pos = ball.pos
-      val gradient = ctx.createRadialGradient(
-        pos.x,
-        pos.y,
-        ball.shape.r / 10,
-        pos.x,
-        pos.y,
-        ball.shape.r
-      );
-      val r = ball.shape.r
-// Add three color stops
-      gradient.addColorStop(0, "pink")
-      gradient.addColorStop(0.5, "gold")
-      gradient.addColorStop(1, "red")
 
-// Set the fill style and draw a rectangle
-      ctx.beginPath()
-      ctx.fillStyle = gradient
-      // ctx.fillRect(pos.x-r,pos.y-r,2*r,2*r)
-      circle(pos, ball.shape.r)
-      val fs = ctx.fillStyle
-      ctx.fillStyle = "red"
-      // ctx.drawImage(ballImage,pos.x-ball.shape.r,pos.y-ball.shape.r,2*ball.shape.r,2*ball.shape.r)
-      ctx.fillStyle = fs
+        val pos = ball.pos
+        val gradient = ctx.createRadialGradient(
+          pos.x,
+          pos.y,
+          ball.shape.r / 10,
+          pos.x,
+          pos.y,
+          ball.shape.r
+        );
+        val r = ball.shape.r
+  // Add three color stops
+        gradient.addColorStop(0, "#ff5900")
+        gradient.addColorStop(0.5, "#07fff8")
+        gradient.addColorStop(1, "green")
+
+  // Set the fill style and draw a rectangle
+        ctx.beginPath()
+        ctx.fillStyle = gradient
+        circle(pos, ball.shape.r)
+
+
