@@ -14,3 +14,7 @@ target
 *.csr
 *.p12
 password
+closure-compiler-v20221004.jar
+game-engine/core/jvm/src/main/resources
+game-engine/assets/sound/lunarosa.wav
+game-engine/core/jvm/src/main/resources/break-broke/index.html

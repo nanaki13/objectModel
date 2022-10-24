@@ -1,13 +1,13 @@
 package bon.jo.image
 
-import bon.jo.sql.Sql.ResultSetMapping
+import bon.jo.sql.ResultSetMapping
 import java.sql.ResultSet
 import bon.jo.domain.Image
 import java.sql.PreparedStatement
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.BaseSqlRequest
-import bon.jo.sql.Sql.PSMapping
-import bon.jo.sql.Sql.stmtSetObject
+import bon.jo.sql.Service
+import bon.jo.sql.BaseSqlRequest
+import bon.jo.sql.PSMapping
+import bon.jo.sql.stmtSetObject
 import java.sql.Connection
 import bon.jo.sql.SqlMappings.given
 import bon.jo.domain.ImageInfo

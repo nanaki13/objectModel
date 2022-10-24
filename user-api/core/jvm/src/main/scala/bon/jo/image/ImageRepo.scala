@@ -6,7 +6,7 @@ import bon.jo.domain.{Image, ImageSend}
 import ImageRepo.Command.*
 import bon.jo.domain.Response
 import bon.jo.domain.Response.*
-import bon.jo.sql.Sql
+import bon.jo.sql
 import bon.jo.image.SqlServiceImage.ServiceImage
 
 import com.github.t3hnar.bcrypt._

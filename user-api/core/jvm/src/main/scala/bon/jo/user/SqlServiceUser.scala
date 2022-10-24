@@ -1,23 +1,23 @@
 package bon.jo.user
 
-import bon.jo.sql.Sql.ResultSetMapping
+import bon.jo.sql.ResultSetMapping
 import java.sql.ResultSet
 import bon.jo.domain.{User, UserAvatar, UserInfo}
 import java.sql.PreparedStatement
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.BaseSqlRequest
-import bon.jo.sql.Sql.PSMapping
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.JoinBaseSqlRequest
-import bon.jo.sql.Sql.JoinService
-import bon.jo.sql.Sql.JoinType
+import bon.jo.sql.Service
+import bon.jo.sql.BaseSqlRequest
+import bon.jo.sql.PSMapping
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.Join2TableRequest
+import bon.jo.sql.Join2TableService
+import bon.jo.sql.JoinType
 import java.sql.Connection
 import bon.jo.common.Convs
 import bon.jo.domain.ImageInfo
 import bon.jo.image.SqlServiceImage.given
 import bon.jo.sql.SqlMappings.given
-import JoinBaseSqlRequest.joinRequest
-import bon.jo.sql.Sql.Alias
+import Join2TableRequest.joinRequest
+import bon.jo.sql.Alias
 import bon.jo.image.ImageModel
 object SqlServiceUser {
   
@@ -26,18 +26,18 @@ object SqlServiceUser {
   given Alias = Alias()
   
   trait UserWithImageService:
-    self :  JoinService[User,ImageInfo,JoinType.Left] => 
+    self :  Join2TableService[User,ImageInfo,JoinType.Left] => 
       def findByName(name : String):Option[UserAvatar] = findBys(joinRequest.leftAlias+"."+UserModel.column.name ->name).map{
         (o) => UserAvatar(o._1,o._2)
       }
       def findById(id : Long):Option[UserAvatar] = findBys(joinRequest.leftAlias+"."+UserModel.column.id ->id).map{
         (o) => UserAvatar(o._1,o._2)
       }
-  object JoinUserImageInfoRequest extends JoinBaseSqlRequest[User,ImageInfo,JoinType.Left]
-  given JoinBaseSqlRequest[User,ImageInfo,JoinType.Left] = JoinUserImageInfoRequest
+  object JoinUserImageInfoRequest extends Join2TableRequest[User,ImageInfo,JoinType.Left]
+  given Join2TableRequest[User,ImageInfo,JoinType.Left] = JoinUserImageInfoRequest
   object UserWithImageService:
     inline def apply()( using ()=> Connection) :UserWithImageService = 
-      new JoinService[User,ImageInfo,JoinType.Left] with UserWithImageService:
+      new Join2TableService[User,ImageInfo,JoinType.Left] with UserWithImageService:
         override lazy val joinCondition: String =
           s"${joinRequest.leftAlias}.${UserModel.column.avatarKey} = ${joinRequest.rightAlias}.${ImageModel.column.id}"
       

@@ -7,7 +7,7 @@ import bon.jo.domain.UserAvatar
 import UserRepo.Command.*
 import bon.jo.domain.Response
 import bon.jo.domain.Response.*
-import bon.jo.sql.Sql
+import bon.jo.sql
 import bon.jo.user.SqlServiceUser.ServiceUser
 import bon.jo.user.SqlServiceUser.UserWithImageService
 import bon.jo.domain.UserLogin
