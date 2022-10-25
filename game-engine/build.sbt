@@ -26,7 +26,8 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
   jsSettings(
     libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.1-SNAPSHOT",
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.3.0",
-   // libraryDependencies += "bon.jo" %%% "user-core" % "1.1.1-SNAPSHOT",
+    libraryDependencies += "bon.jo" %%% "user-core" % "1.1.1-SNAPSHOT",
+     libraryDependencies += "bon.jo" %%% "bon-scala-common" % "1.1.1-SNAPSHOT",
     
     // Add JS-specific settings here
     scalaJSUseMainModuleInitializer := true

@@ -48,7 +48,7 @@ object PongGamePage :
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
   def go(using UserContext,ScoreService, Serveur[String]): Unit =
-    HtmlSplashMessage(text = "Play",(),"Yes").show()
+    HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
   def goAfter(using UserContext,ScoreService, Serveur[String]): Unit = 
     
     val audio = <.audio[HTMLAudioElement]

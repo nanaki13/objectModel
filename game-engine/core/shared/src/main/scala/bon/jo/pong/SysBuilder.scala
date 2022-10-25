@@ -2,6 +2,7 @@ package bon.jo.pong
 import bon.jo.common.Geom2D.*
 import bon.jo.common.Geom2D.Vector.*
 import scala.util.Random
+import scala.reflect.ClassTag
 object SysBuilder:
   extension (r : Rock)
     def giftRandom:Rock = 
@@ -14,6 +15,26 @@ object SysBuilder:
     s"hsl(${r.nextDouble * 360}deg ${r.nextDouble * 100}% ${r.nextDouble * 100}%)"
   case class SysParam(fact: Int)
   inline def sysParam: SysParam ?=> SysParam = summon
+  class RockMatrice( val matrice : scala.collection.mutable.Map[(Int,Int),Boolean] = scala.collection.mutable.Map()) extends PosMatrice {
+
+    override def have(x: Int, y: Int): Boolean = matrice(x -> y)
+
+  }
+  sealed trait PosMatrice:
+    def have(x : Int, y : Int): Boolean
+  object AllPosMatrice extends PosMatrice:
+    override def have(x: Int, y: Int): Boolean = true
+   
+  object RockMatrice:
+    def apply(tab : Array[Array[Int]]) : RockMatrice = 
+      val mat = new RockMatrice()
+      for{
+        (values,y) <- tab.zipWithIndex
+        (value,x)<- values.zipWithIndex
+      } {
+        mat.matrice += (x, y)->( value == 1)
+      }
+      mat
   inline def fact: SysParam ?=> Int = sysParam.fact
    def makeRocks(
       width: Double,
@@ -25,9 +46,11 @@ object SysBuilder:
     val widthBlock = width / blockByRow
     val heightBlock = height / blockByColumn
     val fromV = Vector(from)
+    val matrice = RockMatrice(matLvel2)
     for {
       xi <- 0 until blockByRow
       yi <- 0 until blockByColumn
+      if matrice.have(xi,yi)
       p = Point(widthBlock * xi, heightBlock * yi)
       r = Rock(
         ComputedPath(
@@ -43,6 +66,7 @@ object SysBuilder:
         randomHSL(),
         None
       )
+
     } yield r
   inline def makeRocks(
       board: Board,
@@ -61,6 +85,41 @@ object SysBuilder:
       Point(minw + 5 * fact, board.h * 0.1)
     )
 
+  inline def |<[T : ClassTag](t : T *) : Array[T] = Array(t *)
+  def matLvel1 : Array[Array[Int]] = |<(
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0),
+    |<(0,1,0,1,0,1,0)
+  )
+  def matLvel2 : Array[Array[Int]] = |<(
+    |<(0,0,0,1,0,0,0),
+    |<(0,1,1,1,1,1,0),
+    |<(1,1,1,1,1,1,1),
+    |<(0,1,1,1,1,1,0),
+    |<(0,0,0,1,0,0,0),
+    |<(0,0,0,1,0,0,0),
+    |<(0,1,1,1,1,1,0),
+    |<(1,1,1,1,1,1,1),
+    |<(0,1,1,1,1,1,0),
+    |<(0,0,0,1,0,0,0),
+    |<(0,0,0,1,0,0,0),
+    |<(0,1,1,1,1,1,0),
+    |<(1,1,1,1,1,1,1),
+    |<(0,1,1,1,1,1,0),
+    |<(0,0,0,1,0,0,0)
+  )
   def createSys(fact: Int):PongSystem =
     given SysParam = SysParam(fact)
     val board = Board(

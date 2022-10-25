@@ -20,6 +20,7 @@ import bon.jo.sql.Alias
 import bon.jo.domain.UserScore
 import bon.jo.domain
 import bon.jo.model.ScoreModel.Score
+import bon.jo.model.ScoreModel.toDomain
 import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
 import bon.jo.sql.Limit
@@ -95,13 +96,7 @@ trait SqlServiceScore:
     .map{case (s, u, i) =>  
       UserScore(
         u.copy(avatar = i),
-        domain.Score(
-          s.idGame,
-          s.lvl,
-          s.idUser,
-          s.scoreDateTime.toString,
-          s.scoreValue
-        )
+        s.toDomain()
       )
     }
   def readScore(gameId: Int, level: Int, userId: Long): Option[Score] =

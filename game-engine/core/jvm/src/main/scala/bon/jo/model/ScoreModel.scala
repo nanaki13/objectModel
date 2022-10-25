@@ -11,6 +11,9 @@ import bon.jo.sql.Column._type
 import java.time.LocalDateTime
 object ScoreModel:
 
+  extension (s : Score)
+    def toDomain() : bon.jo.domain.Score = bon.jo.domain.Score(s.idGame,s.lvl,s.idUser,s.scoreDateTime.toString(),s.scoreValue)
+
   case class Score(idGame : Int,lvl : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
   val cIdGame = "id_game"
   val cLvl = "lvl"
