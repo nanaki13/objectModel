@@ -73,8 +73,6 @@ object ImageRoutes:
 class ImageRoutes(buildImageRepository: ActorRef[ImageRepo.Command])(using
     ActorRef[TokenRepo.Command],
     ActorSystem[_],
-    Manifest[Image],
-    Manifest[Seq[Image]],
     Formats,ExecutionContext,Timeout
 ) extends JsonSupport[Image]
     with CORSHandler

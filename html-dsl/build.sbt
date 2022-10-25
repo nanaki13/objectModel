@@ -1,32 +1,25 @@
+val testDep = Seq(
+  "org.scalactic" %% "scalactic" % "3.2.11",
+  "org.scalatest" %% "scalatest" % "3.2.11" % "test"
+)
 
-val testDep =      Seq( "org.scalactic" %% "scalactic" % "3.2.11",
-     "org.scalatest" %% "scalatest" % "3.2.11" % "test")
-
-val commonSetting = {
-  scalaVersion := "3.1.1"
-
-}
-lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings(
-  name := "html-dsl",
-  organization  := "bon.jo",
-  version := "0.1.0-SNAPSHOT"
-).settings(commonSetting).
-  jvmSettings(
-     libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided"
-  ).
-  jsSettings(
-    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.1.0",
-    // Add JS-specific settings here
-    scalaJSUseMainModuleInitializer := true
-  ).settings(
-    libraryDependencies ++= testDep
+val commonSetting = Seq(
+  scalaVersion := "3.2.0",
+  resolvers += "Maven Repository" at "https://raw.githubusercontent.com/nanaki13/mvn-repo/main/",
+  libraryDependencies += "bon.jo" %% "bon-scala-common" % "1.1.1-SNAPSHOT",
+  ThisBuild / publishTo := Some(MavenCache("local-maven", file("I:/work/mvn-repo")))
+)
+lazy val core = (crossProject(JSPlatform) in file("."))
+  .settings(
+    name := "html-dsl",
+    organization := "bon.jo",
+    version := "0.1.1-SNAPSHOT",
+    Compile / mainClass := Some(" bon.jo.html.Main")
   )
-
-
-lazy val root = project.in(file(".")).
-  aggregate(core.js, core.jvm).
-  settings(
-    publish := {},
-    publishLocal := {},
+  .settings(commonSetting)
+  .jsSettings(
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.3.0"
+  ) 
+  .settings(
     libraryDependencies ++= testDep
   )

@@ -1,8 +1,8 @@
 package bon.jo.pong
 
 
-import bon.jo.Geom2D.*
-import bon.jo.Geom2D.Vector.`*`
+import bon.jo.common.Geom2D.*
+import bon.jo.common.Geom2D.Vector.`*`
 import bon.jo.System
 import bon.jo.System.*
 trait Debug:

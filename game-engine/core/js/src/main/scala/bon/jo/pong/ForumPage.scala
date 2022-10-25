@@ -8,7 +8,7 @@ import bon.jo.service.SaveResultEx
 import bon.jo.service.SaveResultSuccess
 import bon.jo.service.PostService
 import bon.jo.service.PostService.postService
-import bon.jo.request.BadStatusException
+import bon.jo.html.request.BadStatusException
 import bon.jo.domain.Post
 import bon.jo.domain.PostInfo
 import bon.jo.common.typeutils.~
@@ -24,8 +24,8 @@ import scala.util.{Success, Failure}
 import org.scalajs.dom.HTMLButtonElement
 import org.scalajs.dom.Event
 import bon.jo.domain.UserInfo
-import bon.jo.request.HttpRequest.GlobalParam
-import bon.jo.pong.Login.UserContext
+import bon.jo.html.request.HttpRequest.GlobalParam
+import bon.jo.domain.UserContext
 import bon.jo.common.SideEffect.Serveur
 object ForumPage:
   def div(f: HTMLElement ?=> Unit*): HTMLElement = <.div[HTMLElement](f*)
@@ -34,7 +34,7 @@ object ForumPage:
   def div: HTMLElement = <.div[HTMLElement]
   def scrollMax =
     document.documentElement.scrollHeight - document.documentElement.clientHeight
-  def addPost()(using Login.UserContext, PostService, Component,GlobalParam,Serveur[String]): HTMLElement =
+  def addPost()(using UserContext, PostService, Component,GlobalParam,Serveur[String]): HTMLElement =
     val buttonRef: Ref[HTMLButtonElement] = Ref()
     val contentPost: Ref[HTMLElement] = Ref()
     val newPostCont = div(
@@ -44,7 +44,7 @@ object ForumPage:
           _class("post")
           childs(
             div(
-              text(s"${Login.UserContext().user.name} : "),
+              text(s"${UserContext().user.name} : "),
               _class("post-user")
             ),
             div(bind(contentPost), _class("post-content"))
@@ -58,7 +58,7 @@ object ForumPage:
       postService.addPost(1, PostInfo(contentPost.value.innerHTML)).foreach {
         postOK =>
           target :+ postHtml(
-            Login.UserContext().user,
+            UserContext().user,
             postOK.postDateTime,
             postOK.content
           )
@@ -75,7 +75,7 @@ object ForumPage:
     var count = 1
     val listener: js.Function1[Event, ?]
   def go(subjectTitle: String, from: Int, size: Int)(using
-      Login.UserContext,
+      UserContext,
       PostService,GlobalParam,Serveur[String]
   ): Unit =
     val posts = div(_class("posts"))
@@ -111,7 +111,7 @@ object ForumPage:
   case class Component(title: HTMLElement, target: HTMLElement)
   inline def compnent: ~[Component] = summon
   def goOn(from: Int, size: Int, listener: CountListne)(using
-      Login.UserContext,
+      UserContext,
       PostService,
       Component,GlobalParam,Serveur[String]
   ): Unit =

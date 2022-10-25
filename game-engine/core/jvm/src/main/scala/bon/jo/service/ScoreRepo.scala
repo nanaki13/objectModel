@@ -5,7 +5,6 @@ import akka.actor.typed.scaladsl.Behaviors
 
 import ScoreRepo.Command.*
 import ScoreRepo.Response.*
-import bon.jo.sql.Sql
 import bon.jo.service.SqlServiceScore.ServiceScore
 
 import bon.jo.model.ScoreModel.Score

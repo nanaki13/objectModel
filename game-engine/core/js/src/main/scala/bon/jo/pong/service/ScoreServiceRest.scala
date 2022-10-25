@@ -1,10 +1,10 @@
 package bon.jo.pong.service
 
-import bon.jo.pong.Login.UserContext
+import bon.jo.domain.UserContext
 import bon.jo.service.ScoreService
-import bon.jo.request.HttpRequest
-import bon.jo.request.HttpRequest.Method.{POST, GET}
-import bon.jo.pong.HttpServiceConfig.AuthParam.given
+import bon.jo.html.request.HttpRequest
+import bon.jo.html.request.HttpRequest.Method.{POST, GET}
+import bon.jo.html.HttpServiceConfig.AuthParam.given
 import scala.concurrent.Future
 import bon.jo.service.SaveResult
 import bon.jo.domain.ScoreInfo
@@ -16,7 +16,7 @@ import bon.jo.pong.Login
 import bon.jo.domain.UserInfo
 import bon.jo.common.Anys.toSome
 import bon.jo.domain.Score
-import bon.jo.request.HttpRequest.given
+import bon.jo.html.request.HttpRequest.given
 
 object ScoreServiceRest {
 

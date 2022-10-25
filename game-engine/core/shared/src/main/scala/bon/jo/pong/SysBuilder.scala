@@ -1,6 +1,6 @@
 package bon.jo.pong
-import bon.jo.Geom2D.*
-import bon.jo.Geom2D.Vector.*
+import bon.jo.common.Geom2D.*
+import bon.jo.common.Geom2D.Vector.*
 import scala.util.Random
 object SysBuilder:
   extension (r : Rock)
@@ -61,7 +61,7 @@ object SysBuilder:
       Point(minw + 5 * fact, board.h * 0.1)
     )
 
-  def createSys(fact: Int) =
+  def createSys(fact: Int):PongSystem =
     given SysParam = SysParam(fact)
     val board = Board(
       List(

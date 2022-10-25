@@ -1,9 +1,9 @@
 package bon.jo
-import bon.jo.Geom2D.*
+import bon.jo.common.Geom2D.*
 import bon.jo.System.*
 import bon.jo.pong.Shape
 import bon.jo.common.typeutils.~
-import Geom2D.Vector.*
+import bon.jo.common.Geom2D.Vector.*
 import bon.jo.pong.Effect.ConditionalEffect
 package pong:
   // type WithEffs[T] = T & Effects[T]
@@ -140,9 +140,9 @@ package pong:
   abstract class Shape[T <: PosSpeed[T]](val valuep: ComputedPath, val speed: Vector)
       extends PosSpeed[T]:
 
-    def cross[C](s: Segment): (Debug, Drawer[C], C) ?=> Seq[Point] =
+    def cross(s: Segment): (Debug) ?=> Seq[Point] =
       valuep.segments.flatMap(_.cross(s))
-    def pos: bon.jo.Geom2D.Point = valuep.from
+    def pos: bon.jo.common.Geom2D.Point = valuep.from
 
   case class Rock(
       value: ComputedPath,

@@ -1,18 +1,18 @@
 package bon.jo.pong
 
-import bon.jo.pong.Board
-import bon.jo.pong.PongSystem
-import bon.jo.pong.Ball
-import bon.jo.Geom2D.Segment
-import bon.jo.Geom2D.ComputedPath
-import bon.jo.Geom2D.Path
+
+import bon.jo.common.Geom2D.Segment
+import bon.jo.common.Geom2D.ComputedPath
+import bon.jo.common.Geom2D.Path
 import bon.jo.common.typeutils.~
 
 trait DoDraw[C,P]:
   def apply(p : P): C ?=> Unit
+
 trait Ctx[C]:
   inline def ctx : ~[C] = summon
-trait Drawer[C] extends  Ctx[C]{
+trait Drawer[C] {
+    
     type CanvasDraw[A] = C ?=> A
     type _DoDraw[P] = DoDraw[C,P]
     type CustomizedDraw[P,A] = (C,_DoDraw[P] )?=>  A

@@ -6,14 +6,14 @@ import matchers._
 import java.time.LocalDate
 import java.sql.DriverManager
 
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.{ResultSetMapping, BaseSqlRequest, PSMapping}
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.executeUpdate
-import bon.jo.sql.Sql.execute
-import bon.jo.sql.Sql.doSql
-import bon.jo.sql.Sql.stmtDo
-import bon.jo.sql.Sql.stmt
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.{ResultSetMapping, BaseSqlRequest, PSMapping}
+import bon.jo.sql.Service
+import bon.jo.sql.executeUpdate
+import bon.jo.sql.execute
+import bon.jo.sql.doSql
+import bon.jo.sql.stmtDo
+import bon.jo.sql.stmt
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.PreparedStatement

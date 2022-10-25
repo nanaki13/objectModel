@@ -4,10 +4,12 @@ import java.nio.file.Paths
 val testDep =      Seq( "org.scalactic" %% "scalactic" % "3.2.11",
      "org.scalatest" %% "scalatest" % "3.2.11" % "test")
 
-val commonSetting = {
-  scalaVersion := "3.1.2"
-
-}
+val commonSetting = Seq(
+  scalaVersion := "3.2.0",
+   resolvers += "Maven Repository" at "https://raw.githubusercontent.com/nanaki13/mvn-repo/main/",
+    libraryDependencies +=  "bon.jo" %% "bon-scala-common"%"1.1.1-SNAPSHOT",
+    libraryDependencies += "bon.jo" %% "user-core" % "1.1.1-SNAPSHOT"
+)
 lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings(
   name := "game-engine",
   organization  := "bon.jo",
@@ -15,14 +17,16 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
 ).settings(commonSetting).
   jvmSettings(
      libraryDependencies += "org.scala-js" %% "scalajs-stubs" % "1.1.0" % "provided",
-     libraryDependencies += "bon.jo" %% "user-core" % "1.1.0-SNAPSHOT",
+   //  libraryDependencies += "bon.jo" %% "user-core" % "1.1.1-SNAPSHOT",
+     libraryDependencies += "bon.jo" %% "bon-sql" % "1.1.1-SNAPSHOT",
      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3",
      libraryDependencies += "org.postgresql" % "postgresql" % "42.5.0",
      dockerBaseImage := "openjdk:18" 
   ).enablePlugins(JavaAppPackaging,DockerPlugin).
   jsSettings(
+    libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.1-SNAPSHOT",
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.3.0",
-    libraryDependencies += "bon.jo" %%% "user-core" % "1.1.0-SNAPSHOT",
+   // libraryDependencies += "bon.jo" %%% "user-core" % "1.1.1-SNAPSHOT",
     
     // Add JS-specific settings here
     scalaJSUseMainModuleInitializer := true

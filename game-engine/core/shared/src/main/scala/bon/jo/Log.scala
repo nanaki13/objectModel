@@ -1,4 +1,4 @@
-package bon.jo
+package bon.jo.common
 
 object Log {
   object NoLog:

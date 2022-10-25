@@ -20,6 +20,7 @@ import org.json4s.JDecimal
 import org.json4s.JInt
 import org.json4s.NoTypeHints
 import bon.jo.domain.Id
+import scala.reflect.ClassTag
 
 object JsonSupport:
   given  [A](using  Materializer,Manifest[A],Manifest[Seq[A]],Formats) : JsonSupport[A] = new JsonSupport[A]{}
@@ -65,7 +66,8 @@ trait JsonSupport[A](using Materializer,Manifest[A],Manifest[Seq[A]],Formats ) {
   def entityConv[B](a : B): HttpEntity.Strict = {
     HttpEntity(contentType = ContentTypes.`application/json`, string = org.json4s.native.Serialization.write(a))
   }
-  def fromentity[B](entity : HttpEntity)(implicit  manifest: Manifest[B],executionContext: ExecutionContext):Future[B]= {
+  def fromentity[B](entity : HttpEntity)(using  ExecutionContext,Manifest[B]):Future[B]= {
+   
     entity.dataBytes.runFold("")((res, bs) => s"$res${bs.utf8String}").map(org.json4s.native.Serialization.read[B])
   }
   given ToEntityMarshaller[A] = Marshaller
