@@ -9,9 +9,9 @@ import bon.jo.pong.Login
 import scala.concurrent.Future
 import concurrent.ExecutionContext.Implicits.global
 import org.scalajs.dom.HTMLImageElement
-import bon.jo.request.HttpRequest.GlobalParam
+import bon.jo.html.request.HttpRequest.GlobalParam
 import bon.jo.common.SideEffect.Serveur
-import bon.jo.pong.Login.UserContext
+import bon.jo.domain.UserContext
 object TopScoreView:
 
   def view(using ser: ScoreService,p : GlobalParam): ( Serveur[String],UserContext) ?=> Future[HTMLElement] =

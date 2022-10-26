@@ -14,7 +14,7 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.ActorRef
 import bon.jo.user.TokenRepo
 import bon.jo.model.ScoreModel
-import bon.jo.sql.Sql.{stmtDo, stmt}
+import bon.jo.sql.{stmtDo, stmt}
 import scala.util.Try
 import bon.jo.route.StaticRoute
 import akka.http.scaladsl.server.Directives._

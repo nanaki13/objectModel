@@ -7,14 +7,14 @@ import java.time.LocalDate
 import java.sql.DriverManager
 
 
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.{ResultSetMapping,BaseSqlRequest,PSMapping}
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.executeUpdate
-import bon.jo.sql.Sql.execute
-import bon.jo.sql.Sql.doSql
-import bon.jo.sql.Sql.stmtDo
-import bon.jo.sql.Sql.stmt
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.{ResultSetMapping,BaseSqlRequest,PSMapping}
+import bon.jo.sql.Service
+import bon.jo.sql.executeUpdate
+import bon.jo.sql.execute
+import bon.jo.sql.doSql
+import bon.jo.sql.stmtDo
+import bon.jo.sql.stmt
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.PreparedStatement
@@ -26,18 +26,18 @@ import scala.util.Try
 import bon.jo.user.SqlServiceUser
 import bon.jo.user.SqlServiceUser.UserWithImageService
 import bon.jo.domain.User
-import bon.jo.sql.Sql.JoinBaseSqlRequest
-import bon.jo.sql.Sql.Table
-import bon.jo.sql.Sql.Column
-import bon.jo.sql.Sql.Alias
-import bon.jo.sql.Sql.JoinService
-import bon.jo.sql.Sql.T1JoinT2JoinT3Service
-import bon.jo.sql.Sql.JoinType
-import bon.jo.sql.Sql.JoinDef
+import bon.jo.sql.Join2TableRequest
+import bon.jo.sql.Table
+import bon.jo.sql.Column 
+import bon.jo.sql.Alias
+import bon.jo.sql.Join2TableService
+import bon.jo.sql.Join3TableService
+import bon.jo.sql.JoinType
+import bon.jo.sql.JoinDef
 import bon.jo.domain.ImageInfo
 import bon.jo.domain.UserInfo
 import bon.jo.image.ImageModel
-import bon.jo.sql.Sql.T1JoinT2JoinT3Request
+import bon.jo.sql.Join3TableRequest
 import java.time.LocalDateTime
 import java.nio.file.Files
 import java.nio.file.Path
@@ -85,8 +85,8 @@ class AllTest extends AnyFlatSpec with should.Matchers {
     service.findBy("name","toto") should be (Some(User(1,"toto","pass",None)))
     println(service.delete(1))
     service.readOption(1) should be (None)
-    import bon.jo.sql.Sql.Table.*
-    import bon.jo.sql.Sql.Column.*
+    import bon.jo.sql.Table.*
+    import bon.jo.sql.Column .*
     val scoreTable = Table{
       tableName("score")
         Column{columnName("id_user");_type("BIGINT");id} 
@@ -115,10 +115,10 @@ class AllTest extends AnyFlatSpec with should.Matchers {
     given JoinDef[UserInfo,ImageInfo] = JoinDef(JoinType.Left(), (l,r) => s"$l.${UserModel.column.avatarKey} = $r.${ImageModel.column.id} ") 
     given ResultSetMapping[Score] = (from,y)=> 
       Score(y.getLong(from),y.getInt(from+1))
-    given joinRequest: T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left] =
-      new T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]() {}
+    given joinRequest: Join3TableRequest[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left] =
+      new Join3TableRequest[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]() {}
 
-    val joinService = T1JoinT2JoinT3Service[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
+    val joinService = Join3TableService[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
     val scoreService = Service[Score,Long]
     service.create(User(1,"tett","pass",None)) 
     scoreService.create(Score(1,100))

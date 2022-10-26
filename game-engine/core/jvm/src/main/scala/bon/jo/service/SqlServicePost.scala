@@ -1,33 +1,32 @@
 package bon.jo.service
 
-import bon.jo.sql.Sql.ResultSetMapping
+import bon.jo.sql.ResultSetMapping
 import java.sql.ResultSet
 import bon.jo.model.PostModel
 import java.sql.PreparedStatement
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.Sort
-import bon.jo.sql.Sql.Sort.{asc,desc}
-import bon.jo.sql.Sql.PSMapping
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.stmt
+import bon.jo.sql.Service
+import bon.jo.sql.Sort
+import bon.jo.sql.Sort.{asc,desc}
+import bon.jo.sql.PSMapping
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.stmt
 import java.sql.Connection
 import java.time.LocalDateTime
-import bon.jo.sql.Sql.BaseSqlRequest
-import bon.jo.sql.Sql.T1JoinT2JoinT3Request
-import bon.jo.sql.Sql.T1JoinT2JoinT3Service
+import bon.jo.sql.BaseSqlRequest
+import bon.jo.sql.Join3TableService
 import bon.jo.domain.User
 import bon.jo.domain.ImageInfo
 import bon.jo.domain.UserInfo
-import bon.jo.sql.Sql.Alias
+import bon.jo.sql.Alias
 import bon.jo.domain
 import bon.jo.model.PostModel.{Post, PostUser}
 import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
 import bon.jo.user.UserModel
-import bon.jo.sql.Sql.Limit
-import bon.jo.sql.Sql.JoinType
+import bon.jo.sql.Limit
+import bon.jo.sql.JoinType
 import bon.jo.image.SqlServiceImage.given
-import bon.jo.sql.Sql.JoinDef
+import bon.jo.sql.JoinDef
 import bon.jo.sql.SqlMappings.given
 import bon.jo.image.ImageModel
 object SqlServicePost {
@@ -74,7 +73,7 @@ trait SqlServicePost:
   given JoinDef[Post,UserInfo] = JoinDef(JoinType.Default(), (l,r) => s"$l.${PostModel.column.idUser} = $r.${UserModel.column.id} ") 
   given JoinDef[UserInfo,ImageInfo] = JoinDef(JoinType.Left(), (l,r) => s"$l.${UserModel.column.avatarKey} = $r.${ImageModel.column.id} ") 
 
-  val joinService = T1JoinT2JoinT3Service[Post, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
+  val joinService = Join3TableService[Post, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
 
   val idUserAlias = s"${joinService.request.t2Alias}.${UserModel.column.id}"
   val subjectAlias = s"${joinService.request.t1Alias}.${PostModel.column.idSubject}"

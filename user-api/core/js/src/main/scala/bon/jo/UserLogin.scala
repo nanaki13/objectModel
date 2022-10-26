@@ -21,7 +21,7 @@ object UserLogin {
       oReq.open("POST", "http://localhost:8080/token", true);
       oReq.onload = e => {
         val arraybuffer = oReq.response; // n'est pas responseText
-        /* ... */
+        /* .. */
       }
       oReq.send(JSON.stringify( literal(name = loginInput.value,pwd = passwordInput.value )));
   }

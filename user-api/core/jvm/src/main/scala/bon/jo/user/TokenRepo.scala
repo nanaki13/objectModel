@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import bon.jo.domain.UserInfo
 import TokenRepo.Command.*
 import TokenRepo.Response.*
-import bon.jo.sql.Sql
+import bon.jo.sql
 import bon.jo.user.SqlServiceUser.ServiceUser
 import pdi.jwt.{Jwt, JwtClaim}
 import org.json4s.native.Serialization

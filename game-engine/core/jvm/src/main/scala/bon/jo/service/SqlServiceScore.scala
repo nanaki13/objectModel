@@ -1,36 +1,37 @@
 package bon.jo.service
 
-import bon.jo.sql.Sql.ResultSetMapping
+import bon.jo.sql.ResultSetMapping
 import java.sql.ResultSet
 import bon.jo.model.ScoreModel
 import java.sql.PreparedStatement
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.Sort
-import bon.jo.sql.Sql.Sort.{asc,desc}
-import bon.jo.sql.Sql.PSMapping
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.stmt
+import bon.jo.sql.Service
+import bon.jo.sql.Sort
+import bon.jo.sql.Sort.{asc,desc}
+import bon.jo.sql.PSMapping
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.stmt
 import java.sql.Connection
 import java.time.LocalDateTime
-import bon.jo.sql.Sql.BaseSqlRequest
-import bon.jo.sql.Sql.JoinBaseSqlRequest
-import bon.jo.sql.Sql.JoinService
+import bon.jo.sql.BaseSqlRequest
+import bon.jo.sql.Join2TableRequest
+import bon.jo.sql.Join2TableService
 import bon.jo.domain.User
-import bon.jo.sql.Sql.Alias
+import bon.jo.sql.Alias
 import bon.jo.domain.UserScore
 import bon.jo.domain
 import bon.jo.model.ScoreModel.Score
+import bon.jo.model.ScoreModel.toDomain
 import bon.jo.user.UserModel.toUserInfo
 import java.time.ZoneId
-import bon.jo.sql.Sql.Limit
-import bon.jo.sql.Sql.JoinType
-import bon.jo.sql.Sql.JoinDef
+import bon.jo.sql.Limit
+import bon.jo.sql.JoinType
+import bon.jo.sql.JoinDef
 import bon.jo.domain.UserInfo
 import bon.jo.user.UserModel
 import bon.jo.domain.ImageInfo
 import bon.jo.image.ImageModel
-import bon.jo.sql.Sql.T1JoinT2JoinT3Request
-import bon.jo.sql.Sql.T1JoinT2JoinT3Service
+import bon.jo.sql.Join3TableRequest
+import bon.jo.sql.Join3TableService
 import bon.jo.sql.SqlMappings.given
 object SqlServiceScore {
 
@@ -83,10 +84,8 @@ trait SqlServiceScore:
   given Alias = Alias()
   given JoinDef[Score,UserInfo] = JoinDef(JoinType.Default(), (l,r) => s"$l.${ScoreModel.cIdUser} = $r.${UserModel.column.id} ") 
   given JoinDef[UserInfo,ImageInfo] = JoinDef(JoinType.Left(), (l,r) => s"$l.${UserModel.column.avatarKey} = $r.${ImageModel.column.id} ") 
-  given joinRequest: T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left] =
-    new T1JoinT2JoinT3Request[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]() {}
 
-  val joinService = T1JoinT2JoinT3Service[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
+  val joinService = Join3TableService[Score, UserInfo,ImageInfo,JoinType.Default,JoinType.Left]()
 
 
   val idUserAlias = s"${joinService.request.t2Alias}.${UserModel.column.id}"
@@ -97,13 +96,7 @@ trait SqlServiceScore:
     .map{case (s, u, i) =>  
       UserScore(
         u.copy(avatar = i),
-        domain.Score(
-          s.idGame,
-          s.lvl,
-          s.idUser,
-          s.scoreDateTime.toString,
-          s.scoreValue
-        )
+        s.toDomain()
       )
     }
   def readScore(gameId: Int, level: Int, userId: Long): Option[Score] =

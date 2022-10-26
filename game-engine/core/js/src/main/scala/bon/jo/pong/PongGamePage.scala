@@ -2,13 +2,13 @@ package bon.jo.pong
 
 import bon.jo.html.Html.*
 import bon.jo.html.Html.PreDef.*
-import bon.jo.Geom2D.*
-import bon.jo.Geom2D.Vector.*
+import bon.jo.common.Geom2D.*
+import bon.jo.common.Geom2D.Vector.*
 import bon.jo.service.ScoreService
 import bon.jo.pong.service.ScoreServiceRest
 import bon.jo.service.SaveResult
 import bon.jo.service.SaveResultSuccess
-import bon.jo.request.BadStatusException
+import bon.jo.html.request.BadStatusException
 import bon.jo.domain.ScoreInfo
 import bon.jo.pong
 import org.scalajs.dom.document
@@ -18,13 +18,14 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.CanvasRenderingContext2D
 import scalajs.js.special.debugger
 import scala.concurrent.ExecutionContext.Implicits.global
-import bon.jo.pong.HttpServiceConfig.AuthParam.given
+import bon.jo.html.HttpServiceConfig.AuthParam.given
 import scala.util.{Success, Failure}
 import bon.jo.html.HtmlSplashMessage
 import bon.jo.common.SideEffect.Serveur
 import org.scalajs.dom.AudioNode
 import org.scalajs.dom.HTMLAudioElement
 import org.scalajs.dom.TouchEvent
+import bon.jo.domain.UserContext
 object PongGamePage :
 
   import DrawerCanvas.*
@@ -46,9 +47,9 @@ object PongGamePage :
     val m = s_t / 60
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
-  def go(using Login.UserContext,ScoreService, Serveur[String]): Unit =
+  def go(using UserContext,ScoreService, Serveur[String]): Unit =
     HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
-  def goAfter(using Login.UserContext,ScoreService, Serveur[String]): Unit =
+  def goAfter(using UserContext,ScoreService, Serveur[String]): Unit = 
     
     val audio = <.audio[HTMLAudioElement]
     audio.src = "./assets/sound/lunarosa.wav"
@@ -230,7 +231,7 @@ object PongGamePage :
       currentInterval = Some(int)
 
     play()
- 
+  
     
   def message(ok: => Unit, messages: String*): HTMLElement =
     val splash = HtmlSplashMessage(ok, "ok")

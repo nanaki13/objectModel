@@ -10,17 +10,16 @@ import scala.concurrent.Promise
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.HTMLButtonElement
 import org.scalajs.dom.HTMLSpanElement
-import bon.jo.request.HttpRequest
-import bon.jo.request.HttpRequest.Method.{POST, GET}
+import bon.jo.html.request.HttpRequest
+import bon.jo.html.request.HttpRequest.Method.{POST, GET}
 import scalajs.js
 import scalajs.js.UndefOrOps
 import concurrent.ExecutionContext.Implicits.global
 import scala.util.Success.apply
 import scala.util.Success
 import scala.util.Failure
-import bon.jo.request.BadStatusException
-import bon.jo.request.BadStatusExceptionValue
-import javax.swing.text.html.HTML
+import bon.jo.html.request.BadStatusException
+import bon.jo.html.request.BadStatusExceptionValue
 import org.scalajs.dom.HTMLAnchorElement
 import bon.jo.Validator.*
 import bon.jo.Validator
@@ -30,10 +29,13 @@ import bon.jo.domain.UserLogin
 import bon.jo.domain.UserInfo
 import java.util.Base64
 import org.scalajs.dom.FormData
-import bon.jo.request.HttpRequest.GlobalParam
-import bon.jo.pong.HttpServiceConfig.AuthParam.given
+import bon.jo.html.request.HttpRequest.GlobalParam
+import bon.jo.html.HttpServiceConfig
+import bon.jo.html.HttpServiceConfig.AuthParam.given
 import bon.jo.domain.Id
 import bon.jo.domain.ImageInfo
+import bon.jo.domain.UserContext
+
 
 object Login:
 
@@ -108,7 +110,7 @@ object Login:
       name = jsObj.name,
       avatar = jsObj.avatar.toOption.map(ImageInfoJs.unapply)
     )
-  def userInfo(token: String): UserInfo = userInfo(
+  def userInfoFromString(token: String): UserInfo = userInfo(
     js.JSON
       .parse(new String(Base64.getUrlDecoder().decode(token.split("\\.")(1))))
       .asInstanceOf[UserInfoJs]
@@ -124,19 +126,11 @@ object Login:
 
         logOut()
       })
-  case class UserContext(user: UserInfo, token: String):
-    def this(token: String) =
-      this(userInfo(token), token)
-  object UserContext:
-    type Ctx[A] = UserContext ?=> A
-    inline def apply(): Ctx[UserContext] = summon
-    inline def user: Ctx[UserInfo] = UserContext().user
-    inline def token: Ctx[String] = UserContext().token
 
   def refreshToken(): UserContext ?=> Future[UserContext] =
     tokenServicePrivate.refresh().map { token =>
       token.storageWrite(tokenKey)
-      new UserContext(token)
+      new UserContext(token, userInfoFromString)
     }
 
   def log(): Future[UserContext] =
@@ -146,7 +140,7 @@ object Login:
     val createText = "Create"
     tokenOption match
       case Some(token) =>
-        given UserContext = new UserContext(token)
+        given UserContext = new UserContext(token, userInfoFromString)
         try
           refreshToken().map { noken =>
             pro.success(noken)
@@ -178,7 +172,7 @@ object Login:
           childs(<.a[HTMLAnchorElement](text("Create Account")).>(_.href = "")),
           _class("create-account")
         )
-        val a: HTMLLabelElement = null
+      //  val a: HTMLLabelElement = null
 
         val bottom =
           <.div[HTMLElement](childs(ok, createAccount), _class("p-relative"))
@@ -256,7 +250,7 @@ object Login:
                   body.removeChild(diag)
                   token.storageWrite(tokenKey)
 
-                  pro.success(new UserContext(token))
+                  pro.success(new UserContext(token, userInfoFromString))
                 case Failure(BadStatusExceptionValue[String](value)) =>
                   val txt =
                     if value.isEmpty then "Something wrong inside..." else value

@@ -1,6 +1,6 @@
 package bon.jo.pong
-import bon.jo.pong.Login.UserContext
-import bon.jo.pong.HttpServiceConfig.AuthParam.given
+import bon.jo.domain.UserContext
+import bon.jo.html.HttpServiceConfig.AuthParam.given
 import bon.jo.pong.AvatarView
 import concurrent.ExecutionContext.Implicits.global
 import org.scalajs.dom.document

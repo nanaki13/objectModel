@@ -1,6 +1,6 @@
 package bon.jo.pong
 import org.scalajs.dom.CanvasRenderingContext2D
-import bon.jo.Geom2D.*
+import bon.jo.common.Geom2D.*
 object DrawerCanvas extends Drawer[CanvasRenderingContext2D] with DoDraws:
 
   def clear(board: Board): CanvasDraw[Unit] =

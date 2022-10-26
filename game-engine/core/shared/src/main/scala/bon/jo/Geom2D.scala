@@ -1,14 +1,13 @@
-package bon.jo
+package bon.jo.common
 
 import scala.annotation.tailrec
 import bon.jo.common.Anys.*
 import Geom2D.Vector.*
 import Geom2D.Transform.*
-import bon.jo.pong.Drawer
 import bon.jo.pong.Debug
-import Log.log
-import Log.NoLog.given
-import bon.jo.Geom2D.Boundary.corner
+import bon.jo.common.Log.log
+import bon.jo.common.Log.NoLog.given
+import bon.jo.common.Geom2D.Boundary.corner
 import Geom2D.Boundary.*
 object Geom2D:
 
@@ -100,39 +99,12 @@ object Geom2D:
     def linkWithSegment(s : Segment):List[Segment] = 
       List(Segment(this.p2,s.p1),s)
     def reverse :Segment = Segment(p2,p1)
-    def cross[C](cd : Segment):(Debug,Drawer[C],C) ?=> Option[Point] = 
+    def cross(cd : Segment):(Debug) ?=> Option[Point] = 
       val solve = Equation(this) cross cd
       solve match
         case Solution.One(p) if this.isInBoundary(p.x,p.y) => Some(p)
         case Solution.SegmentSolution(s) => Some(s.middle)
         case o => None
-    /*  val draw = summon[Drawer[C]]
-      import draw.*
-      val ab = this
-      val abV  = ab.toVector()
-      val cdV  = cd.toVector()
-      val ac =Vector(ab.p1,cd.p1)
-      val ca = - ac
-      val ad =Vector(ab.p1,cd.p2)
-      val cb =Vector(cd.p1,ab.p2)
-      val ab_v_cd = abV ^ cdV
-      val ab_v_ad = abV ^ ad
-      val ab_v_ac = abV ^ ac
-      val cd_v_cb = cdV ^ cb
-      val cd_v_ca = cdV ^ ca
-
-      if (ab_v_cd != 0 && ab_v_ad * ab_v_ac <= 0 && cd_v_cb * cd_v_ca <= 0 ) then
-        val s1_x = ab.p2.x - ab.p1.x
-        val s1_y =  ab.p2.y - ab.p1.y
-        val s2_x = cd.p2.x - cd.p1.x
-        val s2_y = cd.p2.y - cd.p1.y
-        val s = (-s1_y * (ab.p1.x - ab.p2.x) + s1_x * (ab.p1.y - ab.p2.y)) / (-s2_x * s1_y + s1_x * s2_y)
-        val t = ( s2_x * (ab.p1.y - cd.p1.y) - s2_y * (ab.p1.x - cd.p1.x)) / (-s2_x * s1_y + s1_x * s2_y)
-        //summon[Debug].debug("Inter !")
-        Some(Point(ab.p1.x + (t * s1_x),ab.p1.y + (t * s1_y)))
-      else
-        None */
-   
 
     def toVector():Vector = p2 - p1
 

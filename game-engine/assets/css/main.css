@@ -41,7 +41,13 @@
   }
 
 }
+@media (orientation: landscape) {
 
+  .pad{
+    display:none;
+  }
+
+}
 @media (orientation: portrait) {
   .height-main {
     display: none;
@@ -280,12 +286,16 @@ body {
 .x-sym {
   transform: scaleX(-1);
 }
+@media (orientation: portrait) {
 
-.pad {
+  .pad{
+    width: 100%;
+    display: flex;
+  }
 
-  width: 100%;
-  display: flex;
 }
+
+
 
 .erreur {
   color: red;

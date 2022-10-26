@@ -1,27 +1,27 @@
 package bon.jo.service
 
-import bon.jo.sql.Sql.ResultSetMapping
+import bon.jo.sql.ResultSetMapping
 import java.sql.ResultSet
 import bon.jo.model.SubjectModel
 import java.sql.PreparedStatement
-import bon.jo.sql.Sql.Service
-import bon.jo.sql.Sql.Sort
-import bon.jo.sql.Sql.Sort.{asc,desc}
-import bon.jo.sql.Sql.PSMapping
-import bon.jo.sql.Sql.stmtSetObject
-import bon.jo.sql.Sql.stmt
+import bon.jo.sql.Service
+import bon.jo.sql.Sort
+import bon.jo.sql.Sort.{asc,desc}
+import bon.jo.sql.PSMapping
+import bon.jo.sql.stmtSetObject
+import bon.jo.sql.stmt
 import java.sql.Connection
 import java.time.LocalDateTime
-import bon.jo.sql.Sql.BaseSqlRequest
-import bon.jo.sql.Sql.JoinBaseSqlRequest
-import bon.jo.sql.Sql.JoinService
+import bon.jo.sql.BaseSqlRequest
+import bon.jo.sql.Join2TableRequest
+import bon.jo.sql.Join2TableService
 import bon.jo.domain.User
-import bon.jo.sql.Sql.Alias
+import bon.jo.sql.Alias
 import bon.jo.domain
 import bon.jo.model.SubjectModel.Subject
 
 import java.time.ZoneId
-import bon.jo.sql.Sql.Limit
+import bon.jo.sql.Limit
 object SqlServiceSubject {
 
   type ServiceSubject = Service[Subject, Int] with SqlServiceSubject

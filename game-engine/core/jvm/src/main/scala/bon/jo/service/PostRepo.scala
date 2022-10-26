@@ -5,7 +5,6 @@ import akka.actor.typed.scaladsl.Behaviors
 
 import PostRepo.Command.*
 import PostRepo.Response.*
-import bon.jo.sql.Sql
 import bon.jo.service.SqlServicePost.ServicePost
 
 import bon.jo.model.PostModel.{Post,PostUser}

@@ -19,8 +19,8 @@ import scala.concurrent.Future
 import akka.actor.typed.ActorSystem
 import bon.jo.user.UserRepo
 import bon.jo.user.UserModel
-import bon.jo.sql.Sql.{doSql, stmtDo, stmt}
-import bon.jo.sql.Sql.execute
+import bon.jo.sql.{doSql, stmtDo, stmt}
+import bon.jo.sql.execute
 import bon.jo.domain.User
 import bon.jo.user.TokenRepo
 import akka.actor.typed.ActorRef

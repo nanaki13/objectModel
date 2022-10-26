@@ -1,11 +1,11 @@
 package bon.jo.pong
-import bon.jo.Geom2D.*
+import bon.jo.common.Geom2D.*
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.console
 import org.scalajs.dom.CanvasGradient
+ 
 
-
-trait DoDraws extends Ctx[CanvasRenderingContext2D] : 
+trait DoDraws extends Ctx[CanvasRenderingContext2D]: 
   self : Drawer[CanvasRenderingContext2D] =>
 
     inline def saveAndRestore(inline f : => Unit): CanvasRenderingContext2D ?=> Unit =

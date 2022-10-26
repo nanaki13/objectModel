@@ -1,15 +1,18 @@
 package bon.jo.model
-import bon.jo.sql.Sql.Table 
-import bon.jo.sql.Sql.Column 
+import bon.jo.sql.Table 
+import bon.jo.sql.Column 
 
-import bon.jo.sql.Sql.Table.id
-import bon.jo.sql.Sql.Table.index
-import bon.jo.sql.Sql.Table.unique
-import bon.jo.sql.Sql.Table.tableName
-import bon.jo.sql.Sql.Column.columnName
-import bon.jo.sql.Sql.Column._type
+import bon.jo.sql.Table.id
+import bon.jo.sql.Table.index
+import bon.jo.sql.Table.unique
+import bon.jo.sql.Table.tableName
+import bon.jo.sql.Column.columnName
+import bon.jo.sql.Column._type
 import java.time.LocalDateTime
 object ScoreModel:
+
+  extension (s : Score)
+    def toDomain() : bon.jo.domain.Score = bon.jo.domain.Score(s.idGame,s.lvl,s.idUser,s.scoreDateTime.toString(),s.scoreValue)
 
   case class Score(idGame : Int,lvl : Int,idUser : Long,scoreDateTime : LocalDateTime,scoreValue : Long)
   val cIdGame = "id_game"

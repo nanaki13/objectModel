@@ -1,14 +1,14 @@
 package bon.jo.image
-import bon.jo.sql.Sql.Table 
-import bon.jo.sql.Sql.Column 
+import bon.jo.sql.Table 
+import bon.jo.sql.Column  
 
-import bon.jo.sql.Sql.Table.id
-import bon.jo.sql.Sql.Table.index
-import bon.jo.sql.Sql.Table.unique
-import bon.jo.sql.Sql.Table.autoIncr
-import bon.jo.sql.Sql.Table.tableName
-import bon.jo.sql.Sql.Column.columnName
-import bon.jo.sql.Sql.Column._type
+import bon.jo.sql.Table.id
+import bon.jo.sql.Table.index
+import bon.jo.sql.Table.unique
+import bon.jo.sql.Table.autoIncr
+import bon.jo.sql.Table.tableName
+import bon.jo.sql.Column.columnName
+import bon.jo.sql.Column._type
 import bon.jo.domain.{ Image}
 object ImageModel:
   //  case class Image(id : Long, name : String, data : Array[Byte])

@@ -2,8 +2,8 @@ package bon.jo.pong
 import bon.jo.html.Html.*
 import bon.jo.html.Html.PreDef.*
 import org.scalajs.dom.HTMLElement
-import bon.jo.pong.Login.UserContext
-import bon.jo.request.HttpRequest.GlobalParam
+import bon.jo.domain.UserContext
+import bon.jo.html.request.HttpRequest.GlobalParam
 import bon.jo.domain.UserInfo
 import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.HTMLButtonElement
