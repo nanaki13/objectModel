@@ -41,8 +41,11 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
          b => b.pos.x < board.maxX +10 && b.pos.x > board.minX - 10 && 
             b.pos.y < board.maxY +10 && b.pos.y > board.minY - 10d
       }
-      val rocksToRem : Seq[Rock] = ballsRocks.flatMap(_._2)
-      
+      val rockTouchs : Seq[Rock] = ballsRocks.flatMap(_._2)
+      val (rocksToRem , stilAlive) = rockTouchs.map(e => e.copy(life = e.life -1)).partition(_.life ==0 )
+      val rocksToRemIds = rocksToRem.map(_.pos)
+      val stilAliveMap : Map[Point,Rock] = stilAlive.map(e => (e.pos , e)).toMap
+      val nRock = sys.rocks.filter(r => !rocksToRemIds.contains(r.pos) ).map(e => stilAliveMap.getOrElse(e.pos,e))
       val giftsToAdd : Seq[Gift] = rocksToRem.flatMap(e => e.gift)
       val agg : (Seq[(Gift,Player)],Seq[Gift])= (Nil,Nil)
       
@@ -59,7 +62,7 @@ class ProcessPong[C](using Debug,Drawer[C],C) extends SystemProcess[PongSystem]:
       })
       
       val giftsUpdate : Seq[Gift] = other.map(_.move())
-      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore( rocksToRem.size,giftReachByPlayer.size)),rocks = sys.rocks.filter(e => !rocksToRem.contains(e)),gifts = giftsUpdate ++ giftsToAdd )
+      sys = sys.copy(balls = goodBall.map(_.applyEffect()),player = nPlayer.map(_.addToScore( rocksToRem.size,giftReachByPlayer.size)),rocks = nRock,gifts = giftsUpdate ++ giftsToAdd )
       giftReachByPlayer.foldLeft(sys)(resolveGift(_).tupled(_))
 
    def resolveGift(sys: PongSystem)(gift : Gift,player : Player):PongSystem = 

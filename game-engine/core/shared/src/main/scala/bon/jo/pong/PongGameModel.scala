@@ -148,10 +148,11 @@ package pong:
       value: ComputedPath,
       override val speed: Vector = Vector(0, 0),
       color: String,
-      gift: Option[Gift]
+      gift: Option[Gift],
+      life : Int
   ) extends Shape[Rock](value, speed):
     def withPosAndSpeed(pos: Point, speed: Vector): Rock =
-      Rock(value.copy(fromp = pos), speed, color, gift)
+      copy(value.copy(fromp = pos), speed)
   case class Player(
       path: ComputedPath,
       override val speed: Vector,

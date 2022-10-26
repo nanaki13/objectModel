@@ -15,42 +15,40 @@ object SysBuilder:
     s"hsl(${r.nextDouble * 360}deg ${r.nextDouble * 100}% ${r.nextDouble * 100}%)"
   case class SysParam(fact: Int)
   inline def sysParam: SysParam ?=> SysParam = summon
-  class RockMatrice( val matrice : scala.collection.mutable.Map[(Int,Int),Boolean] = scala.collection.mutable.Map()) extends PosMatrice {
+  class RockMatrice(val w:Int,val h:Int, val matrice : scala.collection.mutable.Map[(Int,Int),Int] = scala.collection.mutable.Map()) extends PosMatrice {
 
-    override def have(x: Int, y: Int): Boolean = matrice(x -> y)
+    override def life(x: Int, y: Int): Int = matrice(x -> y)
 
   }
   sealed trait PosMatrice:
-    def have(x : Int, y : Int): Boolean
+    def life(x : Int, y : Int): Int
   object AllPosMatrice extends PosMatrice:
-    override def have(x: Int, y: Int): Boolean = true
+    override def life(x: Int, y: Int): Int = 1
    
   object RockMatrice:
     def apply(tab : Array[Array[Int]]) : RockMatrice = 
-      val mat = new RockMatrice()
+      val mat = new RockMatrice(tab(0).length,tab.length)
       for{
         (values,y) <- tab.zipWithIndex
         (value,x)<- values.zipWithIndex
       } {
-        mat.matrice += (x, y)->( value == 1)
+        mat.matrice += (x, y)-> value
       }
       mat
   inline def fact: SysParam ?=> Int = sysParam.fact
    def makeRocks(
       width: Double,
       height: Double,
-      blockByRow: Int,
-      blockByColumn: Int,
       from: Point
-  ): Seq[Rock] =
-    val widthBlock = width / blockByRow
-    val heightBlock = height / blockByColumn
+  )(using matrice :RockMatrice): Seq[Rock] =
+    val widthBlock = width / matrice.w
+    val heightBlock = height / matrice.h
     val fromV = Vector(from)
-    val matrice = RockMatrice(matLvel2)
+   
     for {
-      xi <- 0 until blockByRow
-      yi <- 0 until blockByColumn
-      if matrice.have(xi,yi)
+      xi <- 0 until  matrice.w
+      yi <- 0 until  matrice.h
+      if matrice.life(xi,yi) != 0
       p = Point(widthBlock * xi, heightBlock * yi)
       r = Rock(
         ComputedPath(
@@ -64,24 +62,20 @@ object SysBuilder:
         ),
         Vector(0, 0),
         randomHSL(),
-        None
+        None, matrice.life(xi,yi)
       )
 
     } yield r
   inline def makeRocks(
-      board: Board,
-      blockByRow: Int,
-      blockByColumn: Int
-  ): SysParam ?=> Seq[Rock] =
+      board: Board
+  ): (RockMatrice, SysParam) ?=> Seq[Rock] =
     val minw = board.paths
       .flatMap(_.segments.flatMap(z => List(z.p1, z.p2)))
       .map(_.x)
       .min
     makeRocks(
       board.w - 10 * fact,
-      board.h * 0.5,
-      blockByRow,
-      blockByColumn,
+      board.h * 0.7,
       Point(minw + 5 * fact, board.h * 0.1)
     )
 
@@ -104,20 +98,63 @@ object SysBuilder:
     |<(0,1,0,1,0,1,0)
   )
   def matLvel2 : Array[Array[Int]] = |<(
+    |<(0,0,0,1,0,0,0,0,0,0,1,0,0,0),
+    |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,0,1,1,0,0,1,1,0,1,1,0),
+    |<(0,1,0,0,0,0,0,0,0,0,0,0,1,0),
+    |<(0,1,0,1,0,0,0,0,0,0,1,0,1,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,0,1,1,0,0,1,1,0,1,1,0),
+    |<(0,1,0,0,0,0,0,0,0,0,0,0,1,0),
+    |<(0,1,0,1,0,0,0,0,0,0,1,0,1,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+    |<(0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+     |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+    |<(0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,0,0,0,0,0,0,0,0,0,0,0,0,0),
+    |<(0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+  )
+    def matLvel3 : Array[Array[Int]] = |<(
+    |<(0,0,0,1,0,0,0,0,0,0,1,0,0,0),
+    |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,0,1,1,0,0,1,1,0,1,1,0),
+    |<(0,1,0,0,0,0,0,0,0,0,0,0,1,0),
+    |<(0,1,0,1,0,0,0,0,0,0,1,0,1,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,0,1,1,0,0,1,1,0,1,1,0),
+    |<(0,1,0,0,0,0,0,0,0,0,0,0,1,0),
+    |<(0,1,0,1,0,0,0,0,0,0,1,0,1,0),
+    |<(0,1,1,3,1,1,0,0,1,1,3,1,1,0),
+    |<(0,1,0,0,0,1,0,0,1,0,0,0,1,0),
+    |<(0,1,1,1,1,1,1,1,1,1,1,1,1,0),
+    |<(0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+  )
+    def matLvel4 : Array[Array[Int]] = |<(
     |<(0,0,0,1,0,0,0),
-    |<(0,1,1,1,1,1,0),
-    |<(1,1,1,1,1,1,1),
-    |<(0,1,1,1,1,1,0),
+    |<(0,2,1,2,1,2,0),
+    |<(1,1,2,3,2,1,1),
+    |<(0,1,1,2,1,1,0),
     |<(0,0,0,1,0,0,0),
     |<(0,0,0,1,0,0,0),
-    |<(0,1,1,1,1,1,0),
-    |<(1,1,1,1,1,1,1),
-    |<(0,1,1,1,1,1,0),
+    |<(0,2,1,2,1,2,0),
+    |<(1,1,2,3,2,1,1),
+    |<(0,1,1,2,1,1,0),
     |<(0,0,0,1,0,0,0),
     |<(0,0,0,1,0,0,0),
-    |<(0,1,1,1,1,1,0),
-    |<(1,1,1,1,1,1,1),
-    |<(0,1,1,1,1,1,0),
+    |<(0,2,1,2,1,2,0),
+    |<(1,1,2,3,2,1,1),
+    |<(0,1,1,2,1,1,0),
     |<(0,0,0,1,0,0,0)
   )
   def createSys(fact: Int):PongSystem =
@@ -162,9 +199,10 @@ object SysBuilder:
     def r1 = Random.nextInt(10) * 12 * fact
     def r2 = Random.nextInt(10) * 20 * fact
     def point = Point(10 + r1, 50 + r2)
+    given RockMatrice = RockMatrice(matLvel2)
     val rocks =
       // for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
-      makeRocks(board, 7, 15).map(_.giftRandom)
+      makeRocks(board).map(_.giftRandom)
      // makeRocks(board, 10, 1).map(_.giftRandom)
     PongSystem(
       Ball(

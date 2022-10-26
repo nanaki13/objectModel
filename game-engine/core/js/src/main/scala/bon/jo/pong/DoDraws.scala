@@ -33,6 +33,15 @@ trait DoDraws extends Ctx[CanvasRenderingContext2D]:
           board.drawDef()
         
 
+    val rCkolor  = (ctx : CanvasRenderingContext2D,rock : Rock) => gradient(ctx,rock,"#96379d", _ ,rock.color)
+    val rColorP  = (ctx : CanvasRenderingContext2D,rock : Rock) =>  {
+      val fun =  rCkolor(ctx,rock)
+      rock.life match
+        case 1 => fun("pink")
+        case 2 => fun("red")
+        case 3 => fun("gold")
+      
+    }
     given DoDraw[CanvasRenderingContext2D, Rock] with
 
       def apply(s: Rock): CanvasRenderingContext2D ?=> Unit =
@@ -46,9 +55,15 @@ trait DoDraws extends Ctx[CanvasRenderingContext2D]:
           })  
         
           ctx.fillStyle = s.color
-          gradient(ctx, s,"#96379d", "pink",s.color)
+          rColorP(ctx,s)
+         // gradient(ctx, s,"#96379d", "pink",s.color)
           ctx.fill()
+          ctx.lineWidth = s.life *1.5
+        
+          
+         
           s.drawDef()
+          ctx.lineWidth = 1
 
      
        
