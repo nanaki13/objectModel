@@ -37,7 +37,9 @@ import bon.jo.pong.PongGamePage.given
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.HTMLLabelElement
 import org.scalajs.dom.HTMLInputElement
-
+import scalajs.js.JSConverters.*
+import org.scalajs.dom.HTMLButtonElement
+import scala.scalajs.js.JSON
 object PongGamePage :
 
   
@@ -167,15 +169,52 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
 
   enum Action:
     case place,delete
+  trait ExportRock extends scalajs.js.Object:
+    val life : Int
+    val x:Double
+    val y:Double
+    val w:Double
+    val h:Double
+  object ExportRock:
+    def apply(r : Rock):ExportRock = 
+      scalajs.js.Dynamic.literal(
+        life = r.life,
+        x = r.pos.x,
+        y = r.pos.y,
+        w = r.value.w,
+        h = r.value.h
+      ).asInstanceOf[ExportRock]
+    def unapply(r : ExportRock):Rock = Rock(SysBuilder.rockPath(r.w,r.h,Point(r.x,r.y)),Vector(0,0),"green",None,r.life)
+      
   def editLvl():Unit =
     document.body :+ root
     u.draw()
-    val gridX = 20
-    val gridY = 40
+    var gridX = 20
+    var gridY = 40
     var currentAction = Action.place
     var currentLifRock = 1
     val placeRef = Ref[HTMLInputElement]()
     val deleteRef = Ref[HTMLInputElement]()
+    val gridXInput = Ref[HTMLInputElement]()
+    val gridYInput = Ref[HTMLInputElement]()
+    val saveButton = Ref[HTMLButtonElement]()
+    val rockMap = scala.collection.mutable.Map[Point,Rock]()
+    def rockJs(): scalajs.js.Array[ExportRock] = 
+      rockMap.values.map(ExportRock.apply).toJSArray
+    def rockJsString() = scalajs.js.JSON.stringify(rockJs())
+    def restore(s : String):Unit = 
+      rockMap.clear()
+      rockMap ++= JSON.parse(s).asInstanceOf[scalajs.js.Array[ExportRock]].toSeq.map(e => (Point(e.x,e.y),ExportRock.unapply(e))).toMap
+      drawAll()
+    def drawAll():Unit=
+      DrawerCanvas.clear(board)
+      board.draw()
+      rockMap.values.foreach(_.draw())
+
+    val gridControl = div(
+      childs(<.label[HTMLLabelElement](text("gridX")).>(_.htmlFor="gx"), input("text"){bind(gridXInput)}.>(_.id="gx",_.value=gridX.toString,_.onchange = _ => gridX = gridXInput.value.value.toInt ),
+      <.label[HTMLLabelElement](text("gridY")).>(_.htmlFor="gy"), input("text"){bind(gridYInput)}.>(_.id="gy",_.value=gridY.toString,_.onchange = _ => gridY = gridYInput.value.value.toInt))
+      )
     val controlsHtml = div(
       childs(<.label[HTMLLabelElement](text("place")).>(_.htmlFor="place"), input("radio"){bind(placeRef)}.>(_.id="place",_.name="action",_.value="place",_.checked = true),
       <.label[HTMLLabelElement](text("delete")).>(_.htmlFor="delete"), input("radio"){bind(deleteRef)}.>(_.id="delete",_.name="action",_.value="delete"))
@@ -185,7 +224,17 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
       <.label[HTMLLabelElement](text("2")).>(_.htmlFor="2"), input("radio"){bind(deleteRef)}.>(_.id="2",_.name="life-rock",_.value="2"),
       <.label[HTMLLabelElement](text("3")).>(_.htmlFor="3"), input("radio"){bind(deleteRef)}.>(_.id="3",_.name="life-rock",_.value="3"))
     )
-    import org.scalajs.dom.console
+    val out =  div
+    val saveDiv =  div(
+      childs(button(text("save"),click(_ => out.textContent = rockJsString())),out))
+    val restoreDiv =  div(text("paste here for restore")).>(_.contentEditable="true")
+    val srestoreDiv =  div(
+      childs(restoreDiv,button(text("restore"),click(_ => restore( restoreDiv.textContent) ))))
+    
+    val allControls = div(childs(gridControl,controlsHtml,lifRockHtml,saveDiv,srestoreDiv))
+   
+
+   
     controlsHtml.getElementsByTagName("input").map(_.asInstanceOf[HTMLInputElement]).foreach{
      inp => inp.onchange = e => 
        currentAction = Action.valueOf(inp.value)
@@ -195,10 +244,9 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
        currentLifRock = inp.value.toInt
     }
     
-    root :+ controlsHtml
-    root :+ lifRockHtml
+    root :+ allControls
     var mouseDown = false
-    val rockMap = scala.collection.mutable.Map[Point,Rock]()
+    
     val doAction  = (e: MouseEvent) => 
       val bound = canvas.getBoundingClientRect()
       val point = Point(e.clientX - bound.x,e.clientY- bound.y)
@@ -208,11 +256,8 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
       currentAction match
         case Action.place => rockMap.getOrElseUpdate(onGridPoint,Rock(SysBuilder.rockPath(board.w/gridX,board.h/gridY,onGridPoint),Vector(0,0),"green",None,currentLifRock))
         case Action.delete => rockMap -= onGridPoint
-      
-      
-      DrawerCanvas.clear(board)
-      board.draw()
-      rockMap.values.foreach(_.draw())
+      drawAll()
+
 
     canvas.onmousedown  = e =>  mouseDown = true
     canvas.onmouseup  = e =>  mouseDown = false
