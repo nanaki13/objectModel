@@ -233,7 +233,8 @@ object Geom2D:
       def ^(o : Vector):Double = p.x * o.y - p.y * o .x
       def unitary():Vector = ( 1 / length) * p
       def /(d  :Double) = Vector(p.x/d,p.y/d)
-    
+      def symX = Vector(-p.x,p.y)
+      def symY = Vector(p.x,-p.y)
       inline def x : Double = p.x
       inline def y : Double = p.y
       inline def segFrom(o : Point):Segment = Segment(p,p+o)
@@ -249,7 +250,7 @@ object Geom2D:
       val ph = Vector(p,h)
       h + ph
     def +(o :  Vector):Point = Point(p.x+o.x,p.y+o.y)
-    def +(x :  Int,y : Int):Point = Point(p.x+x,p.y+y)
+    def +(x :  Double,y : Double):Point = Point(p.x+x,p.y+y)
    
     def -(o :  Vector):Point = Point(p.x-o.x,p.y-o.y)
     inline def ->(o :  Vector):Segment = Segment(p,p+o)

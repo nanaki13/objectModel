@@ -31,12 +31,16 @@ import bon.jo.service.ScoreService
 import bon.jo.pong.service.ScoreServiceRest
 import scala.util.Failure
 import scala.util.Success
+import bon.jo.pong.SysBuilder.SysParam
 object avatarServeur extends Serveur[String]
 object Main:
+  val gamePage = Page("Game")
+  val forumPage = Page("Forum")
+  val editPage =  Page("EditLvl")
   @main
   def launch(): Unit =
     given Serveur[String] = avatarServeur
-    val scorePage : Option[(Page,UserContext ?=> Unit)]  = 
+    val scorePage : Option[(Page,(PageInfo,UserContext) ?=> Unit)]  = 
       window.screen.asInstanceOf[scalajs.js.Dynamic].orientation.`type`.asInstanceOf[String].head match
         case 'p' => Some(Page("Score") -> {
           given ScoreService = ScoreServiceRest()
@@ -50,13 +54,23 @@ object Main:
         case _ => None
     
    
-   
+
+    given pageInfo : PageInfo = 
+      page match
+        case Main.gamePage => PageInfo(false)
+        case Main.forumPage => PageInfo(false)
+        case _ =>  PageInfo(true)
+      
     given SiteMap = 
-      val ret = Map[Page,UserContext ?=> Unit](Page("Game")-> {
+      val ret = Map[Page,(PageInfo,UserContext) ?=> Unit](gamePage-> {
         given ScoreService = ScoreServiceRest()
         PongGamePage.go},
+        editPage-> {
+        given ScoreService = ScoreServiceRest()
+        given SysParam = SysParam(3)
+        PongGamePage(SysBuilder.createNoRockSys).editLvl()},
         
-        Page("Forum")->{
+        forumPage->{
         given PostService = PostServiceRest()
         ForumPage.go("Forum",0,10)
       })
@@ -69,9 +83,16 @@ object Main:
 
     document.body :+ MenuPage.menu()
     given DefaultPage = DefaultPage("Game")
-    Login.log().foreach(f => 
-        given UserContext = f
-        val avatarViewRef = Ref[HTMLElement]()
-        document.body :+ div(_class("top-right d-flex"), childs(div(childs(AvatarView.view(avatarViewRef)),bind(avatarViewRef)),Login.logoutButton()))
+
+    
+    pageInfo match
+      case PageInfo(true) => 
+        given UserContext = AnonymUser
         navigate()
-      )
+      case _ =>  
+        Login.log().foreach(f => 
+            given UserContext = f
+            val avatarViewRef = Ref[HTMLElement]()
+            document.body :+ div(_class("top-right d-flex"), childs(div(childs(AvatarView.view(avatarViewRef)),bind(avatarViewRef)),Login.logoutButton()))
+            navigate()
+          )

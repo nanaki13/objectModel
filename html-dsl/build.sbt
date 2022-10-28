@@ -13,7 +13,7 @@ lazy val core = (crossProject(JSPlatform) in file("."))
   .settings(
     name := "html-dsl",
     organization := "bon.jo",
-    version := "0.1.1-SNAPSHOT",
+    version := "0.1.2-SNAPSHOT",
     Compile / mainClass := Some(" bon.jo.html.Main")
   )
   .settings(commonSetting)

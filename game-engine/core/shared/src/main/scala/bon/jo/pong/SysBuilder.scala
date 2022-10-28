@@ -35,6 +35,12 @@ object SysBuilder:
         mat.matrice += (x, y)-> value
       }
       mat
+  inline def rockPath(w: Double,h : Double,from:Point):ComputedPath = ComputedPath(
+        List(
+          h* up,
+          w * right,
+          h * down,
+          w * left),from)
   inline def fact: SysParam ?=> Int = sysParam.fact
    def makeRocks(
       width: Double,
@@ -51,15 +57,7 @@ object SysBuilder:
       if matrice.life(xi,yi) != 0
       p = Point(widthBlock * xi, heightBlock * yi)
       r = Rock(
-        ComputedPath(
-          List(
-            heightBlock * up,
-            widthBlock * right,
-            heightBlock * down,
-            widthBlock * left
-          ),
-          p + fromV
-        ),
+        rockPath(widthBlock ,heightBlock ,p + fromV),
         Vector(0, 0),
         randomHSL(),
         None, matrice.life(xi,yi)
@@ -157,9 +155,10 @@ object SysBuilder:
     |<(0,1,1,2,1,1,0),
     |<(0,0,0,1,0,0,0)
   )
-  def createSys(fact: Int):PongSystem =
-    given SysParam = SysParam(fact)
-    val board = Board(
+  type _SysParam[A] = SysParam ?=>A
+  type _SysParamWithBoard[A] = (Board,SysParam) ?=>A
+  inline def theBoard : _SysParamWithBoard[Board] = summon
+  def boardDef : _SysParam[Board] = Board(
       List(
         ComputedPath(
           List(
@@ -180,38 +179,42 @@ object SysBuilder:
         )
       )
     )
+  def ballDef : _SysParamWithBoard[Ball] = Ball(
+        DiscretCircle(3 * fact, Point(theBoard.w / 2, theBoard.h - 10 * 5), 18),
+        Vector(5, -5),
+        Seq()
+      )
+  def playerDef : _SysParam[Player] = 
     val teta = Math.PI / 8
     val path = for {
-      i <- 1 until 16
+      i <- 1 to 16
       d = i * teta
 
     } yield 4 * fact * (down rotate d)
 
-    // ++ List(25* fact * right,5* fact * down,25* fact * left,5* fact * up)
+    // ++ List(25* fact * right,5* fact * down,25* fact * left,5* fact * up)     .biso(2* fact)
     val base =
        path.map(v => Vector(v.x, v.y / 2)) 
   //  val tot = base.reduce(_ + _)
     val pathPlayer = ComputedPath(
       base,
       Point(75 * fact, 203 * fact)
-    ) // .biso(2* fact)
+    ) //
+    Player(pathPlayer, Vector(0, 0), 0.2, 3 * fact, Vector(0, 0),0,0) 
 
-    def r1 = Random.nextInt(10) * 12 * fact
-    def r2 = Random.nextInt(10) * 20 * fact
-    def point = Point(10 + r1, 50 + r2)
-    given RockMatrice = RockMatrice(matLvel2)
-    val rocks =
-      // for(_ <- 0 until 50 ) yield Rock(ComputedPath(List(5 * fact* up,10 * fact* right,5* fact * down,10* fact * left),point).biso(2* fact))
-      makeRocks(board).map(_.giftRandom)
-     // makeRocks(board, 10, 1).map(_.giftRandom)
+  def createNoRockSys: _SysParam[PongSystem] =
+    
+    given board : Board = boardDef
     PongSystem(
-      Ball(
-        DiscretCircle(3 * fact, Point(board.w / 2, board.h - 10 * 10), 8),
-        Vector(5, -5),
-        Seq()
-      ) :: Nil,
-      Player(pathPlayer, Vector(0, 0), 0.2, 3 * fact, Vector(0, 0),0,0) :: Nil,
+      ballDef :: Nil,
+      playerDef :: Nil,
       board,
-      rocks.toList,
+      Nil,
       Seq.empty
     )
+  def createSys(fact: Int):PongSystem =
+    given SysParam = SysParam(fact)
+    given RockMatrice = RockMatrice(matLvel2)
+    val base = createNoRockSys
+    base.copy(rocks =makeRocks(base.board).map(_.giftRandom) )
+

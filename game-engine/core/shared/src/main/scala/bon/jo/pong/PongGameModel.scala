@@ -231,9 +231,9 @@ package pong:
 
   case class PongSystem(
       balls: Seq[Ball],
-      player: List[Player],
+      player: Seq[Player],
       board: Board,
-      rocks: List[Rock],
+      rocks: Seq[Rock],
       gifts: Seq[Gift]
   ) extends System:
     def isGameOver(timeLeft: Long): GameOver =

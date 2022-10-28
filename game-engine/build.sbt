@@ -24,7 +24,7 @@ lazy val core = (crossProject(JSPlatform, JVMPlatform) in file("core")).settings
      dockerBaseImage := "openjdk:18" 
   ).enablePlugins(JavaAppPackaging,DockerPlugin).
   jsSettings(
-    libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.1-SNAPSHOT",
+    libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.2-SNAPSHOT",
     libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.3.0",
     libraryDependencies += "bon.jo" %%% "user-core" % "1.1.1-SNAPSHOT",
      libraryDependencies += "bon.jo" %%% "bon-scala-common" % "1.1.1-SNAPSHOT",
