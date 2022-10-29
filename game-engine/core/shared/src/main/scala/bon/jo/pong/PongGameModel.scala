@@ -103,7 +103,7 @@ package pong:
 
       // GreaterPlayer(pos,speed)
 
-  case class Board(paths: List[ComputedPath])
+  case class Board(paths: List[ComputedPath],padding : Double)
       extends Shape[Board](paths.head, Vector(0, 0))
       with SystemElement:
     val seg = paths.flatMap(_.segments)
@@ -113,6 +113,8 @@ package pong:
     val maxX = seg.map(s => Math.max(s.p1.x, s.p2.x)).max
     val h = maxY - minY
     val w = maxX - minX
+    val hp = h - 2 * padding
+    val wp = w - 2 * padding
     def withPosAndSpeed(pos: Point, speed: Vector): Board = copy(
       paths.map(_.copy(fromp = pos))
     )

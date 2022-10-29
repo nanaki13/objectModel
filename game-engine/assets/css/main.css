@@ -282,6 +282,12 @@ body {
   border: solid 1em #47afff;
 
 }
+._20-10-ov-auto {
+  max-width: 20em;
+  max-height: 10em;
+  overflow: auto;
+}
+
 
 .x-sym {
   transform: scaleX(-1);

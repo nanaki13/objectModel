@@ -68,7 +68,7 @@ object Main:
         editPage-> {
         given ScoreService = ScoreServiceRest()
         given SysParam = SysParam(3)
-        PongGamePage(SysBuilder.createNoRockSys).editLvl()},
+        (new PongGamePage(SysBuilder.createNoRockSys) with EditLevelView).editLvl()},
         
         forumPage->{
         given PostService = PostServiceRest()

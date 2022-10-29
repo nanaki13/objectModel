@@ -26,7 +26,8 @@ import scala.concurrent.ExecutionContext
 import bon.jo.service.PostRepo
 import bon.jo.service.SqlServicePost
 import concurrent.duration.DurationInt
-object MainJvm extends Server:
+import bon.jo.server.CORSHandler
+object MainJvm extends Server with CORSHandler:
 
   extension (key: String)
     def readEnv(): Option[String] = scala.sys.env.get(key)
@@ -93,7 +94,7 @@ object MainJvm extends Server:
           PostRoutes(
             ctx.spawn(PostRepo(SqlServicePost()), "PostRepo")
           ).route,
-          StaticRoute()
+          corsHandler( StaticRoute())
         )
       )
 

@@ -177,7 +177,7 @@ object SysBuilder:
           ),
           Point(15 * fact, 205 * fact)
         )
-      )
+      ),5* fact
     )
   def ballDef : _SysParamWithBoard[Ball] = Ball(
         DiscretCircle(3 * fact, Point(theBoard.w / 2, theBoard.h - 10 * 5), 18),
@@ -217,4 +217,9 @@ object SysBuilder:
     given RockMatrice = RockMatrice(matLvel2)
     val base = createNoRockSys
     base.copy(rocks =makeRocks(base.board).map(_.giftRandom) )
+  def createSys(fact: Int,rocks : Seq[Rock]):PongSystem =
+    given SysParam = SysParam(fact)
+    given RockMatrice = RockMatrice(matLvel2)
+    val base = createNoRockSys
+    base.copy(rocks =rocks.map(_.giftRandom) )
 
