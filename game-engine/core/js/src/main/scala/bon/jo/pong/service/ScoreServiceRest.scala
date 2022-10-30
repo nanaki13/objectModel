@@ -44,8 +44,8 @@ object ScoreServiceRest {
     given Conversion[String,String] = e=>e 
     class ScoreServiceImpl()(using UserContext) extends ScoreService with HttpRequest.Service :
 
-      override def getScores(): Future[Seq[UserScore]] = 
-        GET.sendOn("?idGame=1&lvl=1").map(_.okWithJs[Seq[UserScore],String](200)) 
+      override def getScores(lvl : Int): Future[Seq[UserScore]] = 
+        GET.sendOn(s"?idGame=1&lvl=$lvl").map(_.okWithJs[Seq[UserScore],String](200)) 
 
       override def saveScore(s: ScoreInfo): Future[SaveResult] = 
         POST.sendJsEntity("", ScoreInfoJs(s)).map(_.mapStatus{

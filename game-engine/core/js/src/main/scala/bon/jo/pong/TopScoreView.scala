@@ -14,8 +14,8 @@ import bon.jo.common.SideEffect.Serveur
 import bon.jo.domain.UserContext
 object TopScoreView:
 
-  def view(using ser: ScoreService,p : GlobalParam): ( Serveur[String],UserContext) ?=> Future[HTMLElement] =
-    ser.getScores().map { scores =>
+  def view(lvl : Int)(using ser: ScoreService,p : GlobalParam): ( Serveur[String],UserContext) ?=> Future[HTMLElement] =
+    ser.getScores(lvl).map { scores =>
       val trs = scores.zipWithIndex.map { (score, i) =>
         val dateScore =  new Date(score.score.scoreDateTime)
         

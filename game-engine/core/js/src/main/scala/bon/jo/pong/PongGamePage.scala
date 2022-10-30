@@ -62,7 +62,7 @@ object PongGamePage :
   given Conversion[ js.Any, Rock] = e =>  ExportRock.unapply(e.asInstanceOf[ExportRock])
   def rockFromUrl(str : String):GlobalParam ?=> Future[Seq[Rock]] = 
 
-    GET.send(str,None,Map.empty[String,String]).map(_.okWithJs(200))
+    GET.send(str,None,Map.empty[String,String]).m.map(_.okWithJs(200))
   
   def format(milli: Long): String =
     val ml = milli % 1000
@@ -74,25 +74,29 @@ object PongGamePage :
     HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
   def goAfter(using UserContext,ScoreService, Serveur[String]): Unit = 
 
-    rockFromUrl("/break-broke/assets/js/lvl-1.json").onComplete{
+    PongGamePage(pngSystem).play(1)
       
-        case Failure(exception) => exception.printStackTrace();Nil
-        case Success(value) =>
-          PongGamePage( createSys(3,value)).play()
-      
-    }
+  def pngSystem(lvl : Int): UserContext ?=>  Future[PongSystem] = rockFromUrl(s"/break-broke/assets/js/lvl-$lvl.json").map(createSys(3,_))
    
     
   
+class PongGameElement(
+      var u : PongSystem,
+      val canvas : HTMLCanvasElement ):
+    val board = u.board
+    canvas.height = board.h.toInt
+    canvas.width = board.w.toInt 
 
-class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, Serveur[String]):
-  var u: PongSystem = createMySys
+class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserContext,ScoreService, Serveur[String]):
+  inline def el: PongGameElement ?=> PongGameElement =  summon
+  inline def u: PongGameElement ?=> PongSystem =  summon.u
+  var lvl = 1
+  //var u: PongSystem = createMySys(lvl)
   var currentInterval: Option[Int] = None
   val audio = <.audio[HTMLAudioElement]
   val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog height-main"))
-  val board = u.board
-  val canvas = <.canvas[HTMLCanvasElement](_class("canvas-g")) > (_.height =
-    (board.h).toInt, _.width = board.w.toInt )
+ // val board = u.board
+  val canvas = <.canvas[HTMLCanvasElement](_class("canvas-g"))
   val timeDiv = <.div[HTMLElement] { text("0s") }
   val scoreDiv = <.div[HTMLElement](text("0"), _class("score"))
   val athDiv = <.div[HTMLElement] {
@@ -173,13 +177,13 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
   val _10m = 1000*60*10
   def updateTopeScore() : Unit = 
     topSCoreWrapper.children.foreach(topSCoreWrapper.removeChild)
-    TopScoreView.view.recover{
+    TopScoreView.view(lvl).recover{
       case e => 
         e.printStackTrace()
         <.div[HTMLElement](text("Oups, problems with top score..."))
     }.foreach(topSCoreWrapper :+ _ )
  
-  def speedChoose():ComputedPath = 
+  def speedChoose():PongGameElement ?=> ComputedPath = 
     val diago = 1*right + 1.5 * up
     val arrowLeftPart = Seq(0.5* left,4*up,0.5 * left,diago)
     var arrow = arrowLeftPart ++ arrowLeftPart.reverse.map(e => e.symY)
@@ -188,15 +192,17 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
     val middle = pathP.pos
     ComputedPath(arrow,middle)
 
+  def play(lvl : Int):Unit = 
+    createMySys(lvl).map(play)
 
-
-  def play(): Unit =  
+  def play(p : PongSystem): Unit =  
+    given el : PongGameElement = new PongGameElement(p,canvas)
     document.body :+ root
     audio.src = "./assets/sound/lunarosa.wav"
     audio.load();   
     audio.play();  
     updateTopeScore()
-    u.draw()
+    p.draw()
     var arrowDir = speedChoose()
     arrowDir.draw()
     ctx.fillStyle = "white"
@@ -205,12 +211,12 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
       val speedDir = arrowDir.elementsp.slice(0,arrowDir.elementsp.length/2).fold(Vector(0,0))( _ + _)
       ek.removeEventListener()
       window.clearInterval(int)
-      u = u.copy(balls = u.balls.map(e => e.copy(speed = e.speed.length * speedDir.unitary() )))
+       el.u =  el.u.copy(balls = el.u.balls.map(e => e.copy(speed = e.speed.length * speedDir.unitary() )))
       play_()
     })
     lazy val int: Int = window.setInterval(
       () => {
-        u.draw()
+        el.u.draw()
         arrowDir = arrowDir.copy( arrowDir.elementsp.map(_.rotate(0.1)))
         arrowDir.draw()
         ctx.fillStyle = "white"
@@ -220,8 +226,9 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
     ek.addEventListener()
     int
 
-  private def play_(): Unit =  
-    u.draw()
+
+  private def play_(): PongGameElement ?=> Unit =  
+    el.u.draw()
     gameEvents.foreach(_.addEventListener())
     var count = 0
     
@@ -231,12 +238,12 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
         startMove match
           case Start(dirPlayer) =>
             startMove = AddedEffect
-            u = u.copy(player = u.player.map(_.copy(dir = dirPlayer)))
-            u = u.copy(player = u.player.map { p =>
+             el.u =  el.u.copy(player = u.player.map(_.copy(dir = dirPlayer)))
+             el.u =  el.u.copy(player = u.player.map { p =>
               p.addEffect(accPlayer)
             })
           case End =>
-            u = u.copy(player = u.player.map { p =>
+             el.u =  el.u.copy(player = u.player.map { p =>
               p.copy(
                 speed = Vector(0, 0),
                 speedPlayer = 1,
@@ -246,16 +253,16 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
           case AddedEffect =>
 
         // for(i <- 1 to 15)
-        u = u.nextSystem()
+        el.u =  el.u.nextSystem()
         count += 1
 
         val timeLeft = _10m - PongGamePage.currentMillis + t
         timeDiv.textContent = PongGamePage.format(timeLeft)
-        scoreDiv.textContent = u.player.head.baseScore.toString()
+        scoreDiv.textContent =  el.u.player.head.baseScore.toString()
         if count % 10 == 0 then
           count = 0
 
-          val nBalls = u.balls.map { b =>
+          val nBalls =  el.u.balls.map { b =>
             val nv =
               if b.speed.y >= 0 && b.speed.y < 1 then
                 b.speed.rotate(Math.PI / 4)
@@ -265,35 +272,52 @@ class PongGamePage(createMySys : => PongSystem)(using UserContext,ScoreService, 
             b.withPosAndSpeed(b.pos, nv)
 
           }
-          u = u.copy(balls = nBalls)
-        u.isGameOver(timeLeft) match
+          el.u =  el.u.copy(balls = nBalls)
+        el.u.isGameOver(timeLeft) match
           case e: pong.End      => end(e)
           case pong.GameOver.No =>
 
-        u.draw()
+        el.u.draw()
 
       },
       1000 / 20
     )
     currentInterval = Some(int)
-  def replay():Unit = { u =createMySys; play() }
+  def replay():Unit = 
+    createMySys(lvl).onComplete{
+      
+        case Failure(exception) => exception.printStackTrace()
+        case Success(value) => play(value)
+      
+    }
   def end(e: pong.End) =
     window.clearInterval(currentInterval.get)
     currentInterval = None
     val (scoreDivDetails,efftcts) = DetailsScoreView(e)
+
+    
     val splash = HtmlSplashMessage(replay(),"yes")
     splash.dialog :+ scoreDivDetails
     scoreDiv.textContent = e.score.toString()
     splash.show()
     efftcts.start()
-    summon[ScoreService].saveScore(ScoreInfo(1, 1, e.score)).onComplete {
+    summon[ScoreService].saveScore(ScoreInfo(1, lvl, e.score)).onComplete {
       case Success(v) =>
         val messageS = v match
           case SaveResultSuccess(ok)   => 
             updateTopeScore() 
             splash addText "You update your Score !"
           case _ =>  splash addText "Not your best score !"
-        splash addText "Play again?"
+          
+        e match
+          case _ : GameOver.Victory => 
+             lvl +=1
+             splash addText s"Next level : $lvl?"
+          case _ : GameOver.Loose =>
+             splash addText "GameOver"
+             splash addText "Play again?"
+        
+       
         
 
       case Failure(v) =>

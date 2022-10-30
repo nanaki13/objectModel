@@ -44,7 +44,7 @@ object Main:
       window.screen.asInstanceOf[scalajs.js.Dynamic].orientation.`type`.asInstanceOf[String].head match
         case 'p' => Some(Page("Score") -> {
           given ScoreService = ScoreServiceRest()
-          TopScoreView.view.onComplete{
+          TopScoreView.view(1).onComplete{
             
               case Failure(exception) => 
               case Success(value) => document.body :+ div(_class("root"),childs(div(_class("dialog flex-center"),childs(value)))) 
@@ -67,8 +67,8 @@ object Main:
         PongGamePage.go},
         editPage-> {
         given ScoreService = ScoreServiceRest()
-        given SysParam = SysParam(3)
-        (new PongGamePage(SysBuilder.createNoRockSys) with EditLevelView).editLvl()},
+        
+        (new PongGamePage(PongGamePage.pngSystem) with EditLevelView).editLvl()},
         
         forumPage->{
         given PostService = PostServiceRest()

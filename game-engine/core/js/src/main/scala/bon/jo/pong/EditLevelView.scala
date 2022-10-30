@@ -15,6 +15,7 @@ import scala.concurrent.Future
 import bon.jo.domain.UserContext
 import bon.jo.html.HttpServiceConfig.AuthParam.given
 import concurrent.ExecutionContext.Implicits.global
+import bon.jo.pong.SysBuilder.SysParam
 enum Action:
   case place,delete
 trait ExportRock extends scalajs.js.Object:
@@ -37,6 +38,8 @@ object ExportRock:
 trait EditLevelView:
   self : PongGamePage =>
     def editLvl():UserContext ?=>Unit =
+      given SysParam = SysParam(3)
+      given PongGameElement  = PongGameElement(SysBuilder.createNoRockSys,canvas)
       document.body :+ root
       u.draw()
       document.body
@@ -50,6 +53,7 @@ trait EditLevelView:
       val gridXInput = Ref[HTMLInputElement]()
       val gridYInput = Ref[HTMLInputElement]()
       val saveButton = Ref[HTMLButtonElement]()
+      val board = u.board
       val rockMap = scala.collection.mutable.Map[Point,Rock]()
       def rockJs(): scalajs.js.Array[ExportRock] = 
         rockMap.values.map(ExportRock.apply).toJSArray
