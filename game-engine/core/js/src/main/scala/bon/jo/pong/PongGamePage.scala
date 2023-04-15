@@ -46,23 +46,38 @@ import bon.jo.html.request.HttpRequest.given
 import bon.jo.pong.Login.given
 import bon.jo.html.request.HttpRequest.*
 import bon.jo.html.request.HttpRequest.Method.*
+import bon.jo.common.typeutils.~
 import bon.jo.html.request.predef.*
+import PongGamePage.Levelsinfo
+import PongGamePage.levelsInfo
+import PongGamePage.lvl
+import PongGamePage.gameInfo
+import bon.jo.common.SideEffect
 object PongGamePage :
 
-  
+  trait Levelsinfo extends js.Object:
+    val lvlCount : Int
+  val basePath = "/break-broke/assets/js"
   given PointCount = PointCount(pointsByRock = 50,pointsByGift = 75, pointsBySecond = 10)
   val upK = 38
   val downK = 40
   val leftK = 37
   val rightK = 39
- 
-
+  given Conversion[ js.Any, Levelsinfo] = e =>  e.asInstanceOf[Levelsinfo]
+  def fethLevelsInfo():GlobalParam ?=> Future[Levelsinfo] =  GET.send(s"$basePath/levels-info.json",None,Map.empty[String,String]).map(_.okWithJs(200))
+  def withLevelsInfo(f : Levelsinfo ?=> Unit ):GlobalParam ?=>Future[Unit] = 
+      fethLevelsInfo().map{
+        case given Levelsinfo => f
+      }
+  inline def levelsInfo : ~[Levelsinfo] = summon
   def currentMillis = System.currentTimeMillis()
 
   given Conversion[ js.Any, Rock] = e =>  ExportRock.unapply(e.asInstanceOf[ExportRock])
   def rockFromUrl(str : String):GlobalParam ?=> Future[Seq[Rock]] = 
 
-    GET.send(str,None,Map.empty[String,String]).m.map(_.okWithJs(200))
+    GET.send(str,None,Map.empty[String,String]).map(_.okWithJs(200))
+
+  
   
   def format(milli: Long): String =
     val ml = milli % 1000
@@ -70,15 +85,24 @@ object PongGamePage :
     val m = s_t / 60
     val s = s_t % 60
     f"${m}%02dm${s}%02ds${ml}%03dms"
-  def go(using UserContext,ScoreService, Serveur[String]): Unit =
+  def go(using UserContext,ScoreService, Serveur[String],Levelsinfo): Unit =
     HtmlSplashMessage(text = "Play",goAfter,"Yes").show()
-  def goAfter(using UserContext,ScoreService, Serveur[String]): Unit = 
+
+  def goAfter(using UserContext,ScoreService, Serveur[String],Levelsinfo): Unit = 
+    given GameInfo = GameInfo(lvl = 1)
+   
 
     PongGamePage(pngSystem).play(1)
       
-  def pngSystem(lvl : Int): UserContext ?=>  Future[PongSystem] = rockFromUrl(s"/break-broke/assets/js/lvl-$lvl.json").map(createSys(3,_))
+  def pngSystem(lvl : Int): UserContext ?=>  Future[PongSystem] = rockFromUrl(s"$basePath/lvl-$lvl.json").map(createSys(3,_))
    
-    
+  def lvl :GameInfo ?=> Int = summon.lvl
+  def gameInfo : ~[GameInfo] = summon
+ 
+  def lvl_=(l : Int) :GameInfo ?=> Unit = summon.lvl = l
+
+case class GameInfo( var lvl :Int = 1)
+
   
 class PongGameElement(
       var u : PongSystem,
@@ -87,21 +111,25 @@ class PongGameElement(
     canvas.height = board.h.toInt
     canvas.width = board.w.toInt 
 
-class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserContext,ScoreService, Serveur[String]):
+class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserContext,ScoreService, Serveur[String],Levelsinfo,GameInfo):
   inline def el: PongGameElement ?=> PongGameElement =  summon
   inline def u: PongGameElement ?=> PongSystem =  summon.u
-  var lvl = 1
+ 
   //var u: PongSystem = createMySys(lvl)
   var currentInterval: Option[Int] = None
   val audio = <.audio[HTMLAudioElement]
-  val topSCoreWrapper : HTMLElement = <.div[HTMLElement](text("Score"),_class("dialog height-main"))
+  val topSCoreWrapper : HTMLElement = div(_class("dialog height-main"))
  // val board = u.board
   val canvas = <.canvas[HTMLCanvasElement](_class("canvas-g"))
-  val timeDiv = <.div[HTMLElement] { text("0s") }
-  val scoreDiv = <.div[HTMLElement](text("0"), _class("score"))
-  val athDiv = <.div[HTMLElement] {
-    childs(timeDiv, scoreDiv); _class("dialog")
+  val timeDiv = div { text("0s") }
+  val scoreDiv = div(text("0"), _class("score"))
+  val lvlDiv = div
+  val athDiv = div {
+    childs(lvlDiv,timeDiv, scoreDiv); _class("dialog")
   }  
+
+
+
   val leftPad : Ref[HTMLElement] = Ref()
   val rightPad:  Ref[HTMLElement] = Ref()
   val pad = div(_class("pad"),childs(
@@ -109,9 +137,9 @@ class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserCo
       div(_class("dir-pad"),childs(image(src("./assets/img/right_arrow.svg"))),bind(rightPad))
     ))
   
-  val root = <.div[HTMLElement](
+  val root = div(
     childs(topSCoreWrapper,
-      <.div[HTMLElement](childs(athDiv, canvas,pad), _class("ath-game"))
+      div(childs(athDiv, canvas,pad), _class("ath-game"))
     ),
     _class("root")
   )
@@ -180,7 +208,7 @@ class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserCo
     TopScoreView.view(lvl).recover{
       case e => 
         e.printStackTrace()
-        <.div[HTMLElement](text("Oups, problems with top score..."))
+        div(text("Oups, problems with top score..."))
     }.foreach(topSCoreWrapper :+ _ )
  
   def speedChoose():PongGameElement ?=> ComputedPath = 
@@ -197,6 +225,13 @@ class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserCo
 
   def play(p : PongSystem): Unit =  
     given el : PongGameElement = new PongGameElement(p,canvas)
+    //println(SideEffect.serveur[String].emit("test"))
+    //println(SideEffect.serveur[GameInfo])
+    println("ddddddd")
+
+    lvlDiv.textContent = s"LVL ${gameInfo.lvl}"
+    topSCoreWrapper.textContent = s"Score - LVL$lvl"
+
     document.body :+ root
     audio.src = "./assets/sound/lunarosa.wav"
     audio.load();   
@@ -310,9 +345,13 @@ class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserCo
           case _ =>  splash addText "Not your best score !"
           
         e match
+          case _ : GameOver.Victory if levelsInfo.lvlCount > lvl => 
+              lvl = lvl + 1
+              splash addText s"Next level : $lvl?"
           case _ : GameOver.Victory => 
-             lvl +=1
-             splash addText s"Next level : $lvl?"
+              lvl  = 1
+              splash addText s"YOU FINISH THE GAME !!"
+              splash addText "Play again?"
           case _ : GameOver.Loose =>
              splash addText "GameOver"
              splash addText "Play again?"
@@ -335,7 +374,7 @@ class PongGamePage(createMySys : (lvl : Int) => Future[PongSystem])(using UserCo
 def message(ok: => Unit, messages: String*): HTMLElement =
   val splash = HtmlSplashMessage(ok, "ok")
   messages.map { str =>
-                  <.div[HTMLElement] {
+                  div {
                     text(str)
                   }
   }.foreach(splash.dialog.:+)

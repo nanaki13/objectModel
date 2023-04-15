@@ -16,6 +16,12 @@ import bon.jo.domain.UserContext
 import bon.jo.html.HttpServiceConfig.AuthParam.given
 import concurrent.ExecutionContext.Implicits.global
 import bon.jo.pong.SysBuilder.SysParam
+import org.scalajs.dom.HTMLElement
+import scala.collection.mutable.ListBuffer
+
+object MoveToHTMLLAter: 
+  def radioButton(txt : String,id : String,gruopName : String,inputRef : Ref[HTMLInputElement], checked : Boolean) : HTMLElement = 
+   div(childs( <.label[HTMLLabelElement](text(txt)).>(_.htmlFor=id), input("radio"){bind(inputRef)}.>(_.id=id,_.name=gruopName,_.value=id,_.checked = checked)))
 enum Action:
   case place,delete
 trait ExportRock extends scalajs.js.Object:
@@ -35,6 +41,18 @@ object ExportRock:
     ).asInstanceOf[ExportRock]
   def unapply(r : ExportRock):Rock = Rock(SysBuilder.rockPath(r.w,r.h,Point(r.x,r.y)),Vector(0,0),"green",None,r.life)
       
+class GridContexts(val gridContexts : ListBuffer[GridContext]):
+  val html = div(childs(gridContexts.map(_.gridControl).toSeq*))
+  def :+(e : GridContext):Unit = 
+    html :+ e.gridControl
+    gridContexts += e
+class GridContext(var gridX : Int = 20,var gridY : Int= 40):
+  val gridXInput = Ref[HTMLInputElement]()
+  val gridYInput = Ref[HTMLInputElement]()
+  val gridControl = div(
+  childs(<.label[HTMLLabelElement](text("gridX")).>(_.htmlFor="gx"), input("text"){bind(gridXInput)}.>(_.id="gx",_.value=gridX.toString,_.onchange = _ => gridX = gridXInput.value.value.toInt ),
+  <.label[HTMLLabelElement](text("gridY")).>(_.htmlFor="gy"), input("text"){bind(gridYInput)}.>(_.id="gy",_.value=gridY.toString,_.onchange = _ => gridY = gridYInput.value.value.toInt))
+  )
 trait EditLevelView:
   self : PongGamePage =>
     def editLvl():UserContext ?=>Unit =
@@ -50,8 +68,8 @@ trait EditLevelView:
       val placeRef = Ref[HTMLInputElement]()
       val deleteRef = Ref[HTMLInputElement]()
     
-      val gridXInput = Ref[HTMLInputElement]()
-      val gridYInput = Ref[HTMLInputElement]()
+     // val gridXInput = Ref[HTMLInputElement]()
+     // val gridYInput = Ref[HTMLInputElement]()
       val saveButton = Ref[HTMLButtonElement]()
       val board = u.board
       val rockMap = scala.collection.mutable.Map[Point,Rock]()
@@ -77,10 +95,7 @@ trait EditLevelView:
         board.draw()
         rockMap.values.foreach(_.draw())
 
-      val gridControl = div(
-        childs(<.label[HTMLLabelElement](text("gridX")).>(_.htmlFor="gx"), input("text"){bind(gridXInput)}.>(_.id="gx",_.value=gridX.toString,_.onchange = _ => gridX = gridXInput.value.value.toInt ),
-        <.label[HTMLLabelElement](text("gridY")).>(_.htmlFor="gy"), input("text"){bind(gridYInput)}.>(_.id="gy",_.value=gridY.toString,_.onchange = _ => gridY = gridYInput.value.value.toInt))
-        )
+      val gridControls = div
       val controlsHtml = div(
         childs(<.label[HTMLLabelElement](text("place")).>(_.htmlFor="place"), input("radio"){bind(placeRef)}.>(_.id="place",_.name="action",_.value="place",_.checked = true),
         <.label[HTMLLabelElement](text("delete")).>(_.htmlFor="delete"), input("radio"){bind(deleteRef)}.>(_.id="delete",_.name="action",_.value="delete")

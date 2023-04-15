@@ -32,6 +32,7 @@ import bon.jo.pong.service.ScoreServiceRest
 import scala.util.Failure
 import scala.util.Success
 import bon.jo.pong.SysBuilder.SysParam
+import bon.jo.pong.PongGamePage.Levelsinfo
 object avatarServeur extends Serveur[String]
 object Main:
   val gamePage = Page("Game")
@@ -64,11 +65,17 @@ object Main:
     given SiteMap = 
       val ret = Map[Page,(PageInfo,UserContext) ?=> Unit](gamePage-> {
         given ScoreService = ScoreServiceRest()
-        PongGamePage.go},
+        PongGamePage.withLevelsInfo{
+          PongGamePage.go
+        }
+        },
         editPage-> {
         given ScoreService = ScoreServiceRest()
-        
-        (new PongGamePage(PongGamePage.pngSystem) with EditLevelView).editLvl()},
+        PongGamePage.withLevelsInfo{
+          given GameInfo = GameInfo(lvl = 1)
+          (new PongGamePage(PongGamePage.pngSystem) with EditLevelView).editLvl()
+        }
+        },
         
         forumPage->{
         given PostService = PostServiceRest()

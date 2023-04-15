@@ -70,6 +70,10 @@ object Html:
     def :++(ee : Element *):E = 
       e.append(ee *)
       e
+
+    def -->[T <: Element](o : T):T = 
+      o.append(e)
+      o
   def _class[T <: HTMLElement](c : String):T ?=> Unit = 
     summon.className = c
   def bind[T <: HTMLElement](ref : Ref[T]):T ?=> Unit = 
@@ -80,3 +84,4 @@ object Html:
     ee.foreach(_(summon.style))
   def childs[T <: Element](ee : Element *):T ?=> Unit = 
     summon.:++(ee *)
+  inline def *[T <: Element]:T ?=>T = summon

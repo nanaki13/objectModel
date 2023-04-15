@@ -16,17 +16,21 @@ scalacOptions ++= Seq(          // use ++= to add to existing options
 
 
 lazy val root =(crossProject(JSPlatform, JVMPlatform) in file(".")).settings(
-  name := "bon-scala-common",
-  version := "1.1.1-SNAPSHOT",
+  name := "account-manager",
+  version := "1.0.0-SNPSHOT",
   organization := "bon.jo"
 
-).settings(commonSetting).
-  jvmSettings(
-    libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.41.2.1"
+).settings(commonSetting)
+.settings(
+    libraryDependencies += "bon.jo" %% "bon-scala-common" %  "1.1.1-SNAPSHOT"
+  ). jvmSettings(
+
 
   )
   .jsSettings(
-libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.4.0"
+libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.4.0",
+libraryDependencies += "bon.jo" %%% "html-dsl" % "0.1.2-SNAPSHOT",
+ libraryDependencies += "bon.jo" %%% "bon-scala-common" %  "1.1.1-SNAPSHOT"
   ).settings(
     libraryDependencies ++= testDep
   )
