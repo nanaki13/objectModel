@@ -20,7 +20,7 @@ object ScanDB:
       (
         r.getString("TABLE_SCHEM"),
         r.getString("TABLE_NAME"),
-        model.Column(r.getString("COLUMN_NAME"), r.getString("TYPE_NAME"))
+        model.Column(r.getString("COLUMN_NAME"), r.getString("TYPE_NAME"),r.getInt("DATA_TYPE"), "YES" == r.getString("IS_AUTOINCREMENT"))
       )
   def apply(e: Connection): model.DB =
     val schemas = e.getMetaData().getSchemas().toRawNamedList
@@ -28,11 +28,14 @@ object ScanDB:
       e.getMetaData().getTables(null, null, null, null).toRawNamedList
     val columns =
       e.getMetaData().getColumns(null, null, null, null).toRawNamedList
-
+    println("schemas row")
     schemas.foreach(println)
+    
     println("=" * 100)
+    println("tables row")
     tables.foreach(println)
     println("=" * 100)
+    println("columns row")
     columns.foreach(println)
     println("=" * 100)
 
